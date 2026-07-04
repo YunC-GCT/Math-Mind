@@ -1,0 +1,2 @@
+# obfuscation rules placeholder for cardservice
+# enable: false in build-profile.json5 - 但 hvigor 仍校验此文件路径存在

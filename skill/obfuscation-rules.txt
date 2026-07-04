@@ -1,0 +1,2 @@
+# Obfuscation rules for skill module
+# Add your obfuscation rules here
