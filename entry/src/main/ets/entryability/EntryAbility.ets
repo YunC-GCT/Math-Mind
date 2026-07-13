@@ -33,6 +33,13 @@ export default class EntryAbility extends UIAbility {
         navigationBarColor: '#00000000',
         statusBarContentColor: '#FFFFFFFF'  // 白色文字(适配深色 app 背景)
       });
+      // 3. 获取状态栏高度并存入 AppStorage,供页面做顶部偏移避免重叠
+      try {
+        const avoidArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+        AppStorage.setOrCreate('statusBarHeight', px2vp(avoidArea.topRect.height));
+      } catch (e) {
+        hilog.error(DOMAIN, 'testTag', 'Failed to get statusBarHeight. Cause: %{public}s', JSON.stringify(e));
+      }
     }).catch((err: Error) => {
       hilog.error(DOMAIN, 'testTag', 'Failed to set immersive status bar. Cause: %{public}s', JSON.stringify(err));
     });

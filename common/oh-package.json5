@@ -2,6 +2,7 @@
   "name": "common",
   "version": "1.0.0",
   "description": "MathMind shared common",
+  "main": "./src/main/ets/Index.ets",
   "author": "",
   "license": ""
 }

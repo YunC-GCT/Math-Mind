@@ -1,67 +1,86 @@
-// MathMind - ReviewPage (复习 Tab)
-// 来源: Web MVP index.html page-review 区块
-// 任务编号: UI 批次 2 · 第 2 步
-// 责任: 你 + Mavis
-// 状态: 真实 UI 实现(第 2 批,空状态 + 引导)
-//
-// 结构(对照 Web MVP):
-//   居中布局:
-//     📋 emoji (48vp)
-//     复习计划 标题 (16sp 粗体)
-//     副标题 (13sp 灰,两行)
-//     "去 AI 对话" 按钮 (mint 渐变)
-//       → 调 onGoAI callback 切到 AI Tab
+/**
+ * MathMind 复习计划页 — 对照 iOS Web MVP page-review
+ * MVP 阶段：空状态 + 引导去 AI
+ * 对照 CSS inline style: flex column centered, height 60vh, gap 12px
+ */
 
 import {
-  BG, MINT, MINT_DARK, TEXT, TEXT_3,
-  S_2, S_3, S_4, S_5, S_6,
-  T_SM, T_MD, T_LG
-} from 'common/src/main/ets/constants/ColorTokens';
+  MINT,
+  MINT_DARK,
+  TEXT,
+  TEXT_3,
+  S_1,
+  S_2,
+  S_3,
+  R_FULL,
+  F_SM,
+  F_BASE,
+  F_MD,
+  F_XL,
+  F_2XL,
+} from 'common';
 
 @Component
 export struct ReviewPage {
-  // 父级传入的回调,通知父级切到 AI Tab
-  onGoAI: () => void = () => {};
+  // 父组件传入的 Tab 切换回调
+  onGoAI: () => void = () => {
+  };
 
   build() {
-    Column() {
-      Blank()  // 顶部弹性空白
-      Text('📋')
-        .fontSize(48)
-        .textAlign(TextAlign.Center)
-        .width('100%')
-      Text('复习计划')
-        .fontSize(T_LG)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(TEXT)
-        .margin({ top: S_3 })
-      Text('通过 AI 对话分析笔记后\n自动生成个性化复习计划')
-        .fontSize(T_SM)
-        .fontColor(TEXT_3)
-        .textAlign(TextAlign.Center)
-        .margin({ top: S_2 })
-        .padding({ left: 40, right: 40 })
-        .lineHeight(20)
-      Button('去 AI 对话')
-        .padding({ left: S_5, right: S_5, top: S_3, bottom: S_3 })
-        .margin({ top: S_4 })
-        .fontSize(T_MD)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(BG)
-        .backgroundColor(MINT)
-        .linearGradient({
-          angle: 135,
-          colors: [[MINT, 0.0], [MINT_DARK, 1.0]]
-        })
-        .borderRadius(S_3)
-        .onClick(() => {
-          this.onGoAI();
-        })
-      Blank()  // 底部弹性空白
+    Scroll() {
+      Column() {
+        Blank();
+
+        // ===== 空状态区 =====
+        Column() {
+          // 📋 emoji（对照 CSS font-size:48px）
+          Text('📋')
+            .fontSize(F_2XL + 18)
+            .margin({ bottom: 12 });
+
+          // 标题（对照 CSS font-size:16px font-weight:600）
+          Text('复习计划')
+            .fontSize(F_BASE + 1)
+            .fontWeight(600)
+            .fontColor(TEXT)
+            .margin({ bottom: 8 });
+
+          // 副标题（对照 CSS font-size:13px color:var(--text-3)）
+          Text('通过 AI 对话分析笔记后\n自动生成个性化复习计划')
+            .fontSize(F_SM + 1)
+            .fontColor(TEXT_3)
+            .textAlign(TextAlign.Center)
+            .lineHeight(20)
+            .margin({ bottom: 16 });
+
+          // "去 AI 对话" 按钮（对照 CSS .btn-primary mint 渐变）
+          Button('去 AI 对话')
+            .fontSize(F_SM)
+            .fontWeight(600)
+            .fontColor('#FF0A0C10')
+            .width(140)
+            .height(40)
+            .borderRadius(R_FULL)
+            .linearGradient({
+              angle: 135,
+              colors: [
+                [MINT, 0],
+                [MINT_DARK, 1],
+              ],
+            })
+            .onClick(() => {
+              this.onGoAI();
+            });
+        }
+        .alignItems(HorizontalAlign.Center)
+        .width('100%');
+
+        Blank();
+      }
+      .width('100%')
+      .height('100%');
     }
     .width('100%')
-    .height('100%')
-    .backgroundColor(BG)
-    .justifyContent(FlexAlign.Center)
+    .height('100%');
   }
 }

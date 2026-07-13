@@ -1,177 +1,232 @@
-// MathMind - MePage (我的 Tab)
-// 来源: Web MVP index.html page-me 区块
-// 任务编号: UI 批次 2 · 第 3 步
-// 责任: 你 + Mavis
-// 状态: 真实 UI 实现(第 2 批)
-//
-// 结构(对照 Web MVP):
-//   - 头像区: 圆形"M"头像 + 用户名"Mini" + 邮箱 + tagline
-//   - 3 统计方块(笔记 5 / 掌握率 75% / 今日新增 0)
-//   - 5 菜单项(复习计划/错题本/收藏/设置/切换账号)→ 点击 toast
-//   - 退出登录按钮(红色描边)
-//   - 底部 80vp 留白
+/**
+ * MathMind 个人中心页 — 对照 iOS Web MVP page-me
+ * 对照 CSS .me-wrap / .me-avatar / .me-stats / .me-menu / .mm / .me-logout-btn
+ */
 
-import { promptAction } from '@kit.ArkUI';
 import {
-  BG, MINT, MINT_LIGHT, PURPLE, RED,
-  TEXT, TEXT_2, TEXT_3, TEXT_4,
-  SURFACE, BORDER,
-  S_1, S_2, S_3, S_4, S_5, S_6,
-  T_BASE, T_SM, T_MD, T_LG
-} from 'common/src/main/ets/constants/ColorTokens';
+  MINT,
+  MINT_DARK,
+  PURPLE,
+  BG_DARK,
+  BG_CARD,
+  BORDER,
+  TEXT,
+  TEXT_2,
+  TEXT_3,
+  TEXT_4,
+  S_1,
+  S_2,
+  S_3,
+  S_4,
+  R_MD,
+  R_LG,
+  R_FULL,
+  F_XS,
+  F_SM,
+  F_BASE,
+  F_MD,
+  F_LG,
+  F_XL,
+  F_2XL,
+  NoteItem,
+  NOTES,
+} from 'common';
+import { promptAction } from '@kit.ArkUI';
 
 @Component
 export struct MePage {
-  @State userName: string = 'Mini';
-  @State notesCount: number = 5;
-  @State masteredPct: number = 75;
-  @State todayNew: number = 0;
+  // ========== 计算统计 ==========
+  private notes: NoteItem[] = NOTES;
+  private avg: number = this.notes.length > 0
+    ? Math.round(this.notes.reduce((a: number, n: NoteItem) => a + n.conf, 0) / this.notes.length * 100)
+    : 0;
 
-  // 工具:全局 toast(用 HarmonyOS 系统 promptAction)
-  showToast(msg: string) {
-    promptAction.showToast({ message: msg, duration: 2000 });
+  /** 今日新增（对照 app.js 计算当天日期） */
+  private todayNew(): number {
+    const today = new Date();
+    const ds = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return this.notes.filter((n: NoteItem) => n.date === ds).length;
   }
 
   build() {
     Scroll() {
       Column() {
-        // ============ 1. 头像区 ============
+        // ===== 头像区 =====
         Column() {
-          // 头像"M"圆形渐变绿
-          Text('M')
-            .width(60).height(60)
-            .borderRadius(9999)
-            .fontSize(24)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(BG)
-            .textAlign(TextAlign.Center)
-            .linearGradient({
-              angle: 135,
-              colors: [['#34D399', 0.0], ['#10B981', 1.0]]
-            })
-            .margin({ top: S_5, bottom: S_3 })
+          // 头像（对照 CSS .me-avatar: 60×60, gradient #34d399→#10b981）
+          Stack() {
+            Stack()
+              .width(60)
+              .height(60)
+              .borderRadius(R_FULL)
+              .linearGradient({
+                angle: 135,
+                colors: [
+                  ['#FF34D399', 0],
+                  ['#FF10B981', 1],
+                ],
+              })
+              .shadow({
+                radius: 14,
+                color: '#5934D399',
+                offsetY: 4,
+              });
 
-          // 用户名
-          Text(this.userName)
-            .fontSize(20)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(TEXT)
-
-          // 邮箱
-          Text('已登录 · 模拟账号')
-            .fontSize(11.5)
-            .fontColor(TEXT_3)
-            .margin({ top: S_1, bottom: S_2 + 2 })
-
-          // tagline
-          Row() {
-            Text('Where math clicks. ')
-              .fontColor(MINT)
-              .fontStyle(FontStyle.Italic)
-            Text('·')
-              .fontColor(PURPLE)
-              .fontWeight(FontWeight.Bold)
-            Text(' 思维的长程记忆')
-              .fontColor(MINT)
-              .fontStyle(FontStyle.Italic)
+            Text('M')
+              .fontSize(F_XL + 2)
+              .fontWeight(700)
+              .fontColor('#FF0A0C10');
           }
-          .fontSize(T_BASE)
-          .margin({ bottom: S_4 })
+          .width(60)
+          .height(60)
+          .alignContent(Alignment.Center)
+          .margin({ bottom: 12 });
+
+          // 用户名（对照 CSS .me-name: 20px/700）
+          Text('Mini')
+            .fontSize(F_LG)
+            .fontWeight(700)
+            .fontColor(TEXT)
+            .margin({ bottom: 4 });
+
+          // 邮箱（对照 CSS .me-email: 11.5px/text-3）
+          Text('已登录 · 模拟账号')
+            .fontSize(F_XS)
+            .fontColor(TEXT_3)
+            .margin({ bottom: 10 });
+
+          // tagline（对照 CSS .me-tagline: 12px/mint italic, purple dot）
+          Row() {
+            Text('Where math clicks.')
+              .fontSize(F_SM)
+              .fontColor(MINT)
+              .fontStyle(FontStyle.Italic);
+
+            Text(' · ')
+              .fontSize(F_SM)
+              .fontColor(PURPLE)
+              .fontWeight(700);
+
+            Text('思维的长程记忆')
+              .fontSize(F_SM)
+              .fontColor(MINT)
+              .fontStyle(FontStyle.Italic);
+          }
+          .margin({ bottom: 18 });
         }
         .width('100%')
-        .alignItems(HorizontalAlign.Center)
+        .alignItems(HorizontalAlign.Center);
 
-        // ============ 2. 3 统计方块 ============
-        Row({ space: 10 }) {
-          this.StatBox(this.notesCount.toString(), '笔记')
-          this.StatBox(this.masteredPct + '%', '掌握率')
-          this.StatBox(this.todayNew.toString(), '今日新增')
+        // ===== 3 统计方块（对照 CSS .me-stats flex gap:10） =====
+        Row() {
+          this.SBox(`${this.notes.length}`, '笔记');
+          this.SBox(`${this.avg}%`, '掌握率');
+          this.SBox(`${this.todayNew()}`, '今日新增');
         }
         .width('100%')
-        .padding({ left: S_5, right: S_5 })
+        .padding({ left: S_2, right: S_2 })
+        .margin({ bottom: 18 });
 
-        // ============ 3. 5 菜单项 ============
+        // ===== 5 菜单项（对照 CSS .me-menu / .mm） =====
         Column() {
-          this.MenuRow('📋', '我的复习计划')
-          this.MenuRow('📕', '错题本')
-          this.MenuRow('⭐', '我的收藏')
-          this.MenuRow('⚙️', '设置')
-          this.MenuRow('🚪', '切换账号')
+          this.MenuItem('📋', '我的复习计划', '复习计划开发中');
+          this.MenuItem('📕', '错题本', '错题本开发中');
+          this.MenuItem('⭐', '我的收藏', '收藏功能开发中');
+          this.MenuItem('⚙️', '设置', '设置开发中');
+          this.MenuItem('🚪', '切换账号', '切换账号开发中');
         }
         .width('100%')
-        .margin({ top: S_3, left: S_4, right: S_4 })
-        .backgroundColor(SURFACE)
-        .border({ width: 1, color: BORDER })
-        .borderRadius(S_3)
-        .clip(true)
+        .padding({ left: S_2, right: S_2 })
+        .margin({ bottom: 14 });
 
-        // ============ 4. 退出登录按钮 ============
+        // ===== 退出登录按钮（对照 CSS .me-logout-btn） =====
         Button('退出登录')
+          .fontSize(F_SM)
+          .fontWeight(600)
+          .fontColor('#FFFF6B6B')
           .width('100%')
           .height(44)
-          .margin({ left: S_4, right: S_4, top: S_3 })
-          .fontSize(T_MD)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(RED)
-          .backgroundColor(SURFACE)
-          .border({ width: 1, color: '#33FF6B6B' })
-          .borderRadius(S_3)
+          .borderRadius(R_LG)
+          .backgroundColor('#26FF6B6B')
+          .border({ width: 1, color: '#4DFF6B6B' })
+          .margin({ left: S_2, right: S_2, bottom: 60 })
           .onClick(() => {
-            this.showToast('已退出登录(模拟)');
-          })
-
-        // 底部留白
-        Blank().height(80)
+            this.toast('退出登录开发中');
+          });
       }
       .width('100%')
+      .padding({
+        top: 20,
+      });
     }
-    .layoutWeight(1)
     .width('100%')
-    .scrollBar(BarState.Off)
-    .edgeEffect(EdgeEffect.Spring)
-    .friction(0.6)
+    .height('100%');
   }
 
+  // ========== 统计方块 ==========
   @Builder
-  StatBox(num: string, label: string) {
+  SBox(value: string, label: string) {
     Column() {
-      Text(num)
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(TEXT)
+      Text(value)
+        .fontSize(F_MD + 3)
+        .fontWeight(700)
+        .fontColor(TEXT);
       Text(label)
-        .fontSize(10)
+        .fontSize(F_XS)
         .fontColor(TEXT_3)
-        .margin({ top: 3 })
+        .margin({ top: 3 });
     }
     .layoutWeight(1)
-    .backgroundColor(SURFACE)
+    .padding({ top: 12, bottom: 12 })
+    .borderRadius(12)
+    .backgroundColor('#08FFFFFF')
     .border({ width: 1, color: BORDER })
-    .borderRadius(S_3)
-    .padding(S_3)
     .alignItems(HorizontalAlign.Center)
+    .margin({ left: S_1, right: S_1 });
   }
 
+  // ========== 菜单项（对照 CSS .mm） ==========
   @Builder
-  MenuRow(icon: string, label: string) {
-    Row({ space: S_3 }) {
+  MenuItem(icon: string, label: string, msg: string) {
+    Row() {
+      // 左图标
       Text(icon)
-        .fontSize(18)
+        .fontSize(F_MD + 1)
         .width(22)
         .textAlign(TextAlign.Center)
+        .flexShrink(0);
+
+      // 文字
       Text(label)
-        .fontSize(T_MD)
+        .fontSize(F_SM)
         .fontColor(TEXT_2)
         .layoutWeight(1)
+        .margin({ left: 12 });
+
+      // 右箭头 ›
       Text('›')
-        .fontSize(18)
-        .fontColor(TEXT_4)
+        .fontSize(F_MD + 1)
+        .fontColor(TEXT_4);
     }
     .width('100%')
-    .padding({ left: S_4, right: S_4, top: S_3 + 2, bottom: S_3 + 2 })
-    .backgroundColor(SURFACE)
-    .onClick(() => {
-      this.showToast(label + ' 开发中');
+    .padding({
+      left: 16,
+      right: 16,
+      top: 13,
+      bottom: 13,
     })
+    .border({ width: { bottom: 1 }, color: BORDER })
+    .onClick(() => {
+      this.toast(msg);
+    });
+  }
+
+  // ========== Toast 提示 ==========
+  private toast(msg: string): void {
+    promptAction.showToast({
+      message: msg,
+      duration: 2000,
+      bottom: '50%',
+    });
   }
 }

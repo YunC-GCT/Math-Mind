@@ -7,7 +7,6 @@
 import {
   MINT,
   MINT_DARK,
-  MINT_GLOW,
   PURPLE,
   BG_DARK,
   BORDER,
@@ -161,28 +160,24 @@ struct Index {
   @Builder
   AiBtn(i: number) {
     Column() {
+      // CSS .tab-ai-icon: 44×44 circle, linear-gradient(135deg, #5BE3B0, #9775FA)
       Stack() {
-        // CSS .tab-ai-icon: 44×44 circle, linear-gradient(135deg, #5BE3B0, #9775FA)
-        Circle({ width: 44, height: 44 })
-          .fill('#00000000')
-          .linearGradient({
-            angle: 135,
-            colors: [[MINT, 0], [PURPLE, 1]],
-          })
-          // CSS box-shadow: 0 6px 20px rgba(91,227,176,0.45), 0 0 28px rgba(151,117,250,0.35)
-          .shadow({
-            radius: 20,
-            color: '#735BE3B0',
-            offsetX: 0,
-            offsetY: 6,
-          });
-
-        // CSS .tab-ai-icon svg: 20×20, color:#0A0C10
         Image($r('app.media.ic_ai'))
           .width(20).height(20)
           .fillColor('#FF0A0C10');
       }
-      .width(44).height(44);
+      .width(44).height(44).borderRadius(22)
+      .linearGradient({
+        angle: 135,
+        colors: [[MINT, 0], [PURPLE, 1]],
+      })
+      // CSS box-shadow: 0 6px 20px rgba(91,227,176,0.45), 0 0 28px rgba(151,117,250,0.35)
+      .shadow({
+        radius: 20,
+        color: '#735BE3B0',
+        offsetX: 0,
+        offsetY: 6,
+      });
     }
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Center)

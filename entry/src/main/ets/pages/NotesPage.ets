@@ -1,128 +1,165 @@
-// MathMind - NotesPage (笔记 Tab)
-// 来源: Web MVP index.html page-notes 区块
-// 任务编号: UI 批次 2 · 第 1 步
-// 责任: 你 + Mavis
-// 状态: 真实 UI 实现(第 2 批)
-//
-// 结构:
-//   - 顶部标题: "全部笔记 · 5 条"
-//   - 5 条笔记列表(复用 HomePage 的 NoteCard 视觉)
-//   - Scroll 包装(5 条全可见)
-//   - 底部 80vp 留白避免被 FAB 遮
+/**
+ * MathMind 笔记列表页 — 对照 iOS Web MVP page-notes
+ * 复用 HomePage note-card 视觉：渐变图标 + 彩色 meta + 标题 + 摘要
+ * 对照 CSS .note-list / .note-card 分隔线模式
+ */
 
 import {
-  BG, TEXT, TEXT_2, TEXT_3,
-  S_2, S_3, S_4, S_5, S_6,
-  T_BASE, T_MD, T_SM, T_LG, T_XS
-} from 'common/src/main/ets/constants/ColorTokens';
-
-import {
-  NoteView, MOCK_NOTES,
-  getTypeColor, getSubjectColor, getConfColor, getConfText, getBodyPreview
-} from '../components/notes/notesData';
+  MINT,
+  PURPLE,
+  BORDER,
+  SUBJECT_COLORS,
+  TYPE_COLORS,
+  TEXT,
+  TEXT_2,
+  TEXT_3,
+  TEXT_4,
+  S_1,
+  S_2,
+  S_3,
+  S_4,
+  R_MD,
+  R_LG,
+  F_XS,
+  F_SM,
+  F_BASE,
+  F_MD,
+  NoteItem,
+  NOTES,
+  stripMD,
+  recentDate,
+  typeChar,
+  typeColor,
+  subjectColor,
+} from 'common';
 
 @Component
 export struct NotesPage {
-  @State notes: NoteView[] = MOCK_NOTES;
+  private notes: NoteItem[] = NOTES;
 
   build() {
     Scroll() {
       Column() {
-        // 顶部标题
-        Row() {
-          Text('全部笔记')
-            .fontSize(T_LG)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(TEXT)
-          Text(' · ' + this.notes.length + ' 条')
-            .fontSize(T_SM)
-            .fontColor(TEXT_3)
-        }
-        .width('100%')
-        .padding({ left: S_5, right: S_5, top: S_3, bottom: S_2 })
+        // ===== 标题栏 =====
+        Text(`全部笔记 · ${this.notes.length} 条`)
+          .fontSize(F_MD)
+          .fontWeight(600)
+          .fontColor(TEXT)
+          .width('100%')
+          .padding({
+            left: 20,
+            right: 20,
+            top: 14,
+            bottom: 10,
+          });
 
-        // 笔记列表(ForEach + Column 避免 nested scroll)
-        Column() {
-          ForEach(this.notes, (note: NoteView) => {
-            this.NoteCard(note)
-          }, (note: NoteView) => note.id.toString())
-        }
-        .width('100%')
+        // ===== 笔记列表（分隔线模式） =====
+        ForEach(this.notes, (note: NoteItem, idx: number) => {
+          this.NoteCard(note, idx === this.notes.length - 1);
+        });
 
-        // 底部留白
-        Blank().height(80)
+        // FAB 留白
+        Blank().height(80);
       }
-      .width('100%')
+      .width('100%');
     }
-    .layoutWeight(1)
     .width('100%')
-    .scrollBar(BarState.Off)
-    .edgeEffect(EdgeEffect.Spring)
-    .friction(0.6)
+    .height('100%')
+    .scrollable(ScrollDirection.Vertical);
   }
 
+  // ========== 笔记卡片（对照 CSS .note-card 分隔线模式） ==========
   @Builder
-  NoteCard(note: NoteView) {
-    Row({ space: S_3 }) {
-      // 类型图标(渐变)
-      Text(getTypeColor(note.type).substring(1, 2))
-        .fontSize(14)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(BG)
-        .width(36).height(36)
-        .borderRadius(10)
-        .linearGradient({
-          angle: 135,
-          colors: [
-            [getTypeColor(note.type), 0.0],
-            [getSubjectColor(note.subject), 1.0]
-          ]
-        })
-        .textAlign(TextAlign.Center)
+  NoteCard(note: NoteItem, isLast: boolean) {
+    Row() {
+      // --- 渐变图标（对照 CSS .note-icon 36×36） ---
+      Stack() {
+        Stack()
+          .width(36)
+          .height(36)
+          .borderRadius(R_MD + 1)
+          .linearGradient({
+            angle: 135,
+            colors: [
+              [typeColor(note.type), 0],
+              [subjectColor(note.subject), 1],
+            ],
+          });
 
-      // 笔记信息
-      Column({ space: 3 }) {
+        Text(typeChar(note.type))
+          .fontSize(F_MD + 2)
+          .fontWeight(700)
+          .fontColor('#FF0A0C10');
+      }
+      .width(36)
+      .height(36)
+      .alignContent(Alignment.Center);
+
+      // --- 右侧内容 ---
+      Column() {
+        // meta 行：学科 · 类型 · 日期 · 百分比
         Row() {
           Text(note.subject)
-            .fontSize(10.5)
-            .fontColor(getSubjectColor(note.subject))
-            .fontWeight(FontWeight.Bold)
-            .margin({ right: 6 })
-          Text(note.type)
-            .fontSize(10.5)
-            .fontColor(getTypeColor(note.type))
-            .fontWeight(FontWeight.Bold)
-            .margin({ right: 6 })
-          Text(note.date)
-            .fontSize(10.5)
-            .fontColor(TEXT_3)
-          Text(' · ' + getConfText(note.conf))
-            .fontSize(10.5)
-            .fontColor(getConfColor(note.conf))
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.Start)
+            .fontSize(F_XS)
+            .fontColor(subjectColor(note.subject))
+            .fontWeight(500);
 
+          Text(' · ')
+            .fontSize(F_XS)
+            .fontColor(TEXT_4);
+
+          Text(note.type)
+            .fontSize(F_XS)
+            .fontColor(typeColor(note.type))
+            .fontWeight(500);
+
+          Text(' · ')
+            .fontSize(F_XS)
+            .fontColor(TEXT_4);
+
+          Text(recentDate(note.date))
+            .fontSize(F_XS)
+            .fontColor(TEXT_3);
+
+          Blank();
+
+          Text(`${Math.round(note.conf * 100)}%`)
+            .fontSize(F_XS)
+            .fontColor(note.conf > 0.8 ? MINT : note.conf > 0.5 ? '#FFFBBF24' : '#FFFF6B6B')
+            .fontWeight(600);
+        }
+        .width('100%');
+
+        // 标题
         Text(note.title)
-          .fontSize(T_MD)
+          .fontSize(F_SM)
+          .fontWeight(600)
           .fontColor(TEXT)
-          .fontWeight(FontWeight.Bold)
+          .margin({ top: 4 })
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
+          .width('100%');
 
-        Text(getBodyPreview(note.body))
-          .fontSize(12.5)
+        // 摘要（2 行截断）
+        Text(stripMD(note.body, 80))
+          .fontSize(F_XS)
           .fontColor(TEXT_3)
+          .margin({ top: 2 })
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
+          .lineHeight(16)
+          .width('100%');
       }
       .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
+      .margin({ left: 12 });
     }
     .width('100%')
-    .padding({ left: S_5, right: S_5, top: S_3 + 2, bottom: S_3 + 2 })
     .alignItems(VerticalAlign.Top)
+    .padding({ left: 20, right: 20, top: 14, bottom: 14 })
+    // 分隔线（最后一条无边线）
+    .border({
+      width: { bottom: isLast ? 0 : 1 },
+      color: BORDER,
+    });
   }
 }
