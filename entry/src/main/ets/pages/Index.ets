@@ -79,11 +79,11 @@ struct Index {
   @Builder
   TabBar() {
     Row() {
-      this.TabItem(0, '首页', '🏠')
-      this.TabItem(1, '笔记', '📁')
+      this.TabItem(0, '首页', $r('app.media.ic_home'))
+      this.TabItem(1, '笔记', $r('app.media.ic_notes'))
       this.AiTabItem(2)
-      this.TabItem(3, '复习', '📋')
-      this.TabItem(4, '我的', '👤')
+      this.TabItem(3, '复习', $r('app.media.ic_review'))
+      this.TabItem(4, '我的', $r('app.media.ic_me'))
     }
     .width('100%')
     .height(TABBAR_H)
@@ -100,11 +100,11 @@ struct Index {
   }
 
   @Builder
-  TabItem(index: number, label: string, icon: string) {
+  TabItem(index: number, label: string, iconRes: Resource) {
     Column({ space: 2 }) {
-      Text(icon)
-        .fontSize(20)
-        .fontColor(this.currentTab === index ? MINT : TEXT_3)
+      Image(iconRes)
+        .width(22).height(22)
+        .fillColor(this.currentTab === index ? MINT : TEXT_3)
       Text(label)
         .fontSize(10)
         .fontColor(this.currentTab === index ? MINT : TEXT_3)
@@ -123,22 +123,27 @@ struct Index {
   @Builder
   AiTabItem(index: number) {
     Column() {
-      Text('✦')
-        .fontSize(20)
-        .fontColor(BG)
-        .width(44).height(44)
-        .borderRadius(R_FULL)
-        .linearGradient({
-          angle: 135,
-          colors: [[MINT, 0.0], [PURPLE, 1.0]]
-        })
-        .textAlign(TextAlign.Center)
-        .shadow({
-          radius: 20,
-          color: MINT,
-          offsetX: 0,
-          offsetY: 6
-        })
+      Stack() {
+        // 底层:渐变圆
+        Row()
+          .width(44).height(44)
+          .borderRadius(R_FULL)
+          .linearGradient({
+            angle: 135,
+            colors: [[MINT, 0.0], [PURPLE, 1.0]]
+          })
+        // 上层:AI 星形图标
+        Image($r('app.media.ic_ai'))
+          .width(22).height(22)
+          .fillColor(BG)
+      }
+      .width(44).height(44)
+      .shadow({
+        radius: 20,
+        color: MINT,
+        offsetX: 0,
+        offsetY: 6
+      })
     }
     .layoutWeight(1)
     .padding({ top: 6, bottom: 6 })

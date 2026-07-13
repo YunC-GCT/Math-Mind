@@ -168,10 +168,10 @@ export struct HomePage {
   @Builder
   Header() {
     Row({ space: S_2 }) {
-      // 六边形 logo
-      Text('⬡')
-        .fontSize(22)
-        .fontColor(MINT)
+      // 六边形 brand logo (SVG,对照 Web MVP)
+      Image($r('app.media.ic_brand'))
+        .width(22).height(22)
+        .fillColor(MINT)
 
       Text('MathMind')
         .fontSize(17)
