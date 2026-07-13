@@ -43,18 +43,26 @@ MathMind/
 > 整链时序见 `docs/D1_CAPTURE_CHAIN_PLAN.md`  
 > 详细分工见 `docs/TONIGHT_TASKS.md`
 
-### 2.1 8 文件分工 (按 TONIGHT_TASKS 编号)
+### 2.1 8 文件分工 (按 TONIGHT_TASKS 编号 · 3 人独立开发模式)
 
 | 编号 | 文件 | 责任 | 内容 | 状态 |
 |------|------|------|------|------|
-| **A1** | `entry/src/main/ets/database/NoteDao.ets` | Mavis | RDB `insert(unit)` + `queryById(id)` | 🟡 空壳待填 |
-| **A2** | `entry/src/main/ets/services/ApiClient.ets` | Mavis | HTTP `request()` + JWT 注入 + 401 重试 | 🟡 空壳待填 |
-| **B1** | `agents/src/main/ets/mcp/tools/OcrTool.ets` | D | `recognize(imageBase64)` → ML Kit OCR | 🟡 空壳待填 |
-| **B2** | `agents/src/main/ets/agents/TypeClassifier.ets` | D | `classify(input)` → OCR + DeepSeek 3×3 分类 | 🟡 空壳待填 |
-| **C** | `agents/src/main/ets/agents/KnowledgeModel.ets` | L | 3 模板 + 真值检验 + `NoteDao.insert` | 🟡 空壳待填 |
-| **D** | `agents/src/main/ets/core/Dispatcher.ets` | 用户 | L1 关键词 "记/拍/这题" → routeDispatch D1 分支 | 🟡 空壳待填 |
-| **E1** | `entry/src/main/ets/services/AiService.ets` | 用户 | `capture(imageUri)` → base64 → POST dispatch | 🟡 空壳待填 |
-| **E2** | `entry/src/main/ets/overlays/CameraOverlay.ets` | 用户 | 相机预览 + 快门 + 相册 → imageUri | 🟡 空壳待填 |
+| **A1** | `entry/src/main/ets/database/NoteDao.ets` | **L** | RDB `insert(unit)` + `queryById(id)` | 🟡 空壳待填 |
+| **A2** | `entry/src/main/ets/services/ApiClient.ets` | **你 + Mavis** | HTTP `request()` + JWT 注入 + 401 重试 | 🟡 空壳待填 |
+| **B1** | `agents/src/main/ets/mcp/tools/OcrTool.ets` | **D** | `recognize(imageBase64)` → ML Kit OCR | 🟡 空壳待填 |
+| **B2** | `agents/src/main/ets/agents/TypeClassifier.ets` | **D** | `classify(input)` → OCR + DeepSeek 3×3 分类 | 🟡 空壳待填 |
+| **C** | `agents/src/main/ets/agents/KnowledgeModel.ets` | **L** | 3 模板 + 真值检验 + `NoteDao.insert` | 🟡 空壳待填 |
+| **D** | `agents/src/main/ets/core/Dispatcher.ets` | **你 + Mavis** | L1 关键词 "记/拍/这题" → routeDispatch D1 分支 | 🟡 空壳待填 |
+| **E1** | `entry/src/main/ets/services/AiService.ets` | **你 + Mavis** | `capture(imageUri)` → base64 → POST dispatch | 🟡 空壳待填 |
+| **E2** | `entry/src/main/ets/overlays/CameraOverlay.ets` | **你 + Mavis** | 相机预览 + 快门 + 相册 → imageUri | 🟡 空壳待填 |
+
+#### 3 人工作量
+
+| 人 | 文件数 | 编号 |
+|----|--------|------|
+| **你 + Mavis** | 4 | A2 + D + E1 + E2 |
+| **D** | 2 | B1 + B2 |
+| **L** | 2 | A1 + C |
 
 ### 2.2 关键约束 (摘自 D1_CAPTURE_CHAIN_PLAN.md)
 
@@ -81,18 +89,32 @@ MathMind/
 - LaTeX 语法 $ $ { } 配对
 - 结果 `truthFlag: 'valid' | 'warning' | 'error'`,UI 只对 error 标红
 
-### 2.3 依赖顺序 (串行 / 同层可并行)
+### 2.3 依赖顺序 (3 人组内串行 / 组间可并行)
 
 ```
-A1 (NoteDao) ─────┐
-                  ├── B1 (OcrTool) ──────┐
-A2 (ApiClient) ───┘                       ├── C (KnowledgeModel) ──┐
-                  └── B2 (TypeClassifier) ┘                        ├── D (Dispatcher) ──┐
-                                                                       │                  ├── E1 (AiService)
-                                                                       │                  └── E2 (CameraOverlay)
-                                                                       │
-                                                  L 写 C · 用户写 D · 用户写 E1/E2
+你 + Mavis (4 文件)        D (2 文件)              L (2 文件)
+─────────────────         ──────────              ──────────
+A2 (ApiClient)  ──┐
+                  ├── D (Dispatcher) ──┐
+                  │                     ├── E1 (AiService)  ← 集成时
+                  │                     │   E2 (CameraOverlay) ← 调用 AiService
+                  │
+                  │       B1 (OcrTool) ──┐
+                  │                       ├── B2 (TypeClassifier)
+                  │                       │
+                  │                       A1 (NoteDao) ──┐
+                  │                                       ├── C (KnowledgeModel)
+                  │                                       │
+                  └──────────────────────────────────────┘
+                              ↓ 集成时再串起来
+                  C 被 D 调用 · D 被 E1 调用 · E1 被 E2 调用
 ```
+
+**3 组内部串行 / 3 组间并行**：
+- **你 + Mavis**: 先 A2 (HTTP) → 后 D (路由) → 最后 E1+E2 (UI)
+- **D**: 先 B1 (OCR) → 后 B2 (分类)
+- **L**: 先 A1 (DB) → 后 C (建模)
+- **集成**: 3 组完成后，由你 merge 3 个 feature branch 到 main
 
 ### 2.4 整链接口契约
 
