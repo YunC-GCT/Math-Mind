@@ -40,6 +40,7 @@ import {
   typeColor,
   subjectColor,
 } from 'common';
+import { NoteDetailOverlay } from '../overlays/NoteDetailOverlay';
 
 // ========== 本地工具函数 ==========
 function greet(): string {
@@ -135,6 +136,10 @@ export struct HomePage {
   @State g: string = '';
   @State d: string = '';
   @State avg: number = 75;
+  @State selectedNote: NoteItem | null = null;
+
+  // 关闭笔记详情浮层
+  closeDetail = (): void => { this.selectedNote = null; };
 
   // 回调(由 Index.ets 传入,触发 CameraOverlay 浮层)
   onGoCamera: () => void = () => {};
@@ -310,6 +315,14 @@ export struct HomePage {
       .shadow({ radius: 28, color: '#595BE3B0', offsetX: 0, offsetY: 8 })
       .margin({ right: 20, bottom: 16 })
       .onClick(() => this.onGoCamera());
+
+      // ===== NoteDetailOverlay 浮层 =====
+      if (this.selectedNote !== null) {
+        NoteDetailOverlay({
+          note: this.selectedNote!,
+          onClose: () => { this.selectedNote = null; }
+        })
+      }
     }
     .width('100%').height('100%').backgroundColor(BG_DARK);
   }
@@ -391,6 +404,7 @@ export struct HomePage {
     .border({
       width: { bottom: isLast ? 0 : 1 },
       color: BORDER,
-    });
+    })
+    .onClick(() => { this.selectedNote = note; });
   }
 }
