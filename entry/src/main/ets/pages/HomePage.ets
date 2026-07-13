@@ -179,8 +179,10 @@ export struct HomePage {
         .fontColor(TEXT)
     }
     .width('100%')
-    .height(HEADER_H)
-    .padding({ left: S_4, right: S_4, top: STATUS_BAR_H })  // top 留给系统 status bar
+    // 总高 = status bar 间距 (48vp) + Header 内容 (54vp) = 102vp
+    // padding.top 占走 48vp, 文字居中在底下 54vp 内容区
+    .height(HEADER_H + STATUS_BAR_H)
+    .padding({ left: S_4, right: S_4, top: STATUS_BAR_H })
     .alignItems(VerticalAlign.Center)
   }
 
