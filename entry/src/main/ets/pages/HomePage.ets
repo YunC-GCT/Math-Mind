@@ -179,10 +179,10 @@ export struct HomePage {
         .fontColor(TEXT)
     }
     .width('100%')
-    // 总高 = status bar 间距 (48vp) + Header 内容 (54vp) = 102vp
-    // padding.top 占走 48vp, 文字居中在底下 54vp 内容区
-    .height(HEADER_H + STATUS_BAR_H)
-    .padding({ left: S_4, right: S_4, top: STATUS_BAR_H })
+    // 沉浸式 status bar: app 内容延伸到 status bar 区域,Header 紧贴屏幕顶部
+    // EntryAbility 设 setWindowLayoutFullScreen + status bar 透明背景
+    .height(HEADER_H)
+    .padding({ left: S_4, right: S_4 })
     .alignItems(VerticalAlign.Center)
   }
 
