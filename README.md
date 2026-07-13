@@ -1,7 +1,7 @@
 # MathMind · 当前状态
 
 > 工程: YunC-GCT/Math-Mind · 5 module HarmonyOS 数学学习助手  
-> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-13
+> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-13 17:51
 
 ---
 
@@ -35,25 +35,43 @@ MathMind/
 - `31eaa04` Update project title in README to include '源码' — 作者 YunCeH
 - `88fbb99` Update project title in README.md — 作者 shi
 
-### 1.4 D1 精简拍照链骨架 + 编译验证 (2026-07-13)
+### 1.4 D1 精简拍照链骨架 + 编译验证 (2026-07-13 17:48)
 
-- `2efcea3` chore: **精简拍照链目录骨架** (8 文件空壳) + README 重写
-  - 8 个 D1 链目标文件就位(每个含 TODO 头注释 + 最小合法 `export class {}`):
-    - `entry/database/NoteDao.ets` (A1, L 负责)
-    - `entry/services/ApiClient.ets` (A2, 你+Mavis)
-    - `entry/services/AiService.ets` (E1, 你+Mavis)
-    - `entry/overlays/CameraOverlay.ets` (E2, 你+Mavis)
-    - `agents/core/Dispatcher.ets` (D, 你+Mavis)
-    - `agents/agents/TypeClassifier.ets` (B2, D 负责)
-    - `agents/agents/KnowledgeModel.ets` (C, L 负责)
-    - `agents/mcp/tools/OcrTool.ets` (B1, D 负责)
-  - 6 个新目录: `agents/{agents,core,mcp/tools}` + `entry/{database,overlays,services}`
-  - README 重写为"完成/待实现"清单
-- `2f24653` docs: README 分工表调整 — 3 人独立开发模式 (你+Mavis 4 文件 / D 2 文件 / L 2 文件)
-- ✅ **DevEco Studio GUI build 验证通过**: `hvigor BUILD SUCCESSFUL in 24 s 709 ms`
-  - common HSP / agents HSP / entry HAP / skill HAP / cardservice HAP 全过
-  - 唯一 WARN: signingConfigs 未配(模拟器 unsigned OK,暂不配)
-  - entry 模拟器显示: "Hello from common v1! | v0.0.1"
+**做了什么**: 8 个目标文件全部建好空壳 + DevEco build 验证通过。
+
+**8 个文件当前位置**(全部都是空类,只有 TODO 注释,没有任何实际功能):
+
+| 文件 | 责任 | 当前内容 |
+|------|------|---------|
+| `entry/database/NoteDao.ets` | L | 空 `export class NoteDao {}` + TODO(A1) 注释 |
+| `entry/services/ApiClient.ets` | 你+Mavis | 空 `export class ApiClient {}` + TODO(A2) 注释 |
+| `entry/services/AiService.ets` | 你+Mavis | 空 `export class AiService {}` + TODO(E1) 注释 |
+| `entry/overlays/CameraOverlay.ets` | 你+Mavis | 空 `export class CameraOverlay {}` + TODO(E2) 注释 |
+| `agents/core/Dispatcher.ets` | 你+Mavis | 空 `export class Dispatcher {}` + TODO(D) 注释 |
+| `agents/agents/TypeClassifier.ets` | D | 空 `export class TypeClassifier {}` + TODO(B2) 注释 |
+| `agents/agents/KnowledgeModel.ets` | L | 空 `export class KnowledgeModel {}` + TODO(C) 注释 |
+| `agents/mcp/tools/OcrTool.ets` | D | 空 `export class OcrTool {}` + TODO(B1) 注释 |
+
+每个空壳顶部都有完整的接口约定注释(入参/返回/责任/依赖/验证方式),等责任人填实现。
+
+**新目录**(按 DIRECTORY_MAP 精简链布局):
+- `agents/src/main/ets/agents/`
+- `agents/src/main/ets/core/`
+- `agents/src/main/ets/mcp/tools/`
+- `entry/src/main/ets/database/`
+- `entry/src/main/ets/overlays/`
+- `entry/src/main/ets/services/`
+
+**编译验证**: `hvigor BUILD SUCCESSFUL in 24 s 709 ms`
+- common HSP / agents HSP / entry HAP / skill HAP / cardservice HAP **5/5 全过**
+- 唯一 WARN: signingConfigs 未配(模拟器 unsigned OK,按之前规矩暂不配)
+
+**没做什么**:
+- ❌ 8 个文件都**没有任何业务实现**(只是 `export class {}`)
+- ❌ 没写 NoteDao.insert / ApiClient.request / Dispatcher.routeDispatch 等实际方法
+- ❌ 没接 LLM / OCR / RDB / HTTP
+- ❌ 没改 UI(EntryAbility / Index.ets 跟 W0 一样,显示 "Hello from common v1! | v0.0.1")
+- ❌ 没 push 到 GitHub(本地 3 个 commit 待推)
 
 ---
 
