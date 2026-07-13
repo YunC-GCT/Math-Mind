@@ -58,7 +58,7 @@ struct Index {
   @Builder
   PlaceholderTab(title: string, sub: string) {
     Column() {
-      Spacer()
+      Blank()
       Text(title)
         .fontSize(T_BASE + 4)
         .fontWeight(FontWeight.Bold)
@@ -69,7 +69,7 @@ struct Index {
         .fontColor(TEXT_3)
         .textAlign(TextAlign.Center)
         .padding({ left: 40, right: 40 })
-      Spacer()
+      Blank()
     }
     .width('100%')
     .height('100%')
