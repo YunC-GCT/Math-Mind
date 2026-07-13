@@ -136,6 +136,9 @@ export struct HomePage {
   @State d: string = '';
   @State avg: number = 75;
 
+  // 回调(由 Index.ets 传入,触发 CameraOverlay 浮层)
+  onGoCamera: () => void = () => {};
+
   aboutToAppear(): void {
     this.g = greet();
     this.d = dateStr();
@@ -294,7 +297,7 @@ export struct HomePage {
       .height('100%')
       .backgroundColor(BG_DARK);
 
-      // ===== FAB 球形渐变 =====
+      // ===== FAB 球形渐变(第 3 批: 点击触发 CameraOverlay)=====
       Stack() {
         Text('+')
           .fontSize(22)
@@ -305,7 +308,8 @@ export struct HomePage {
       .borderRadius(27)
       .linearGradient({ angle: 180, colors: [[MINT, 0], [MINT_DARK, 1]] })
       .shadow({ radius: 28, color: '#595BE3B0', offsetX: 0, offsetY: 8 })
-      .margin({ right: 20, bottom: 16 });
+      .margin({ right: 20, bottom: 16 })
+      .onClick(() => this.onGoCamera());
     }
     .width('100%').height('100%').backgroundColor(BG_DARK);
   }

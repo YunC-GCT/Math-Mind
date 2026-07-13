@@ -7,6 +7,7 @@
 import {
   MINT,
   PURPLE,
+  BG_DARK,
   BORDER,
   SUBJECT_COLORS,
   TYPE_COLORS,
@@ -32,40 +33,68 @@ import {
   typeColor,
   subjectColor,
 } from 'common';
+import { NoteDetailOverlay } from '../overlays/NoteDetailOverlay';
 
 @Component
 export struct NotesPage {
+  @State selectedNote: NoteItem | null = null;
+
   private notes: NoteItem[] = NOTES;
 
+  // 关闭浮层
+  private closeDetail = (): void => {
+    this.selectedNote = null;
+  };
+
+  // 浮层里点 AI 解答
+  private askAi = (note: NoteItem): void => {
+    this.selectedNote = null;
+    // W1 会切到 AI Tab + 弹 AiChatOverlay + 带 note 上下文
+  };
+
   build() {
-    Scroll() {
-      Column() {
-        // ===== 标题栏 =====
-        Text(`全部笔记 · ${this.notes.length} 条`)
-          .fontSize(F_MD)
-          .fontWeight(600)
-          .fontColor(TEXT)
-          .width('100%')
-          .padding({
-            left: 20,
-            right: 20,
-            top: 14,
-            bottom: 10,
+    Stack() {
+      Scroll() {
+        Column() {
+          // ===== 标题栏 =====
+          Text(`全部笔记 · ${this.notes.length} 条`)
+            .fontSize(F_MD)
+            .fontWeight(600)
+            .fontColor(TEXT)
+            .width('100%')
+            .padding({
+              left: 20,
+              right: 20,
+              top: 14,
+              bottom: 10,
+            });
+
+          // ===== 笔记列表（分隔线模式） =====
+          ForEach(this.notes, (note: NoteItem, idx: number) => {
+            this.NoteCard(note, idx === this.notes.length - 1);
           });
 
-        // ===== 笔记列表（分隔线模式） =====
-        ForEach(this.notes, (note: NoteItem, idx: number) => {
-          this.NoteCard(note, idx === this.notes.length - 1);
-        });
-
-        // FAB 留白
-        Blank().height(80);
+          // FAB 留白
+          Blank().height(80);
+        }
+        .width('100%');
       }
-      .width('100%');
+      .width('100%')
+      .height('100%')
+      .scrollable(ScrollDirection.Vertical);
+
+      // ===== NoteDetailOverlay 浮层 =====
+      if (this.selectedNote !== null) {
+        NoteDetailOverlay({
+          note: this.selectedNote,
+          onClose: this.closeDetail,
+          onAskAi: this.askAi,
+        });
+      }
     }
     .width('100%')
     .height('100%')
-    .scrollable(ScrollDirection.Vertical);
+    .backgroundColor(BG_DARK);
   }
 
   // ========== 笔记卡片（对照 CSS .note-card 分隔线模式） ==========
@@ -160,6 +189,9 @@ export struct NotesPage {
     .border({
       width: { bottom: isLast ? 0 : 1 },
       color: BORDER,
+    })
+    .onClick(() => {
+      this.selectedNote = note;
     });
   }
 }
