@@ -29,6 +29,7 @@ import { NotesPage } from './NotesPage';
 import { ReviewPage } from './ReviewPage';
 import { MePage } from './MePage';
 import { AiChatOverlay } from '../overlays/AiChatOverlay';
+import { AgentFloatWindow } from '../overlays/AgentFloatWindow';
 import { CameraOverlay } from '../overlays/CameraOverlay';
 
 interface TabItem {
@@ -52,6 +53,7 @@ struct Index {
   @State showCamera: boolean = false;
   @State showAI: boolean = true;  // AI Tab 默认就显示浮层
   @State pendingImageUri: string = '';
+  @State showAgentFloat: boolean = false;
 
   private tc: TabsController = new TabsController();
 
@@ -73,17 +75,37 @@ struct Index {
     this.showCamera = true;
   };
 
-  // 拍照完成 -> 跳 AI Tab + 弹 AiChatOverlay + 带图
+  // 拍照完成 → 跳 AI Tab 或传图给 AgentFloatWindow
   private onCameraConfirm = (uri: string, _src: 'camera' | 'album'): void => {
     this.showCamera = false;
+
+    if (this.showAgentFloat) {
+      // 拍照来自 AgentFloatWindow → 传图过去, 不清浮窗
+      this.pendingImageUri = uri;
+      setTimeout(() => { this.pendingImageUri = ''; }, 100);
+      return;
+    }
+
+    // 原逻辑: 跳 AI Tab
     this.pendingImageUri = uri;
     this.cur = 2;
     this.tc.changeIndex(2);
     this.showAI = true;
   };
 
+  // AgentFloatWindow: 关闭浮窗
+  private closeAgentFloat = (): void => {
+    this.showAgentFloat = false;
+  };
+
+  // AgentFloatWindow: 点拍照 → 打开拍照浮层
+  private goCameraFromAgent = (): void => {
+    this.showCamera = true;
+  };
+
   build() {
-    Column() {
+    Stack() {
+      Column() {
       // ===== 内容区 =====
       Tabs({ index: this.cur, controller: this.tc }) {
         TabContent() {
@@ -165,6 +187,17 @@ struct Index {
       }
     }
     .width('100%').height('100%').backgroundColor(BG_DARK);
+
+      if (this.showAgentFloat) {
+        AgentFloatWindow({
+          show: this.showAgentFloat,
+          onClose: this.closeAgentFloat,
+          onGoCamera: this.goCameraFromAgent,
+          pendingImageUri: this.pendingImageUri,
+        });
+      }
+    }
+    .width('100%').height('100%');
   }
 
   // ========== 普通 Tab ==========
@@ -213,8 +246,7 @@ struct Index {
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Center)
     .onClick(() => {
-      this.cur = i;
-      this.tc.changeIndex(i);
+      this.showAgentFloat = true;
     });
   }
 }
