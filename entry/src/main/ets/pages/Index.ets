@@ -92,8 +92,8 @@ struct Index {
     .linearGradient({
       angle: 180,
       colors: [
-        ['rgba(10,12,16,0.6)', 0.0],
-        ['rgba(10,12,16,0.95)', 1.0]
+        ['#990A0C10', 0.0],
+        ['#F20A0C10', 1.0]
       ]
     })
     .border({ width: { top: 1 }, color: BORDER })

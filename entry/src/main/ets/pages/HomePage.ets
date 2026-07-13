@@ -72,13 +72,13 @@ function getConfText(conf: number): string {
   return (conf * 100).toFixed(0) + '%';
 }
 
-// 摘要:去掉 ## 标题行(无 regex),截 60 字
+// 摘要:去掉 ## 标题行(无 regex,无 C 风格 for),截 60 字
 function getBodyPreview(body: string): string {
   if (!body) return '';
   const lines: string[] = body.split('\n');
+  // ArkTS 严格语法禁 C 风格 for(...;...;...),改用 for...of
   const kept: string[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (const line of lines) {
     if (line.indexOf('## ') !== 0) {
       kept.push(line);
     }
@@ -266,7 +266,7 @@ export struct HomePage {
           Text('')
             .width(120).height(120)
             .borderRadius(R_FULL)
-            .border({ width: 10, color: 'rgba(255,255,255,0.06)' })
+            .border({ width: 10, color: '#0FFFFFFF' })
 
           // 前景环(简化:用 Stack 装一个有 border 的圆)
           // 准确度不够,实际项目用 Canvas
@@ -309,7 +309,7 @@ export struct HomePage {
       colors: [
         [MINT_LIGHT, 0.0],
         [PURPLE_LIGHT, 0.5],
-        ['rgba(255,107,157,0.10)', 1.0]
+        ['#1AFF6B9D', 1.0]
       ]
     })
   }

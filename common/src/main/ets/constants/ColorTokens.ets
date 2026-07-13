@@ -7,15 +7,15 @@
 // 主色调: 成功/确认/已掌握
 export const MINT: string = '#5BE3B0';
 export const MINT_DARK: string = '#1F8F65';
-export const MINT_LIGHT: string = 'rgba(91,227,176,0.14)';
-export const MINT_GLOW: string = 'rgba(91,227,176,0.42)';
-export const MINT_BORDER: string = 'rgba(91,227,176,0.28)';
+export const MINT_LIGHT: string = '#245BE3B0';   // rgba(91,227,176,0.14)
+export const MINT_GLOW: string = '#6B5BE3B0';    // rgba(91,227,176,0.42)
+export const MINT_BORDER: string = '#475BE3B0';  // rgba(91,227,176,0.28)
 
 // 次色调: AI/分析
 export const PURPLE: string = '#9775FA';
 export const PURPLE_DARK: string = '#7C5CE0';
-export const PURPLE_LIGHT: string = 'rgba(151,117,250,0.14)';
-export const PURPLE_GLOW: string = 'rgba(151,117,250,0.42)';
+export const PURPLE_LIGHT: string = '#249775FA'; // rgba(151,117,250,0.14)
+export const PURPLE_GLOW: string = '#6B9775FA';  // rgba(151,117,250,0.42)
 
 // 强调色
 export const PINK: string = '#FF6B9D';
@@ -68,12 +68,12 @@ export const BG_2: string = '#10131A';
 export const BG_3: string = '#161A22';
 export const BG_4: string = '#1D222D';
 
-// ==================== 表面色 (半透明) ====================
-export const SURFACE: string = 'rgba(255,255,255,0.03)';
-export const SURFACE_2: string = 'rgba(255,255,255,0.05)';
-export const SURFACE_3: string = 'rgba(255,255,255,0.08)';
-export const BORDER: string = 'rgba(255,255,255,0.07)';
-export const BORDER_2: string = 'rgba(255,255,255,0.12)';
+// ==================== 表面色 (半透明, hex #AARRGGBB) ====================
+export const SURFACE: string = '#08FFFFFF';   // rgba(255,255,255,0.03)
+export const SURFACE_2: string = '#0DFFFFFF'; // rgba(255,255,255,0.05)
+export const SURFACE_3: string = '#14FFFFFF'; // rgba(255,255,255,0.08)
+export const BORDER: string = '#12FFFFFF';    // rgba(255,255,255,0.07)
+export const BORDER_2: string = '#1FFFFFFF';  // rgba(255,255,255,0.12)
 
 // ==================== 圆角 (vp) ====================
 export const R_SM: number = 8;
