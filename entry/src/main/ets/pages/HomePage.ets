@@ -104,59 +104,65 @@ export struct HomePage {
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
-        // 1. Header (系统 status bar 显示真实时间/电量,app 不再画)
+        // 1. Header (固定不滚动)
         this.Header()
 
-        // 2. Hero 区
-        this.Hero()
+        // 2. 可滚动区域: Hero + Reminder + 最近笔记
+        Scroll() {
+          Column() {
+            // Hero 区
+            this.Hero()
 
-        // 4. 提醒横幅
-        if (this.notes.length === 0) {
-          this.Reminder('👋 欢迎使用 MathMind！试试 AI 对话或拍照，帮你整理知识笔记 ›')
-        } else if (this.notes.length < 3) {
-          this.Reminder(`⏰ 已有 ${this.notes.length} 条笔记，继续用 AI 充实知识库 ›`)
-        }
+            // 提醒横幅
+            if (this.notes.length === 0) {
+              this.Reminder('👋 欢迎使用 MathMind！试试 AI 对话或拍照，帮你整理知识笔记 ›')
+            } else if (this.notes.length < 3) {
+              this.Reminder(`⏰ 已有 ${this.notes.length} 条笔记，继续用 AI 充实知识库 ›`)
+            }
 
-        // 5. 最近笔记列表
-        Column() {
-          Text('最近笔记')
-            .fontSize(T_BASE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(TEXT)
-            .padding({ left: S_5, top: S_2, bottom: S_2 })
+            // "最近笔记" 标题
+            Text('最近笔记')
+              .fontSize(T_BASE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(TEXT)
+              .padding({ left: S_5, top: S_2, bottom: S_2 })
+              .width('100%')
 
-          if (this.notes.length > 0) {
-            List({ space: 0 }) {
-              ForEach(this.notes, (note: NoteView) => {
-                ListItem() {
+            // 笔记列表 (改用 ForEach + Column,避免 List 嵌套 Scroll 的 nested scroll 问题)
+            if (this.notes.length > 0) {
+              Column() {
+                ForEach(this.notes, (note: NoteView) => {
                   this.NoteCard(note)
-                }
-              }, (note: NoteView) => note.id.toString())
+                }, (note: NoteView) => note.id.toString())
+              }
+              .width('100%')
+            } else {
+              Column() {
+                Text('还没有笔记\n试试 AI 对话或拍照吧 👇')
+                  .fontSize(T_BASE)
+                  .fontColor(TEXT_3)
+                  .textAlign(TextAlign.Center)
+                  .padding(S_5)
+              }
+              .width('100%')
+
+              // 底部留白让 FAB 不遮内容
+              Blank().height(80)
             }
-            .listDirection(Axis.Vertical)
-            .scrollBar(BarState.Off)
-            .edgeEffect(EdgeEffect.None)
-            .layoutWeight(1)
-          } else {
-            Column() {
-              Text('还没有笔记\n试试 AI 对话或拍照吧 👇')
-                .fontSize(T_BASE)
-                .fontColor(TEXT_3)
-                .textAlign(TextAlign.Center)
-                .padding(S_5)
-            }
-            .width('100%')
-            .layoutWeight(1)
           }
+          .width('100%')
         }
         .layoutWeight(1)
         .width('100%')
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.Spring)
+        .friction(0.6)
       }
       .width('100%')
       .height('100%')
       .backgroundColor(BG)
 
-      // 6. FAB 浮动按钮
+      // 3. FAB 浮动按钮
       this.FAB()
     }
     .width('100%')
