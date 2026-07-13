@@ -35,6 +35,26 @@ MathMind/
 - `31eaa04` Update project title in README to include '源码' — 作者 YunCeH
 - `88fbb99` Update project title in README.md — 作者 shi
 
+### 1.4 D1 精简拍照链骨架 + 编译验证 (2026-07-13)
+
+- `2efcea3` chore: **精简拍照链目录骨架** (8 文件空壳) + README 重写
+  - 8 个 D1 链目标文件就位(每个含 TODO 头注释 + 最小合法 `export class {}`):
+    - `entry/database/NoteDao.ets` (A1, L 负责)
+    - `entry/services/ApiClient.ets` (A2, 你+Mavis)
+    - `entry/services/AiService.ets` (E1, 你+Mavis)
+    - `entry/overlays/CameraOverlay.ets` (E2, 你+Mavis)
+    - `agents/core/Dispatcher.ets` (D, 你+Mavis)
+    - `agents/agents/TypeClassifier.ets` (B2, D 负责)
+    - `agents/agents/KnowledgeModel.ets` (C, L 负责)
+    - `agents/mcp/tools/OcrTool.ets` (B1, D 负责)
+  - 6 个新目录: `agents/{agents,core,mcp/tools}` + `entry/{database,overlays,services}`
+  - README 重写为"完成/待实现"清单
+- `2f24653` docs: README 分工表调整 — 3 人独立开发模式 (你+Mavis 4 文件 / D 2 文件 / L 2 文件)
+- ✅ **DevEco Studio GUI build 验证通过**: `hvigor BUILD SUCCESSFUL in 24 s 709 ms`
+  - common HSP / agents HSP / entry HAP / skill HAP / cardservice HAP 全过
+  - 唯一 WARN: signingConfigs 未配(模拟器 unsigned OK,暂不配)
+  - entry 模拟器显示: "Hello from common v1! | v0.0.1"
+
 ---
 
 ## 二、需要实现的工作 — 7/13 今晚 D1 精简拍照链
