@@ -1,194 +1,133 @@
-# MathMind · 工程 README
+# MathMind · 当前状态
 
-> **W0 末 5/5 module BUILD SUCCESSFUL · W1 块 2 进行中**
-> 创建/维护: Z(由 Mavis 代笔) · 2026-07-04
-
----
-
-## 一、项目是什么
-
-**MathMind** = "数学心灵"· HarmonyOS 端的高中数学智能学习助手,三大入口:
-- **主 App**(entry HAP) — 复习 / 提问 / KG 浏览 / 历史 / 设置
-- **小艺 Skill**(skill HAP) — 7 类意图(快速复习 / 问答 / 添加 / 卡片 / 闪卡 / 语音 / 提醒)
-- **元服务卡片**(cardservice HAP) — 4 类(今日待复习 / 连续打卡 / 新知识点 / 进度总览)
-
-品牌定位:**Agent-first 数学学习伴侣**(间隔重复 + 知识图谱 + RAG 问答)
+> 工程: YunC-GCT/Math-Mind · 5 module HarmonyOS 数学学习助手  
+> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-13
 
 ---
 
-## 二、W0 阶段做了什么
+## 一、完成的工作
 
-W0(2026-07-03 ~ 2026-07-04)是"地基阶段",把 5 module 工程搭起来并 BUILD SUCCESSFUL。
-
-### 2.1 5 module 架构
+### 1.1 W0 末 · 5 module 工程搭起来 (commit `bfaa8e5`)
 
 ```
 MathMind/
-├── entry/         # HAP · type:entry      主 App 入口 + 5 个页面
-├── common/        # HSP · shared          共享类型 + 工具(无 UI)
-├── agents/        # HSP · shared          核心业务 Agent(Dispatcher / Review / KG / Query)
-├── skill/         # HAP · type:feature    小艺 Skill 入口(SkillAbility)
-└── cardservice/   # HAP · type:feature    元服务卡片(CardEntryAbility + FormAbility)
+├── entry/       # HAP · type:entry    主 App
+├── common/      # HSP · shared        共享类型 + 工具
+├── agents/      # HSP · shared        核心业务 Agent
+├── skill/       # HAP · type:feature  小艺 Skill
+└── cardservice/ # HAP · type:feature  元服务卡片
 ```
 
-- **HAP**(HarmonyOS Ability Package)= 可独立安装运行的 .app
-- **HSP**(HarmonyOS Shared Package)= 共享代码库,不能独立运行,被 HAP 引用
+编译: 5/5 module BUILD SUCCESSFUL · entry 显示 "Hello from common v1! | v0.0.1"
 
-### 2.2 工程配置
+### 1.2 W1 块 2 · common 共享层 + 工具 (5 commits)
 
-每个 module 都有自己的:
-- `build-profile.json5`(模块编译配置 / targets / 依赖)
-- `hvigorfile.ts`(构建任务:HAP 用 `hapTasks` / HSP 用 `hspTasks` / 根用 `appTasks`)
-- `module.json5`(运行时配置:ability / extensionAbility / deviceTypes 等)
-- `obfuscation-rules.txt`(即使 enable false 也必须存在)
+- `fc889f6` feat(z-w1-file1): **CommonTypes** 共享类型 (KnowledgeUnit / ReviewRecord / KGNode / KGEdge / AgentTask / AgentResponse / ApiError + 3 enum)
+- `127343c` feat(z-w1-file2): **logger** 统一日志
+- `3c729e2` feat(z-w1-file3): **uuid** 生成
+- `68b8c5b` feat(z-w1-file4): **timeWindow** 时间窗工具
+- `ccb1345` feat(z-w1-file5): **confidenceSort** 置信度排序
+- `610c9d2` docs: README 全面改写 (W0 阶段说明 + W1 进度 + 接手指南) — *此 README 即将被本文件覆盖*
+- `d6220c4` merge: feature/z-w1-block2 → main (含 31eaa04/88fbb99 两条 GitHub web README 标题修订)
 
-根 `build-profile.json5` 通过 `buildOptionSet[].arkOptions.obfuscation.ruleOptions.files` 引用各 module 的混淆规则文件。
+### 1.3 GitHub Web 标题修订
 
-### 2.3 W0 末编译结果
-
-```
-> hvigor BUILD SUCCESSFUL in 12s
-✅ 5/5 module 全过
-  - common   → HSP (1 s 832 ms CompileArkTS)
-  - agents   → HSP (6 s 343 ms)
-  - entry    → HAP (6 s 640 ms)
-  - skill    → HAP (6 s 391 ms)
-  - cardservice → HAP (6 s 130 ms)
-entry 模拟器显示: "Hello from common v1! | v0.0.1"
-```
-
-### 2.4 cardservice form widget 兜底方案
-
-W0 期间尝试在 cardservice 写 form widget 业务,反复撞 `hvigor-ohos-plugin validateFormSrc` 报错(form widget src 在 type:feature 模块下无法解析,8+ 种 src 路径试过全失败)。
-
-**W0 兜底**:cardservice 暂时删 `extensionAbilities` + `pages`,加 `mainElement = FormAbility`,form widget 业务留 W1 详细研究。
+- `31eaa04` Update project title in README to include '源码' — 作者 YunCeH
+- `88fbb99` Update project title in README.md — 作者 shi
 
 ---
 
-## 三、W0 踩过的坑(以后别再踩)
+## 二、需要实现的工作 — 7/13 今晚 D1 精简拍照链
 
-### 3.1 ArkTS 严格语法
+> 目标: 拍照 → OCR → DeepSeek 3×3 分类 → 3 模板 → 真值检验 → 入库 → 显示  
+> 整链时序见 `docs/D1_CAPTURE_CHAIN_PLAN.md`  
+> 详细分工见 `docs/TONIGHT_TASKS.md`
 
-- ❌ 不能用 `any` / `unknown`(DevEco 严格禁止)
-- ✅ 用 `Object` 或显式 interface
-- ✅ `Want` 必须显式类型 + `import Want from '@ohos.app.ability.Want'`
-- ✅ `AbilityConstant` 是命名导出 `from '@kit.AbilityKit'`
-- ✅ `UIAbility` 是默认导出 `from '@ohos.app.ability.UIAbility'`
+### 2.1 8 文件分工 (按 TONIGHT_TASKS 编号)
 
-### 3.2 HSP 与 HAP 差异
+| 编号 | 文件 | 责任 | 内容 | 状态 |
+|------|------|------|------|------|
+| **A1** | `entry/src/main/ets/database/NoteDao.ets` | Mavis | RDB `insert(unit)` + `queryById(id)` | 🟡 空壳待填 |
+| **A2** | `entry/src/main/ets/services/ApiClient.ets` | Mavis | HTTP `request()` + JWT 注入 + 401 重试 | 🟡 空壳待填 |
+| **B1** | `agents/src/main/ets/mcp/tools/OcrTool.ets` | D | `recognize(imageBase64)` → ML Kit OCR | 🟡 空壳待填 |
+| **B2** | `agents/src/main/ets/agents/TypeClassifier.ets` | D | `classify(input)` → OCR + DeepSeek 3×3 分类 | 🟡 空壳待填 |
+| **C** | `agents/src/main/ets/agents/KnowledgeModel.ets` | L | 3 模板 + 真值检验 + `NoteDao.insert` | 🟡 空壳待填 |
+| **D** | `agents/src/main/ets/core/Dispatcher.ets` | 用户 | L1 关键词 "记/拍/这题" → routeDispatch D1 分支 | 🟡 空壳待填 |
+| **E1** | `entry/src/main/ets/services/AiService.ets` | 用户 | `capture(imageUri)` → base64 → POST dispatch | 🟡 空壳待填 |
+| **E2** | `entry/src/main/ets/overlays/CameraOverlay.ets` | 用户 | 相机预览 + 快门 + 相册 → imageUri | 🟡 空壳待填 |
 
-| 限制 | 说明 |
-|------|------|
-| HSP `oh-package.json5` 不能加 `main` 字段 | 想 export 必须 `export *` 在 `Index.ets` |
-| HSP `module.json5` 只能 6 字段 | `name / type / description / deviceTypes / deliveryWithInstall / installationFree` |
-| HSP 跨 module import 必须完整路径 | 不能 `from 'common/Index'`,只能 `from 'common/src/main/ets/Index'` |
-| 一个应用只能 1 个 `type:entry` 模块 | 其他 HAP 必须 `type:feature` |
+### 2.2 关键约束 (摘自 D1_CAPTURE_CHAIN_PLAN.md)
 
-### 3.3 build 必备文件
+**LLM 配置**:
+- 默认 Provider: **SiliconFlow / DeepSeek-V3** (`deepseek-ai/DeepSeek-V3`)
+- 端点: `https://api.siliconflow.cn/v1/chat/completions`
+- Temperature: **0.1** · MaxTokens: **256** · Timeout: **5s**
+- 降级链: DeepSeek → 小艺Kit → Mock
 
-- `obfuscation-rules.txt`:即使 `enable false` 也要存在,空文件 + 注释即可
-- 每个 module 自己的 `build-profile.json5` + `hvigorfile.ts`:根配置不够
-- atomic service(`type:feature` + `installationFree:true`)必填 `mainElement`
+**3×3 分类体系**:
+- 学科: 高等代数 / 数学分析 / 解析几何
+- 类型: 概念 / 计算 / 证明
 
-### 3.4 signing & obfuscation
+**3 模板** (KnowledgeModel 用):
+- `concept_v1` (定义/性质/相关概念)
+- `computation_v1` (题目/解法/答案)
+- `proof_v1` (命题/证明/要点)
 
-- signingConfig 暂空:模拟器接受 unsigned,真机部署时再配
-- obfuscation 暂关:模拟器不需要混淆
+**真值检验** (KnowledgeModel.truthCheck):
+- 括号配对 ( ) [ ] { }
+- 除零检测 /0 ÷0
+- 恒等式校验 sin²x+cos²x=1 / e^(iπ)+1=0
+- 矛盾等式 (1=2, 0=1) → error
+- LaTeX 语法 $ $ { } 配对
+- 结果 `truthFlag: 'valid' | 'warning' | 'error'`,UI 只对 error 标红
+
+### 2.3 依赖顺序 (串行 / 同层可并行)
+
+```
+A1 (NoteDao) ─────┐
+                  ├── B1 (OcrTool) ──────┐
+A2 (ApiClient) ───┘                       ├── C (KnowledgeModel) ──┐
+                  └── B2 (TypeClassifier) ┘                        ├── D (Dispatcher) ──┐
+                                                                       │                  ├── E1 (AiService)
+                                                                       │                  └── E2 (CameraOverlay)
+                                                                       │
+                                                  L 写 C · 用户写 D · 用户写 E1/E2
+```
+
+### 2.4 整链接口契约
+
+```
+POST /agents/dispatch
+  请求: { source: "app", payload: "<base64图片>", imageUri: "file://..." }
+  响应: { success, route: "D1", data: KnowledgeUnit, durationMs }
+```
 
 ---
 
-## 四、当前状态
+## 三、构建与运行
 
-```
-分支: main (8d79a84 Revert W1 块 2)
-  ├─ 1b2abf7 Initial commit
-  ├─ bfaa8e5 feat: W0 末 hard-start - 5/5 module BUILD SUCCESSFUL
-  ├─ 29511c3 W1 Z 块2: 9 文件 (在另一分支被 revert,见下)
-  └─ 8d79a84 Revert "W1 Z 块2..."  ← 当前 main HEAD
-
-并行分支: feature/z-w1-block2 (W1 块 2 重做中,1 文件 1 commit + build 验证)
-  ├─ fc889f6 feat(z-w1-file1): CommonTypes 共享类型   ✅ build 通过
-  ├─ 127343c feat(z-w1-file2): logger 统一日志         ✅ build 通过
-  ├─ 3c729e2 feat(z-w1-file3): uuid 生成               ✅ build 通过
-  ├─ 68b8c5b feat(z-w1-file4): timeWindow 时间窗工具    ✅ build 通过
-  └─ ccb1345 feat(z-w1-file5): confidenceSort 置信度排序 ✅ 待 build
-```
-
-**W1 块 2 总共 11 文件**(common 6 + agents 5),目前完成 5/11。
+- **build 走 DevEco Studio GUI** (Build → Build Hap(s)/APP(s)),不走命令行 hvigorw (中文路径乱码)
+- **SSH 走 port 443** (`~/.ssh/config` 已配 Host github.com → ssh.github.com:443)
+- **作者固定** `YunC-GCT <2549237929@qq.com>` (`git config user.name/email` 已配)
 
 ---
 
-## 五、接手指南(给新加入的开发者)
+## 四、git 规则
 
-### 5.1 环境准备
-
-1. **DevEco Studio**:`D:\HarmoNova\DevEco Studio\`(已装)
-2. **Node.js**(DevEco 内置):`D:\HarmoNova\DevEco Studio\tools\node\node.exe`
-3. **Git**:Windows 自带,SSH key 已配,走 port 443(`~/.ssh/config` 配置)
-
-### 5.2 拉代码 + 跑 build
-
-```powershell
-# 1. clone
-git clone git@github.com:YunC-GCT/Math-Mind.git D:\HMgent\MathMind
-
-# 2. DevEco 打开
-# File → Open → D:\HMgent\MathMind
-
-# 3. 切换到 W1 工作分支
-git checkout feature/z-w1-block2
-
-# 4. build
-# Build → Build Hap(s)/APP(s)  (或 Ctrl+F9)
-# 期望: BUILD SUCCESSFUL in ~10s
-```
-
-### 5.3 看懂工程
-
-| 目录 | 看什么 |
-|------|--------|
-| `entry/src/main/ets/pages/` | 主 App 5 页面(只写了占位 Index.ets) |
-| `common/src/main/ets/models/` | 共享类型(KnowledgeUnit / ReviewRecord / ...) |
-| `common/src/main/ets/utils/` | 工具(logger / uuid / timeWindow / confidenceSort) |
-| `agents/src/main/ets/core/` | 核心 Agent(Dispatcher / ReviewAgent / KG / QueryPlanner) |
-| `skill/src/main/ets/skillability/` | 小艺 Skill 入口 |
-| `cardservice/src/main/ets/` | 元服务卡片(W1 待补 form widget) |
-
-### 5.4 W1 剩余任务
-
-**W1 块 2 剩余 6 文件**:
-- File 6/11: `common/Index.ets` 更新 export
-- File 7/11: `agents/core/ReviewAgent.ets` (SM-2 算法 + 复习业务)
-- File 8/11: `agents/core/KnowledgeGraph.ets` (KG 节点 + 边)
-- File 9/11: `agents/core/QueryPlanner.ets` (查询规划)
-- File 10/11: `agents/core/Dispatcher.ets` (任务分发)
-- File 11/11: `agents/Index.ets` 更新 export
-
-**W1 块 3(下一批)**:agents/services 4 文件(APIClient / EmbeddingClient / KGService / RDBService)
-
-**W2 块 4**:cardservice form widget 业务补充(等研究完 src 解析问题)
-
----
-
-## 六、关键约束(团队规矩)
-
-1. **未经明示禁止 push 到 GitHub** — 本地 commit 自由,push 必须 leader 点头
-2. **删除优先 mavis-trash / 回收站** — 不直接 `Remove-Item -Recurse -Force`
+1. **未经明示禁止 push** — 本地 commit 自由,推送必须 leader 点头
+2. **删除走 mavis-trash / 回收站** — 不直接 `Remove-Item -Recurse -Force`
 3. **失败 2 次停下报告** — 不无限重试,贴报错最后 5 行
-4. **SSH 走 443** — 本机封 port 22,`~/.ssh/config` 已配 `Host github.com → ssh.github.com:443`
-5. **commit author 固定** — `YunC-GCT / 2549237929@qq.com`
-6. **build 由 DevEco GUI 跑** — 不走命令行 hvigorw(中文路径乱码撞墙)
+4. **改完即 commit** — 单文件单 commit,feat/fix/docs 前缀
+5. **每块结束推一次** — 拿到 leader 点头再 push,不全攒到最后
 
 ---
 
-## 七、相关文档
+## 五、相关文档 (在 `D:\HMgent\MathMind方案\`)
 
-- `D:\HMgent\MathMind方案\` — 完整方案仓(策划书 / INDEX / 任务清单 / 分块路线图 / 代码模板 / 后端设计 / 申请材料 / 资源汇总 / Git_AI_对话速查卡)
-- `MathMind_策划书_v1/` — 4 个文档(产品形态 / 用户画像 / 技术架构 / 商业模式)
-- `MathMind_INDEX_总目录.md` — 方案仓总目录
-- `MathMind_任务清单_待勾选.md` — W0-W4 任务清单
-- `MathMind_Git_AI_对话速查卡_v1.md` — Git 操作 + AI 协作速查卡
-
----
-
-**最后更新**:2026-07-04 22:52 · commit `ccb1345` · 分支 `feature/z-w1-block2`
+- `D1_CAPTURE_CHAIN_PLAN.md` — 精简拍照链整链设计
+- `DIRECTORY_MAP.md` — 四层目录 (模板/精简/完整/MVP)
+- `TONIGHT_TASKS.md` — 7/13 今晚任务分工与时间线
+- `AGENT_ARCH_v3.1.md` — Agent 架构
+- `API_SPEC.md` — 23 API 端点
+- `TWO_AXIS_CLASSIFICATION.md` — 两轴分类说明
+- `LOCAL_VS_API_STRATEGY.md` — 本地 vs 云端策略
