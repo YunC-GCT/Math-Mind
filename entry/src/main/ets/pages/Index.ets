@@ -1,156 +1,194 @@
-// MathMind - Index (4 Tab 容器,主入口)
-// 任务编号: UI 批次 1 · 第 3 步
-// 责任: 你 + Mavis
-// 状态: 真实 UI 实现(第 1 批,5 个 Tab 框架,只 HomePage 真实实现)
-//
-// 结构(对照 Web MVP index.html):
-//   - Stack:
-//     ├─ 当前 Tab 内容(Home / Notes / AI / Review / Me)
-//     └─ 底部 Tab 栏(5 个 Tab,中间 AI 是渐变圆形凸起)
-//
-// 第 1 批只挂 HomePage; 其它 Tab 占位 Text
-//   - NotesPage / ReviewPage / MePage → 第 2 批
-//   - AI 浮层 / Camera 浮层 / NoteDetail 浮层 → 第 3 批
+/**
+ * MathMind 主容器 — 5 Tab 底部导航（含中央 AI 渐变凸起圆）
+ * 对照 HTML .tabbar > .tab×4 + .tab-ai×1
+ * 对照 CSS  height:74px, backdrop-filter:blur(24px), border-top
+ */
 
-import { HomePage } from './HomePage';
 import {
-  MINT, MINT_DARK,
-  PURPLE, PURPLE_LIGHT,
-  TEXT, TEXT_3, TEXT_4,
-  BG, BG_2, BORDER,
-  R_FULL,
-  T_SM, T_BASE,
-  TABBAR_H
-} from 'common/src/main/ets/constants/ColorTokens';
+  MINT,
+  MINT_DARK,
+  MINT_GLOW,
+  PURPLE,
+  BG_DARK,
+  BORDER,
+  TEXT,
+  TEXT_2,
+  TEXT_3,
+  S_1,
+  S_2,
+  F_XS,
+  F_BASE,
+  F_3XL,
+} from 'common';
+import { HomePage } from './HomePage';
+import { NotesPage } from './NotesPage';
+import { ReviewPage } from './ReviewPage';
+import { MePage } from './MePage';
+
+interface TabItem {
+  idx: number;
+  name: string;
+  icon: Resource;
+}
+
+const TABS: TabItem[] = [
+  { idx: 0, name: '首页', icon: $r('app.media.ic_home') },
+  { idx: 1, name: '笔记', icon: $r('app.media.ic_notes') },
+  { idx: 2, name: 'AI', icon: $r('app.media.ic_ai') },
+  { idx: 3, name: '复习', icon: $r('app.media.ic_review') },
+  { idx: 4, name: '我的', icon: $r('app.media.ic_me') },
+];
+
+const PH: Record<number, string> = {
+  1: '全部笔记列表 (待第 2 批实现)',
+  2: 'AI 对话功能 (待第 3 批实现)',
+  3: '复习计划内容 (待第 2 批实现)',
+  4: '个人中心 (待第 2 批实现)',
+};
 
 @Entry
 @Component
 struct Index {
-  @State currentTab: number = 0;  // 0=Home 1=Notes 2=AI 3=Review 4=Me
+  @State cur: number = 0;
+  private tc: TabsController = new TabsController();
+
+  private tabName(idx: number): string {
+    return ['首页', '笔记', 'AI', '复习', '我的'][idx];
+  }
+
+  private isTabActive(i: number): boolean {
+    return this.cur === i;
+  }
 
   build() {
-    Stack({ alignContent: Alignment.Bottom }) {
-      // 主内容区
-      Stack() {
-        if (this.currentTab === 0) {
-          HomePage()
-        } else if (this.currentTab === 1) {
-          this.PlaceholderTab('笔记 Tab', '全部笔记列表 (待第 2 批实现)')
-        } else if (this.currentTab === 2) {
-          this.PlaceholderTab('AI 浮层', 'AI 对话入口 (待第 3 批实现)')
-        } else if (this.currentTab === 3) {
-          this.PlaceholderTab('复习 Tab', '复习计划 (待第 2 批实现)')
-        } else {
-          this.PlaceholderTab('我的 Tab', '个人中心 (待第 2 批实现)')
+    Column() {
+      // ===== 内容区 =====
+      Tabs({ index: this.cur, controller: this.tc }) {
+        TabContent() {
+          HomePage();
+        }
+
+        // 笔记 Tab (第 2 批: 真实列表)
+        TabContent() {
+          NotesPage();
+        }
+
+        // AI Tab (仍占位, 第 3 批做 AiChatOverlay)
+        TabContent() {
+          this.Place(2);
+        }
+
+        // 复习 Tab (第 2 批: 空状态 + 引导)
+        TabContent() {
+          ReviewPage({ onGoAI: () => { this.cur = 2; this.tc.changeIndex(2); } });
+        }
+
+        // 我的 Tab (第 2 批: 头像 + 统计 + 5 菜单)
+        TabContent() {
+          MePage();
         }
       }
+      .barHeight(0)
+      .layoutWeight(1)
+      .scrollable(false)
+      .onChange((i: number) => {
+        this.cur = i;
+      });
+
+      // ===== 自定义 TabBar 74vp =====
+      Row() {
+        ForEach(TABS, (tab: TabItem, i: number) => {
+          if (i === 2) {
+            this.AiBtn(i);
+          } else {
+            this.TabBtn(tab, i);
+          }
+        }, (tab: TabItem) => tab.idx.toString());
+      }
       .width('100%')
-      .height('100%')
-
-      // 底部 Tab 栏
-      this.TabBar()
+      .height(74)
+      .padding({ left: 6, right: 6, bottom: 10 })
+      // CSS: background rgba(10,12,16,0.6)~rgba(10,12,16,0.95)
+      .linearGradient({
+        angle: 180,
+        colors: [['#990A0C10', 0], ['#F20A0C10', 1]],
+      })
+      .backdropBlur(24)
+      .border({ width: { top: 1 }, color: BORDER })
+      .justifyContent(FlexAlign.SpaceAround)
+      .alignItems(VerticalAlign.Center);
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(BG)
+    .width('100%').height('100%').backgroundColor(BG_DARK);
   }
 
+  // ========== 占位页 ==========
   @Builder
-  PlaceholderTab(title: string, sub: string) {
+  Place(idx: number) {
     Column() {
-      Blank()
-      Text(title)
-        .fontSize(T_BASE + 4)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(TEXT)
-        .margin({ bottom: 8 })
-      Text(sub)
-        .fontSize(T_SM)
-        .fontColor(TEXT_3)
-        .textAlign(TextAlign.Center)
-        .padding({ left: 40, right: 40 })
-      Blank()
+      Text(this.tabName(idx) + ' Tab')
+        .fontSize(F_3XL).fontWeight(700).fontColor(TEXT)
+        .margin({ bottom: S_2 });
+      Text(PH[idx] || '')
+        .fontSize(F_BASE).fontColor(TEXT_3).textAlign(TextAlign.Center);
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(BG)
+    .width('100%').height('100%')
+    .justifyContent(FlexAlign.Center).backgroundColor(BG_DARK);
   }
 
+  // ========== 普通 Tab ==========
   @Builder
-  TabBar() {
-    Row() {
-      this.TabItem(0, '首页', $r('app.media.ic_home'))
-      this.TabItem(1, '笔记', $r('app.media.ic_notes'))
-      this.AiTabItem(2)
-      this.TabItem(3, '复习', $r('app.media.ic_review'))
-      this.TabItem(4, '我的', $r('app.media.ic_me'))
-    }
-    .width('100%')
-    .height(TABBAR_H)
-    .padding({ left: 6, right: 6, bottom: 10 })
-    .backgroundColor(BG_2)
-    .linearGradient({
-      angle: 180,
-      colors: [
-        ['#990A0C10', 0.0],
-        ['#F20A0C10', 1.0]
-      ]
-    })
-    .border({ width: { top: 1 }, color: BORDER })
-  }
-
-  @Builder
-  TabItem(index: number, label: string, iconRes: Resource) {
-    Column({ space: 2 }) {
-      Image(iconRes)
+  TabBtn(tab: TabItem, i: number) {
+    Column() {
+      Image(tab.icon)
         .width(22).height(22)
-        .fillColor(this.currentTab === index ? MINT : TEXT_3)
-      Text(label)
-        .fontSize(10)
-        .fontColor(this.currentTab === index ? MINT : TEXT_3)
-        .fontWeight(this.currentTab === index ? FontWeight.Bold : FontWeight.Medium)
+        .fillColor(this.isTabActive(i) ? MINT : TEXT_3);
+      Text(tab.name)
+        .fontSize(F_XS).fontWeight(500)
+        .fontColor(this.isTabActive(i) ? MINT : TEXT_3)
+        .margin({ top: 2 });
     }
     .layoutWeight(1)
     .padding({ top: 6, bottom: 6 })
+    .borderRadius(14)
     .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
     .onClick(() => {
-      this.currentTab = index;
-    })
+      this.cur = i;
+      this.tc.changeIndex(i);
+    });
   }
 
-  // 中间 AI Tab 凸起圆形
+  // ========== 中央 AI 渐变凸起圆 ==========
   @Builder
-  AiTabItem(index: number) {
+  AiBtn(i: number) {
     Column() {
       Stack() {
-        // 底层:渐变圆
-        Row()
-          .width(44).height(44)
-          .borderRadius(R_FULL)
+        // CSS .tab-ai-icon: 44×44 circle, linear-gradient(135deg, #5BE3B0, #9775FA)
+        Circle({ width: 44, height: 44 })
+          .fill('#00000000')
           .linearGradient({
             angle: 135,
-            colors: [[MINT, 0.0], [PURPLE, 1.0]]
+            colors: [[MINT, 0], [PURPLE, 1]],
           })
-        // 上层:AI 星形图标
+          // CSS box-shadow: 0 6px 20px rgba(91,227,176,0.45), 0 0 28px rgba(151,117,250,0.35)
+          .shadow({
+            radius: 20,
+            color: '#735BE3B0',
+            offsetX: 0,
+            offsetY: 6,
+          });
+
+        // CSS .tab-ai-icon svg: 20×20, color:#0A0C10
         Image($r('app.media.ic_ai'))
-          .width(22).height(22)
-          .fillColor(BG)
+          .width(20).height(20)
+          .fillColor('#FF0A0C10');
       }
-      .width(44).height(44)
-      .shadow({
-        radius: 20,
-        color: MINT,
-        offsetX: 0,
-        offsetY: 6
-      })
+      .width(44).height(44);
     }
     .layoutWeight(1)
-    .padding({ top: 6, bottom: 6 })
     .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
     .onClick(() => {
-      this.currentTab = index;
-    })
+      this.cur = i;
+      this.tc.changeIndex(i);
+    });
   }
 }
