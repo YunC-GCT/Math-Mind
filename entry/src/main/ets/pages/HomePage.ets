@@ -95,6 +95,10 @@ export struct HomePage {
   @State greet: string = '晚上好';
   @State userName: string = 'Mini';
   @State dateStr: string = '2026-07-13';
+  // Canvas 上下文(进度环用)
+  private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(
+    new RenderingContextSettings(true)
+  );
 
   aboutToAppear() {
     // 简化:greet 直接 hardcode
@@ -175,8 +179,10 @@ export struct HomePage {
   Header() {
     Row({ space: S_2 }) {
       // 六边形 brand logo (SVG,对照 Web MVP)
+      // objectFit: Contain 让 SVG 自适应,fillColor 切色
       Image($r('app.media.ic_brand'))
-        .width(22).height(22)
+        .width(24).height(24)
+        .objectFit(ImageFit.Contain)
         .fillColor(MINT)
 
       Text('MathMind')
@@ -194,78 +200,87 @@ export struct HomePage {
 
   @Builder
   Hero() {
-    Stack() {
-      Column() {
-        Row() {
-          Column({ space: 2 }) {
-            Row({ space: 5 }) {
-              Text('')
-                .width(5).height(5)
-                .borderRadius(R_FULL)
-                .backgroundColor(MINT)
-              Text(this.greet + ', ')
-                .fontSize(T_BASE)
-                .fontColor(TEXT)
-                .fontWeight(FontWeight.Bold)
-              Text(this.userName)
-                .fontSize(T_BASE)
-                .fontColor(TEXT)
-                .fontWeight(FontWeight.Bold)
-            }
-
-            Text(this.dateStr + ' · 周一')
-              .fontSize(10.5)
-              .fontColor(TEXT_4)
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-        }
-        .width('100%')
-
-        // 进度环
-        Stack() {
-          // 背景环
-          Text('')
-            .width(120).height(120)
-            .borderRadius(R_FULL)
-            .border({ width: 10, color: '#0FFFFFFF' })
-
-          // 前景环(简化:用 Stack 装一个有 border 的圆)
-          // 准确度不够,实际项目用 Canvas
-          Text('')
-            .width(120).height(120)
-            .borderRadius(R_FULL)
-            .border({ width: 10, color: MINT })
-            .rotate({ angle: -90 })
-            .opacity(0.85)
-
-          Column() {
-            Text(this.progress + '%')
-              .fontSize(26)
-              .fontWeight(FontWeight.Bold)
+    Column() {
+      // 问候行
+      Row() {
+        Column({ space: 2 }) {
+          Row({ space: 5 }) {
+            Text('')
+              .width(5).height(5)
+              .borderRadius(R_FULL)
+              .backgroundColor(MINT)
+            Text(this.greet + ', ')
+              .fontSize(T_BASE)
               .fontColor(TEXT)
-            Text('已掌握')
-              .fontSize(10)
-              .fontColor(TEXT_3)
-              .margin({ top: 2 })
+              .fontWeight(FontWeight.Bold)
+            Text(this.userName)
+              .fontSize(T_BASE)
+              .fontColor(TEXT)
+              .fontWeight(FontWeight.Bold)
           }
-        }
-        .width(120).height(120)
-        .margin({ top: S_3, bottom: S_1 })
 
-        // 3 统计
-        Row({ space: 10 }) {
-          this.StatBox(this.notes.length.toString(), '笔记')
-          this.StatBox(this.progress + '%', '掌握率')
-          this.StatBox('0', '今日新增')
+          Text(this.dateStr + ' · 周一')
+            .fontSize(10.5)
+            .fontColor(TEXT_4)
         }
-        .width('100%')
-        .margin({ top: S_3 })
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
       }
       .width('100%')
-      .padding(S_4)
+
+      // 进度环 - 用 Canvas 真实画(空 Text 不会渲染 border)
+      Stack({ alignContent: Alignment.Center }) {
+        // 背景圆环(灰色,完整 360°)
+        Canvas()
+          .width(120).height(120)
+          .onReady(() => {
+            this.canvasCtx.strokeStyle = '#0FFFFFFF'
+            this.canvasCtx.lineWidth = 10
+            this.canvasCtx.beginPath()
+            this.canvasCtx.arc(60, 60, 52, 0, Math.PI * 2)
+            this.canvasCtx.stroke()
+          })
+
+        // 前景圆弧(mint 绿,按 progress 比例)
+        Canvas()
+          .width(120).height(120)
+          .onReady(() => {
+            this.canvasCtx.strokeStyle = MINT
+            this.canvasCtx.lineWidth = 10
+            this.canvasCtx.lineCap = 'round'
+            this.canvasCtx.beginPath()
+            // 从 -90°(顶部)顺时针画 progress%
+            const endAngle = -Math.PI / 2 + (Math.PI * 2 * this.progress / 100)
+            this.canvasCtx.arc(60, 60, 52, -Math.PI / 2, endAngle, false)
+            this.canvasCtx.stroke()
+          })
+
+        // 中央文字
+        Column() {
+          Text(this.progress + '%')
+            .fontSize(26)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(TEXT)
+          Text('已掌握')
+            .fontSize(10)
+            .fontColor(TEXT_3)
+            .margin({ top: 2 })
+        }
+      }
+      .width(120).height(120)
+      .margin({ top: S_3, bottom: S_1 })
+
+      // 3 统计方块
+      Row({ space: 10 }) {
+        this.StatBox(this.notes.length.toString(), '笔记')
+        this.StatBox(this.progress + '%', '掌握率')
+        this.StatBox('0', '今日新增')
+      }
+      .width('100%')
+      .margin({ top: S_3 })
     }
     .width('100%')
+    .padding(S_4)
     .linearGradient({
       angle: 135,
       colors: [
