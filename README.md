@@ -1,7 +1,7 @@
 # MathMind · 当前状态
 
 > 工程: YunC-GCT/Math-Mind · 5 module HarmonyOS 数学学习助手  
-> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-13 17:53
+> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-13 22:00
 
 ---
 
@@ -27,8 +27,8 @@ MathMind/
 - `3c729e2` feat(z-w1-file3): **uuid** 生成
 - `68b8c5b` feat(z-w1-file4): **timeWindow** 时间窗工具
 - `ccb1345` feat(z-w1-file5): **confidenceSort** 置信度排序
-- `610c9d2` docs: README 全面改写 (W0 阶段说明 + W1 进度 + 接手指南) — *此 README 即将被本文件覆盖*
-- `d6220c4` merge: feature/z-w1-block2 → main (含 31eaa04/88fbb99 两条 GitHub web README 标题修订)
+- `610c9d2` docs: README 全面改写 (W0 阶段说明 + W1 进度 + 接手指南)
+- `d6220c4` merge: feature/z-w1-block2 → main
 
 ### 1.3 GitHub Web 标题修订
 
@@ -64,18 +64,129 @@ MathMind/
 
 **编译验证**: `hvigor BUILD SUCCESSFUL in 24 s 709 ms`
 - common HSP / agents HSP / entry HAP / skill HAP / cardservice HAP **5/5 全过**
-- 唯一 WARN: signingConfigs 未配(模拟器 unsigned OK,按之前规矩暂不配)
-
-**没做什么**:
-- ❌ 8 个文件都**没有任何业务实现**(只是 `export class {}`)
-- ❌ 没写 NoteDao.insert / ApiClient.request / Dispatcher.routeDispatch 等实际方法
-- ❌ 没接 LLM / OCR / RDB / HTTP
-- ❌ 没改 UI(EntryAbility / Index.ets 跟 W0 一样,显示 "Hello from common v1! | v0.0.1")
-- ❌ 没 push 到 GitHub(本地 3 个 commit 待推)
 
 ---
 
-## 二、需要实现的工作 — 7/13 今晚 D1 精简拍照链
+### 1.5 S_1 · 首页 UI + 底部导航 (commit `02cabf2` ~ `eeb5cb2`)
+
+**当前文件结构**:
+
+```
+entry/src/main/ets/
+├── pages/
+│   ├── Index.ets               # 主容器: 5 Tab 底部导航 + 全局浮层管理
+│   ├── HomePage.ets            # 首页: Hero 问候 + 进度环 + 最近笔记 + FAB
+│   ├── NotesPage.ets           # 笔记列表页
+│   ├── ReviewPage.ets          # 复习页
+│   └── MePage.ets              # 我的页
+├── overlays/
+│   ├── CameraOverlay.ets       # 拍照浮层 (全屏)
+│   ├── AiChatOverlay.ets       # AI 对话浮层 (卡片式)
+│   └── NoteDetailOverlay.ets   # 笔记详情浮层 (全屏)
+├── components/
+│   └── notes/
+│       └── notesData.ets       # 共享笔记数据 (NOTES_MOCK + 选中状态)
+├── database/
+│   └── NoteDao.ets             # 数据库 DAO (空壳, 待实现)
+├── services/
+│   ├── ApiClient.ets           # HTTP 客户端 (空壳, 待实现)
+│   └── AiService.ets           # AI 服务 (空壳, 待实现)
+├── entryability/
+│   └── EntryAbility.ets        # 应用入口
+└── entrybackupability/
+    └── EntryBackupAbility.ets  # 备份入口
+```
+
+**Index.ets — 5 Tab 底部导航**:
+- `首页` / `笔记` / `AI` / `复习` / `我的`
+- AI Tab 为中央渐变凸起圆 (mint→purple gradient + 发光阴影)
+- 对照 Web MVP `.tabbar` CSS: `height:74px` `backdrop-filter:blur(24px)` `border-top`
+- 沉浸式状态栏 (窗口延伸到 status bar 区域)
+
+**HomePage — 首页**:
+- Header: 日期 + 问候语 ("下午好 ☀️")
+- Hero 卡片: 连续天数 + 学习统计 (🔥/📝/⏱)
+- 学习进度: Canvas 绘制的多色进度环 (mint/purple/amber 分别对应高代/数分/解析几何)
+- 最近笔记列表: 可滚动, 每项显示标题 + 学科类型 chip + 日期
+- 点击笔记项 → 弹 NoteDetailOverlay
+- 右下 FAB [+] 按钮 → 弹 CameraOverlay
+
+**NotesPage — 笔记列表**:
+- 顶栏搜索框 + 筛选 chips (全部/高代/分析/几何)
+- 卡片列表: 标题 + 学科·类型 + 置信度徽章 + 日期
+- 点击卡片 → 弹 NoteDetailOverlay
+
+**ReviewPage / MePage**:
+- 基础布局就位, 待后续填充内容
+
+---
+
+### 1.6 S_3 · 3 个浮层 (commit `b15d960`)
+
+#### 📷 CameraOverlay — 拍照浮层
+
+| 功能 | 状态 |
+|------|------|
+| 全屏弹层 + #CC000000 遮罩 | ✅ |
+| Drag bar (#4B5563) + [✕] 关闭 + "拍照记题" 标题 | ✅ |
+| 📷 相机预览 (纯黑底 + 72sp emoji + 提示文字) | ✅ |
+| 4 角 L 形取景框 (mint 色, 24vp) | ✅ |
+| 快门按钮 76×76 双圈 / 相册按钮 56×56 圆 | ✅ |
+| 状态机: camera ↔ preview | ✅ |
+| preview: "已拍摄"/"从相册选择" + mock uri | ✅ |
+| 重拍 → 回 camera / [✓ 使用此图] → confirm | ✅ |
+| 确认后 → 跳 AI Tab + 弹 AiChatOverlay + 带 pendingImageUri | ✅ |
+
+#### 💬 AiChatOverlay — AI 对话浮层
+
+| 功能 | 状态 |
+|------|------|
+| 卡片式浮窗 (非全屏, 距底部 96vp, 圆角 20vp, purple 边框) | ✅ |
+| Drag bar + "✦ MathMind AI" + "在线·DeepSeek" subtitle | ✅ |
+| [+] 新对话 / [✕] 关闭按钮 | ✅ |
+| 4 快捷 prompt (📷拍照/📝总结/✏️出题/🔄复习) | ✅ |
+| AI 欢迎消息 (greeting) | ✅ |
+| AI 气泡 (左灰底 purple 浅底) / 用户气泡 (右 mint 渐变) | ✅ |
+| 消息列表 (max-height 240vp, 可滚动) | ✅ |
+| 底部输入框 + 发送按钮 (空时灰/有内容 mint) | ✅ |
+| 空发送 → toast "说点什么吧 ✨" | ✅ |
+| Mock AI 关键词回复 (总结/出题/复习) | ✅ |
+| 拍照回流: CameraOverlay 确认后 → 自动发图 + pending"正在分析..." | ✅ |
+| [+] 新对话 → 清空消息流, 回 greeting | ✅ |
+
+> ⚠️ **Note**: AiChatOverlay 当前是卡片式浮窗 (left:12, right:12, bottom:96vp),  
+> 不是全屏页面跳转。对照 Web MVP `.ai-overlay` CSS:  
+> `position:absolute; left:12px; right:12px; bottom:96px; max-height:420px;`  
+> 需要确认是否符合设计要求。
+
+#### 📄 NoteDetailOverlay — 笔记详情浮层
+
+| 功能 | 状态 |
+|------|------|
+| 全屏弹层 + drag bar + 学科·类型 chip + [✕] 关闭 | ✅ |
+| 标题 24sp 粗体 + 日期·章节 meta + 置信度徽章 | ✅ |
+| 置信度圆点颜色: mint (≥85%) / amber (≥60%) / red (<60%) | ✅ |
+| 标签 #tag chips (mint 浅底) | ✅ |
+| `##` Markdown 章节解析渲染 (定义/性质/解法 等) | ✅ |
+| AI 解答卡 → toast "正在呼叫 AI..." | ✅ |
+| 底部操作栏: [删除] / [编辑] / [分享] + toast 反馈 | ✅ |
+| 点 ✕ / 点遮罩 → 关闭 | ✅ |
+| 接入 HomePage + NotesPage 双重触发 | ✅ |
+
+#### 🔗 接入汇总
+
+| 接入点 | 状态 |
+|--------|------|
+| HomePage FAB → CameraOverlay | ✅ |
+| HomePage 笔记卡片 → NoteDetailOverlay | ✅ |
+| NotesPage 卡片 → NoteDetailOverlay | ✅ |
+| AI Tab → AiChatOverlay (不占位) | ✅ |
+| 拍照确认 → 跳 AI Tab + 弹 AiChatOverlay + 图片气泡 | ✅ |
+| Index.ets 集中管理 showCamera / showAI / pendingImageUri | ✅ |
+
+---
+
+## 二、待实现 — D1 精简拍照链 (后端链)
 
 > 目标: 拍照 → OCR → DeepSeek 3×3 分类 → 3 模板 → 真值检验 → 入库 → 显示  
 > 整链时序见 `docs/D1_CAPTURE_CHAIN_PLAN.md` · 详细分工见 `docs/TONIGHT_TASKS.md`
@@ -88,202 +199,34 @@ MathMind/
 | **分类** | 2 | B1 + B2 | 拍图 → 返回 {3×3 分类, confidence>0.7} |
 | **写笔记** | 2 | A1 + C | 文本+分类 → KnowledgeUnit 入库 · 真值检验标红 |
 
-3 人各自开 `feature/xxx` branch,各 clone 仓库独立开发,完事 push 给 leader 集成。
-
----
-
 ### 2.1 角色 A · 主+UI (4 文件) — 你 + Mavis
 
-**接手文件**:
-1. `entry/src/main/ets/services/ApiClient.ets` (A2)
-2. `agents/src/main/ets/core/Dispatcher.ets` (D)
-3. `entry/src/main/ets/services/AiService.ets` (E1)
-4. `entry/src/main/ets/overlays/CameraOverlay.ets` (E2)
-
-**预期要达到什么**:
-
-#### A2 ApiClient — HTTP 客户端
-实现 `request(method, path, options): Promise<ApiResponse>`
-- 注入 JWT (`Authorization: Bearer ...`)
-- 401 时尝试 1 次 token 刷新后重试
-- **验收**: `curl https://<后端>/health` 返回 200(用 ApiClient.request 调一次后端 health 端点)
-
-#### D Dispatcher — 主 Agent 调度
-实现 `routeDispatch(req: DispatchRequest): Promise<DispatchResult>`
-- L1 关键词匹配: `text ∈ {'记','拍','这题','笔记','题'}?` → 命中 D1
-- D1 分支: `TypeClassifier.classify(...)` → `KnowledgeModel.structure(...)` → 返回 KnowledgeUnit
-- **验收**: `POST /agents/dispatch` 传 base64 → 返回 `{ success:true, route:'D1', data: KnowledgeUnit, durationMs }`
-
-#### E1 AiService — 拍照调用 Dispatcher
-实现 `capture(imageUri: string): Promise<KnowledgeUnit>`
-- imageUri → 读文件 → base64
-- `ApiClient.request('POST', '/agents/dispatch', { body: { source:'app', payload: base64, imageUri } })`
-- 解析响应,返回 KnowledgeUnit
-- **验收**: 日志打 `note.id`(可先用硬编码 base64 自测,不等 E2 相机)
-
-#### E2 CameraOverlay — 相机/相册 UI 组件
-实现 `@Component struct CameraOverlay` (UI 浮层)
-- 触发: 用户点首页 FAB [+] 弹出
-- 功能: 相机预览 + 快门按钮 + 相册按钮
-- 拍/选完: imageUri → `AiService.capture(imageUri)` → 拿 KnowledgeUnit → 关 overlay → 通知 HomePage 刷新
-- **验收**: 点快门 → 拍照 → 日志见 `note.id` → HomePage 列表头出现新笔记卡
-
-**完成定义 (DoD)**:
-- ✅ 4 个文件都有真实实现(非空壳)
-- ✅ DevEco build 通过
-- ✅ 端到端: 点 FAB [+] → 拍照 → 笔记卡显示(拍"求极限 lim(x→0) sinx/x"应得【计算】卡)
-
----
+- `entry/src/main/ets/services/ApiClient.ets` (A2) — HTTP 客户端
+- `agents/src/main/ets/core/Dispatcher.ets` (D) — 主 Agent 调度
+- `entry/src/main/ets/services/AiService.ets` (E1) — 拍照调用 Dispatcher
+- `entry/src/main/ets/overlays/CameraOverlay.ets` (E2) — **UI 已完成**, 待接 `AiService.capture()`
 
 ### 2.2 角色 B · 分类 (2 文件) — D
 
-**接手文件**:
-1. `agents/src/main/ets/mcp/tools/OcrTool.ets` (B1)
-2. `agents/src/main/ets/agents/TypeClassifier.ets` (B2)
-
-**预期要达到什么**:
-
-#### B1 OcrTool — ML Kit OCR
-实现 `recognize(imageBase64: string): Promise<string>`
-- 调 HarmonyOS ML Kit Vision API (`@ohos.ai.mlnlp.textRecognition`)
-- 输入 base64 → 解码为 PixelMap → 调 OCR → 返回文本
-- **验收**: 传一张含数学公式的图 → 返回非空文本
-
-#### B2 TypeClassifier — 3×3 分类
-实现 `classify(input: { ocrText?, imageBase64? }): Promise<ClassificationResult>`
-- 如传 imageBase64,先调 `OcrTool.recognize` 拿文本
-- `cleanText` (TextUtils 清洗)
-- 调 LLM (默认 SiliconFlow / DeepSeek-V3,端点 `api.siliconflow.cn`, Temperature 0.1, MaxTokens 256, Timeout 5s)
-- 精简版 Prompt (3 学科 × 3 类型,见 D1_CAPTURE_CHAIN_PLAN.md 第四节)
-- 解析 JSON → `ClassificationResult`
-  ```typescript
-  {
-    type: '概念' | '计算' | '证明',
-    subject: '高等代数' | '数学分析' | '解析几何',
-    chapter?: string,
-    confidence: number  // 0.0-1.0
-  }
-  ```
-- **验收**: 传文字 `"求行列式 |A|"` → 返回 `{ type:'计算', subject:'高等代数', confidence: ≥ 0.7 }`
-
-**完成定义 (DoD)**:
-- ✅ 2 个文件都有真实实现
-- ✅ DevEco build 通过
-- ✅ 自测 9 个样例 (3 类 × 3 学科) 准确率 ≥ 80%
-- ✅ 失败有降级: LLM 调不通时返回 `confidence: 0`,不抛异常
-
----
+- `agents/src/main/ets/mcp/tools/OcrTool.ets` (B1) — ML Kit OCR
+- `agents/src/main/ets/agents/TypeClassifier.ets` (B2) — 3×3 分类
 
 ### 2.3 角色 C · 写笔记 (2 文件) — L
 
-**接手文件**:
-1. `entry/src/main/ets/database/NoteDao.ets` (A1)
-2. `agents/src/main/ets/agents/KnowledgeModel.ets` (C)
+- `entry/src/main/ets/database/NoteDao.ets` (A1) — RDB 数据访问
+- `agents/src/main/ets/agents/KnowledgeModel.ets` (C) — 模板 + 真值 + 入库
 
-**预期要达到什么**:
+### 2.4 LLM 配置
 
-#### A1 NoteDao — RDB 数据访问
-实现 `insert(unit: KnowledgeUnit): number` + `queryById(id: string): KnowledgeUnit | null`
-- 用 `@ohos.data.relationalStore` (RdbStore)
-- 表结构见 `common/src/main/ets/DatabaseHelper.ets`
-- **验收**: `insert(unit)` → 返回 rowId → `queryById(rowId)` 查回同一对象
-
-#### C KnowledgeModel — 模板 + 真值 + 入库
-实现 `structure(ocrText, classification): Promise<KnowledgeUnit>`
-- 根据 `classification.type` 选 3 模板之一:
-  - `概念` → `concept_v1`: `## 定义 / ## 性质 / ## 相关概念`
-  - `计算` → `computation_v1`: `## 题目 / ## 解法 / ## 答案`
-  - `证明` → `proof_v1`: `## 命题 / ## 证明 / ## 要点`
-- title: 首句摘要(≤30 字),前缀 `【概念】/【计算】/【证明】`
-- 构造 KnowledgeUnit(含 id / tags / timestamps / truthFlag)
-- `truthCheck(ocrText)` 返回 `TruthCheckResult`:
-  - 括号配对 ( ) [ ] { }
-  - 除零检测 `/0` `÷0` → error
-  - 矛盾等式 `1=2` `0=1` → error
-  - LaTeX `$` `{` `}` 配对
-- `NoteDao.insert(unit)` → rowId → 回填 unit.id
-- 返回完整 KnowledgeUnit
-- **验收**: 传 OCR 文本 + 分类结果 → KnowledgeUnit → insert → queryById 查回
-
-**完成定义 (DoD)**:
-- ✅ 2 个文件都有真实实现
-- ✅ DevEco build 通过
-- ✅ 3 模板各跑通 1 个样例
-- ✅ 真值检验: 至少 1 个 error 样例能被标红(例:`1=2` → truthFlag='error')
-
----
-
-### 2.4 端到端验收 (集成后由 Mavis 跑)
-
-```
-1. 打开 App → 点首页 FAB [+] → 选拍照
-2. 拍一张数学题 (如"求极限 lim(x→0) sinx/x")
-3. 等待 2-3 秒
-4. HomePage 笔记列表顶部出现新卡片:【计算】求极限 lim(x→0) sinx/x
-5. 点卡片 → 看到模板正文 (## 题目 / ## 解法 / ## 答案)
-```
-
-任一步失败 → 回对应负责人修 → 修完再集成。
-
-### 2.2 关键约束 (摘自 D1_CAPTURE_CHAIN_PLAN.md)
-
-**LLM 配置**:
-- 默认 Provider: **SiliconFlow / DeepSeek-V3** (`deepseek-ai/DeepSeek-V3`)
+- Provider: **SiliconFlow / DeepSeek-V3** (`deepseek-ai/DeepSeek-V3`)
 - 端点: `https://api.siliconflow.cn/v1/chat/completions`
 - Temperature: **0.1** · MaxTokens: **256** · Timeout: **5s**
-- 降级链: DeepSeek → 小艺Kit → Mock
 
-**3×3 分类体系**:
+### 2.5 3×3 分类体系 + 3 模板
+
 - 学科: 高等代数 / 数学分析 / 解析几何
 - 类型: 概念 / 计算 / 证明
-
-**3 模板** (KnowledgeModel 用):
-- `concept_v1` (定义/性质/相关概念)
-- `computation_v1` (题目/解法/答案)
-- `proof_v1` (命题/证明/要点)
-
-**真值检验** (KnowledgeModel.truthCheck):
-- 括号配对 ( ) [ ] { }
-- 除零检测 /0 ÷0
-- 恒等式校验 sin²x+cos²x=1 / e^(iπ)+1=0
-- 矛盾等式 (1=2, 0=1) → error
-- LaTeX 语法 $ $ { } 配对
-- 结果 `truthFlag: 'valid' | 'warning' | 'error'`,UI 只对 error 标红
-
-### 2.3 依赖顺序 (3 人组内串行 / 组间可并行)
-
-```
-你 + Mavis (4 文件)        D (2 文件)              L (2 文件)
-─────────────────         ──────────              ──────────
-A2 (ApiClient)  ──┐
-                  ├── D (Dispatcher) ──┐
-                  │                     ├── E1 (AiService)  ← 集成时
-                  │                     │   E2 (CameraOverlay) ← 调用 AiService
-                  │
-                  │       B1 (OcrTool) ──┐
-                  │                       ├── B2 (TypeClassifier)
-                  │                       │
-                  │                       A1 (NoteDao) ──┐
-                  │                                       ├── C (KnowledgeModel)
-                  │                                       │
-                  └──────────────────────────────────────┘
-                              ↓ 集成时再串起来
-                  C 被 D 调用 · D 被 E1 调用 · E1 被 E2 调用
-```
-
-**3 组内部串行 / 3 组间并行**：
-- **你 + Mavis**: 先 A2 (HTTP) → 后 D (路由) → 最后 E1+E2 (UI)
-- **D**: 先 B1 (OCR) → 后 B2 (分类)
-- **L**: 先 A1 (DB) → 后 C (建模)
-- **集成**: 3 组完成后，由你 merge 3 个 feature branch 到 main
-
-### 2.4 整链接口契约
-
-```
-POST /agents/dispatch
-  请求: { source: "app", payload: "<base64图片>", imageUri: "file://..." }
-  响应: { success, route: "D1", data: KnowledgeUnit, durationMs }
-```
+- 模板: `concept_v1` (定义/性质/相关概念) / `computation_v1` (题目/解法/答案) / `proof_v1` (命题/证明/要点)
 
 ---
 
@@ -298,19 +241,4 @@ POST /agents/dispatch
 ## 四、git 规则
 
 1. **未经明示禁止 push** — 本地 commit 自由,推送必须 leader 点头
-2. **删除走 mavis-trash / 回收站** — 不直接 `Remove-Item -Recurse -Force`
-3. **失败 2 次停下报告** — 不无限重试,贴报错最后 5 行
-4. **改完即 commit** — 单文件单 commit,feat/fix/docs 前缀
-5. **每块结束推一次** — 拿到 leader 点头再 push,不全攒到最后
-
----
-
-## 五、相关文档 (在 `D:\HMgent\MathMind方案\`)
-
-- `D1_CAPTURE_CHAIN_PLAN.md` — 精简拍照链整链设计
-- `DIRECTORY_MAP.md` — 四层目录 (模板/精简/完整/MVP)
-- `TONIGHT_TASKS.md` — 7/13 今晚任务分工与时间线
-- `AGENT_ARCH_v3.1.md` — Agent 架构
-- `API_SPEC.md` — 23 API 端点
-- `TWO_AXIS_CLASSIFICATION.md` — 两轴分类说明
-- `LOCAL_VS_API_STRATEGY.md` — 本地 vs 云端策略
+2. commit message 规则: `feat(module):` / `fix(module):` / `docs:` / `merge:`
