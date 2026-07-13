@@ -12,7 +12,7 @@
 //   5. "最近笔记" 滚动列表
 //   6. FAB [+] 浮动按钮(绝对定位,bottom: 90vp, right: 20vp, 54×54)
 //
-// 设计基准: 360 vp 宽(对应 Mate X7 外屏 6.4 寸)
+// 设计基准: 377 vp 宽(对应 HUAWEI Pura 90,6.8 寸 1320×2856 / 560 dpi / HarmonyOS 6.1.1)
 // 配色: 全部从 common/src/main/ets/constants/ColorTokens 引用
 
 import {

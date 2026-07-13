@@ -101,9 +101,20 @@ export const T_XL: number = 18;
 export const T_2XL: number = 22;
 export const T_3XL: number = 28;
 
-// ==================== 屏幕尺寸 (vp, 对应 Web MVP 390x844) ====================
-export const SCREEN_W: number = 360;   // 6 英寸屏 1920x1080 折算
-export const SCREEN_H: number = 780;
+// ==================== 屏幕尺寸 (vp, 目标机型 HUAWEI Pura 90) ====================
+// Pura 90 真实规格(来自模拟器面板 2026-07-13):
+//   屏幕大小:   6.8"
+//   分辨率:     1320 × 2856 px
+//   像素密度:   560 dpi
+//   HarmonyOS:  6.1.1 (API 24)
+//   CPU/ABI:    x86
+//   RAM:        4096 MB
+//   UUID:       cc2a953d-ab49-4e93-9b37-525560d9686c
+//   部署路径:   C:\Users\YunCeH\AppData\Local\Huawei\Emulator\deployed\Pura 90
+// vp 换算: vp = px / (dpi/160) = 1320/3.5 = 377 vp 宽, 2856/3.5 = 816 vp 高
+// 所有布局用 vp/% 自适应,此处 SCREEN_W/H 仅作参考
+export const SCREEN_W: number = 377;
+export const SCREEN_H: number = 816;
 export const STATUS_BAR_H: number = 48;
 export const HEADER_H: number = 54;
 export const TABBAR_H: number = 74;
