@@ -51,6 +51,43 @@ const MOCK_NOTES: NoteView[] = [
   { id: 5, title: '证明向量组线性无关', type: '证明', subject: '高等代数', chapter: '线性空间', conf: 0.82, body: '## 命题\n设 α₁,α₂,α₃ 线性无关...', tags: ['线性无关', '向量组'], date: '2026-07-01' }
 ];
 
+// ==================== 顶层工具函数 ====================
+// ArkTS 严格语法禁止 struct 内普通方法,所有 util 提到模块顶层
+
+function getTypeColor(type: string): string {
+  return TYPE_COLORS[type] || TYPE_DEFAULT;
+}
+
+function getSubjectColor(subject: string): string {
+  return SUBJECT_COLORS[subject] || SUBJECT_DEFAULT;
+}
+
+function getConfColor(conf: number): string {
+  if (conf >= 0.8) return MINT;
+  if (conf >= 0.5) return '#F0C674';
+  return '#FF6B6B';
+}
+
+function getConfText(conf: number): string {
+  return (conf * 100).toFixed(0) + '%';
+}
+
+// 摘要:去掉 ## 标题行(无 regex),截 60 字
+function getBodyPreview(body: string): string {
+  if (!body) return '';
+  const lines: string[] = body.split('\n');
+  const kept: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.indexOf('## ') !== 0) {
+      kept.push(line);
+    }
+  }
+  const stripped = kept.join(' ').trim();
+  if (stripped.length <= 60) return stripped;
+  return stripped.substring(0, 60) + '…';
+}
+
 @Component
 export struct HomePage {
   @State notes: NoteView[] = MOCK_NOTES;
@@ -60,43 +97,8 @@ export struct HomePage {
   @State dateStr: string = '2026-07-13';
 
   aboutToAppear() {
-    this.computeGreet();
-  }
-
-  computeGreet() {
-    // 简化:ArkTS 严格语法,直接用静态时间
-    this.greet = '晚上好';
-  }
-
-  // 工具:获取类型色
-  getTypeColor(type: string): string {
-    return TYPE_COLORS[type] || TYPE_DEFAULT;
-  }
-
-  // 工具:获取学科色
-  getSubjectColor(subject: string): string {
-    return SUBJECT_COLORS[subject] || SUBJECT_DEFAULT;
-  }
-
-  // 工具:置信度等级
-  getConfClass(conf: number): string {
-    if (conf >= 0.8) return 'hi';
-    if (conf >= 0.5) return 'md';
-    return 'lo';
-  }
-
-  getConfColor(conf: number): string {
-    const cls = this.getConfClass(conf);
-    if (cls === 'hi') return MINT;
-    if (cls === 'md') return '#F0C674';
-    return '#FF6B6B';
-  }
-
-  // 工具:取笔记正文摘要(去掉 ## 标题,截 60 字)
-  getBodyPreview(body: string): string {
-    if (!body) return '';
-    const stripped = body.replace(/^## .+$/gm, '').slice(0, 60).trim();
-    return stripped + (body.length > 60 ? '…' : '');
+    // 简化:greet 直接 hardcode
+    // ArkTS 严格语法禁 struct 内调普通方法
   }
 
   build() {
@@ -358,7 +360,7 @@ export struct HomePage {
   NoteCard(note: NoteView) {
     Row({ space: S_3 }) {
       // 类型图标(渐变)
-      Text(this.getTypeColor(note.type).substring(1, 2))
+      Text(getTypeColor(note.type).substring(1, 2))
         .fontSize(14)
         .fontWeight(FontWeight.Bold)
         .fontColor(BG)
@@ -367,8 +369,8 @@ export struct HomePage {
         .linearGradient({
           angle: 135,
           colors: [
-            [this.getTypeColor(note.type), 0.0],
-            [this.getSubjectColor(note.subject), 1.0]
+            [getTypeColor(note.type), 0.0],
+            [getSubjectColor(note.subject), 1.0]
           ]
         })
         .textAlign(TextAlign.Center)
@@ -379,20 +381,20 @@ export struct HomePage {
         Row() {
           Text(note.subject)
             .fontSize(10.5)
-            .fontColor(this.getSubjectColor(note.subject))
+            .fontColor(getSubjectColor(note.subject))
             .fontWeight(FontWeight.Bold)
             .margin({ right: 6 })
           Text(note.type)
             .fontSize(10.5)
-            .fontColor(this.getTypeColor(note.type))
+            .fontColor(getTypeColor(note.type))
             .fontWeight(FontWeight.Bold)
             .margin({ right: 6 })
           Text(note.date)
             .fontSize(10.5)
             .fontColor(TEXT_3)
-          Text('· ' + Math.round(note.conf * 100) + '%')
+          Text('· ' + getConfText(note.conf))
             .fontSize(10.5)
-            .fontColor(this.getConfColor(note.conf))
+            .fontColor(getConfColor(note.conf))
         }
         .width('100%')
         .justifyContent(FlexAlign.Start)
@@ -407,7 +409,7 @@ export struct HomePage {
           .width('100%')
 
         // 摘要
-        Text(this.getBodyPreview(note.body))
+        Text(getBodyPreview(note.body))
           .fontSize(12.5)
           .fontColor(TEXT_3)
           .maxLines(2)
