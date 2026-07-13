@@ -179,10 +179,10 @@ export struct HomePage {
         .fontColor(TEXT)
     }
     .width('100%')
-    // 沉浸式 status bar: app 内容延伸到 status bar 区域,Header 紧贴屏幕顶部
-    // EntryAbility 设 setWindowLayoutFullScreen + status bar 透明背景
-    .height(HEADER_H)
-    .padding({ left: S_4, right: S_4 })
+    // 沉浸式 + 安全区:status bar 透明浮在 app 上,但 Header 内容向下挪 48vp
+    // 避免跟系统时间 06:50 / 电量文字重叠
+    .height(HEADER_H + STATUS_BAR_H)
+    .padding({ left: S_4, right: S_4, top: STATUS_BAR_H })
     .alignItems(VerticalAlign.Center)
   }
 
