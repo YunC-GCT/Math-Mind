@@ -1,7 +1,7 @@
 # MathMind · 当前状态
 
 > 工程: YunC-GCT/Math-Mind · 5 module HarmonyOS 数学学习助手  
-> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-13 17:51
+> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-13 17:53
 
 ---
 
@@ -78,29 +78,152 @@ MathMind/
 ## 二、需要实现的工作 — 7/13 今晚 D1 精简拍照链
 
 > 目标: 拍照 → OCR → DeepSeek 3×3 分类 → 3 模板 → 真值检验 → 入库 → 显示  
-> 整链时序见 `docs/D1_CAPTURE_CHAIN_PLAN.md`  
-> 详细分工见 `docs/TONIGHT_TASKS.md`
+> 整链时序见 `docs/D1_CAPTURE_CHAIN_PLAN.md` · 详细分工见 `docs/TONIGHT_TASKS.md`
 
-### 2.1 8 文件分工 (按 TONIGHT_TASKS 编号 · 3 人独立开发模式)
+### 2.0 3 角色分工总览
 
-| 编号 | 文件 | 责任 | 内容 | 状态 |
-|------|------|------|------|------|
-| **A1** | `entry/src/main/ets/database/NoteDao.ets` | **L** | RDB `insert(unit)` + `queryById(id)` | 🟡 空壳待填 |
-| **A2** | `entry/src/main/ets/services/ApiClient.ets` | **你 + Mavis** | HTTP `request()` + JWT 注入 + 401 重试 | 🟡 空壳待填 |
-| **B1** | `agents/src/main/ets/mcp/tools/OcrTool.ets` | **D** | `recognize(imageBase64)` → ML Kit OCR | 🟡 空壳待填 |
-| **B2** | `agents/src/main/ets/agents/TypeClassifier.ets` | **D** | `classify(input)` → OCR + DeepSeek 3×3 分类 | 🟡 空壳待填 |
-| **C** | `agents/src/main/ets/agents/KnowledgeModel.ets` | **L** | 3 模板 + 真值检验 + `NoteDao.insert` | 🟡 空壳待填 |
-| **D** | `agents/src/main/ets/core/Dispatcher.ets` | **你 + Mavis** | L1 关键词 "记/拍/这题" → routeDispatch D1 分支 | 🟡 空壳待填 |
-| **E1** | `entry/src/main/ets/services/AiService.ets` | **你 + Mavis** | `capture(imageUri)` → base64 → POST dispatch | 🟡 空壳待填 |
-| **E2** | `entry/src/main/ets/overlays/CameraOverlay.ets` | **你 + Mavis** | 相机预览 + 快门 + 相册 → imageUri | 🟡 空壳待填 |
+| 角色 | 文件数 | 编号 | 关键交付 |
+|------|--------|------|---------|
+| **主+UI** | 4 | A2 + D + E1 + E2 | 拍照按钮 → 出笔记卡 · 整链可跑通 |
+| **分类** | 2 | B1 + B2 | 拍图 → 返回 {3×3 分类, confidence>0.7} |
+| **写笔记** | 2 | A1 + C | 文本+分类 → KnowledgeUnit 入库 · 真值检验标红 |
 
-#### 3 人工作量
+3 人各自开 `feature/xxx` branch,各 clone 仓库独立开发,完事 push 给 leader 集成。
 
-| 人 | 文件数 | 编号 |
-|----|--------|------|
-| **你 + Mavis** | 4 | A2 + D + E1 + E2 |
-| **D** | 2 | B1 + B2 |
-| **L** | 2 | A1 + C |
+---
+
+### 2.1 角色 A · 主+UI (4 文件) — 你 + Mavis
+
+**接手文件**:
+1. `entry/src/main/ets/services/ApiClient.ets` (A2)
+2. `agents/src/main/ets/core/Dispatcher.ets` (D)
+3. `entry/src/main/ets/services/AiService.ets` (E1)
+4. `entry/src/main/ets/overlays/CameraOverlay.ets` (E2)
+
+**预期要达到什么**:
+
+#### A2 ApiClient — HTTP 客户端
+实现 `request(method, path, options): Promise<ApiResponse>`
+- 注入 JWT (`Authorization: Bearer ...`)
+- 401 时尝试 1 次 token 刷新后重试
+- **验收**: `curl https://<后端>/health` 返回 200(用 ApiClient.request 调一次后端 health 端点)
+
+#### D Dispatcher — 主 Agent 调度
+实现 `routeDispatch(req: DispatchRequest): Promise<DispatchResult>`
+- L1 关键词匹配: `text ∈ {'记','拍','这题','笔记','题'}?` → 命中 D1
+- D1 分支: `TypeClassifier.classify(...)` → `KnowledgeModel.structure(...)` → 返回 KnowledgeUnit
+- **验收**: `POST /agents/dispatch` 传 base64 → 返回 `{ success:true, route:'D1', data: KnowledgeUnit, durationMs }`
+
+#### E1 AiService — 拍照调用 Dispatcher
+实现 `capture(imageUri: string): Promise<KnowledgeUnit>`
+- imageUri → 读文件 → base64
+- `ApiClient.request('POST', '/agents/dispatch', { body: { source:'app', payload: base64, imageUri } })`
+- 解析响应,返回 KnowledgeUnit
+- **验收**: 日志打 `note.id`(可先用硬编码 base64 自测,不等 E2 相机)
+
+#### E2 CameraOverlay — 相机/相册 UI 组件
+实现 `@Component struct CameraOverlay` (UI 浮层)
+- 触发: 用户点首页 FAB [+] 弹出
+- 功能: 相机预览 + 快门按钮 + 相册按钮
+- 拍/选完: imageUri → `AiService.capture(imageUri)` → 拿 KnowledgeUnit → 关 overlay → 通知 HomePage 刷新
+- **验收**: 点快门 → 拍照 → 日志见 `note.id` → HomePage 列表头出现新笔记卡
+
+**完成定义 (DoD)**:
+- ✅ 4 个文件都有真实实现(非空壳)
+- ✅ DevEco build 通过
+- ✅ 端到端: 点 FAB [+] → 拍照 → 笔记卡显示(拍"求极限 lim(x→0) sinx/x"应得【计算】卡)
+
+---
+
+### 2.2 角色 B · 分类 (2 文件) — D
+
+**接手文件**:
+1. `agents/src/main/ets/mcp/tools/OcrTool.ets` (B1)
+2. `agents/src/main/ets/agents/TypeClassifier.ets` (B2)
+
+**预期要达到什么**:
+
+#### B1 OcrTool — ML Kit OCR
+实现 `recognize(imageBase64: string): Promise<string>`
+- 调 HarmonyOS ML Kit Vision API (`@ohos.ai.mlnlp.textRecognition`)
+- 输入 base64 → 解码为 PixelMap → 调 OCR → 返回文本
+- **验收**: 传一张含数学公式的图 → 返回非空文本
+
+#### B2 TypeClassifier — 3×3 分类
+实现 `classify(input: { ocrText?, imageBase64? }): Promise<ClassificationResult>`
+- 如传 imageBase64,先调 `OcrTool.recognize` 拿文本
+- `cleanText` (TextUtils 清洗)
+- 调 LLM (默认 SiliconFlow / DeepSeek-V3,端点 `api.siliconflow.cn`, Temperature 0.1, MaxTokens 256, Timeout 5s)
+- 精简版 Prompt (3 学科 × 3 类型,见 D1_CAPTURE_CHAIN_PLAN.md 第四节)
+- 解析 JSON → `ClassificationResult`
+  ```typescript
+  {
+    type: '概念' | '计算' | '证明',
+    subject: '高等代数' | '数学分析' | '解析几何',
+    chapter?: string,
+    confidence: number  // 0.0-1.0
+  }
+  ```
+- **验收**: 传文字 `"求行列式 |A|"` → 返回 `{ type:'计算', subject:'高等代数', confidence: ≥ 0.7 }`
+
+**完成定义 (DoD)**:
+- ✅ 2 个文件都有真实实现
+- ✅ DevEco build 通过
+- ✅ 自测 9 个样例 (3 类 × 3 学科) 准确率 ≥ 80%
+- ✅ 失败有降级: LLM 调不通时返回 `confidence: 0`,不抛异常
+
+---
+
+### 2.3 角色 C · 写笔记 (2 文件) — L
+
+**接手文件**:
+1. `entry/src/main/ets/database/NoteDao.ets` (A1)
+2. `agents/src/main/ets/agents/KnowledgeModel.ets` (C)
+
+**预期要达到什么**:
+
+#### A1 NoteDao — RDB 数据访问
+实现 `insert(unit: KnowledgeUnit): number` + `queryById(id: string): KnowledgeUnit | null`
+- 用 `@ohos.data.relationalStore` (RdbStore)
+- 表结构见 `common/src/main/ets/DatabaseHelper.ets`
+- **验收**: `insert(unit)` → 返回 rowId → `queryById(rowId)` 查回同一对象
+
+#### C KnowledgeModel — 模板 + 真值 + 入库
+实现 `structure(ocrText, classification): Promise<KnowledgeUnit>`
+- 根据 `classification.type` 选 3 模板之一:
+  - `概念` → `concept_v1`: `## 定义 / ## 性质 / ## 相关概念`
+  - `计算` → `computation_v1`: `## 题目 / ## 解法 / ## 答案`
+  - `证明` → `proof_v1`: `## 命题 / ## 证明 / ## 要点`
+- title: 首句摘要(≤30 字),前缀 `【概念】/【计算】/【证明】`
+- 构造 KnowledgeUnit(含 id / tags / timestamps / truthFlag)
+- `truthCheck(ocrText)` 返回 `TruthCheckResult`:
+  - 括号配对 ( ) [ ] { }
+  - 除零检测 `/0` `÷0` → error
+  - 矛盾等式 `1=2` `0=1` → error
+  - LaTeX `$` `{` `}` 配对
+- `NoteDao.insert(unit)` → rowId → 回填 unit.id
+- 返回完整 KnowledgeUnit
+- **验收**: 传 OCR 文本 + 分类结果 → KnowledgeUnit → insert → queryById 查回
+
+**完成定义 (DoD)**:
+- ✅ 2 个文件都有真实实现
+- ✅ DevEco build 通过
+- ✅ 3 模板各跑通 1 个样例
+- ✅ 真值检验: 至少 1 个 error 样例能被标红(例:`1=2` → truthFlag='error')
+
+---
+
+### 2.4 端到端验收 (集成后由 Mavis 跑)
+
+```
+1. 打开 App → 点首页 FAB [+] → 选拍照
+2. 拍一张数学题 (如"求极限 lim(x→0) sinx/x")
+3. 等待 2-3 秒
+4. HomePage 笔记列表顶部出现新卡片:【计算】求极限 lim(x→0) sinx/x
+5. 点卡片 → 看到模板正文 (## 题目 / ## 解法 / ## 答案)
+```
+
+任一步失败 → 回对应负责人修 → 修完再集成。
 
 ### 2.2 关键约束 (摘自 D1_CAPTURE_CHAIN_PLAN.md)
 
