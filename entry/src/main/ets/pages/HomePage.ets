@@ -104,13 +104,10 @@ export struct HomePage {
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
-        // 1. 状态栏
-        this.StatusBar()
-
-        // 2. Header
+        // 1. Header (系统 status bar 显示真实时间/电量,app 不再画)
         this.Header()
 
-        // 3. Hero 区
+        // 2. Hero 区
         this.Hero()
 
         // 4. 提醒横幅
@@ -169,49 +166,6 @@ export struct HomePage {
   // ==================== 子组件 ====================
 
   @Builder
-  StatusBar() {
-    Row() {
-      Text('09:45')
-        .fontSize(13)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(TEXT)
-      Row({ space: 6 }) {
-        // 信号 (4 个柱状)
-        Row({ space: 1.5 }) {
-          ForEach([3, 5, 8, 10], (h: number) => {
-            Text('').width(2.5).height(h)
-          })
-        }
-        .height(10)
-        .alignItems(VerticalAlign.Bottom)
-
-        // WiFi 图标
-        Text('📶')
-          .fontSize(14)
-          .fontColor(TEXT)
-
-        // 电池
-        Row() {
-          Row()
-            .width('80%')
-            .height('100%')
-            .backgroundColor(MINT)
-        }
-        .width(24)
-        .height(11)
-        .border({ width: 1.2, color: TEXT })
-        .borderRadius(3)
-        .padding(1.5)
-      }
-    }
-    .width('100%')
-    .height(STATUS_BAR_H)
-    .padding({ left: 32, right: 28 })
-    .justifyContent(FlexAlign.SpaceBetween)
-    .alignItems(VerticalAlign.Center)
-  }
-
-  @Builder
   Header() {
     Row({ space: S_2 }) {
       // 六边形 logo
@@ -226,7 +180,7 @@ export struct HomePage {
     }
     .width('100%')
     .height(HEADER_H)
-    .padding({ left: S_4, right: S_4 })
+    .padding({ left: S_4, right: S_4, top: STATUS_BAR_H })  // top 留给系统 status bar
     .alignItems(VerticalAlign.Center)
   }
 
