@@ -55,6 +55,8 @@ export struct AgentFloatWindow {
   @State busy: boolean = false;
   // 待发送图片预览 (W1.2: 拍照后存这里, 不立即发送, 让用户先补充文字)
   @State imagePreview: string = '';
+  // 键盘高度 (W1.3: onKeyboardHeightChange 监听, 浮窗自己上移避免键盘遮挡)
+  @State keyboardHeight: number = 0;
 
   aboutToAppear(): void {
     // 持久化开场白 (W1.1: 用 AppStorage 标记, 整个 App 生命周期只显示一次)
@@ -455,11 +457,13 @@ export struct AgentFloatWindow {
           .height('40%')                     // 40% 视口高 (~325vp @ 816vp, 更紧凑)
           // Stack 默认 alignContent TopStart, 子元素顶贴 Stack 顶.
           // 强制底对齐 Stack 底 (用 position + markAnchor).
-          // margin 在 Stack 子元素不生效, 改用 .offset({ y: -74 }) 强制上移 74vp
-          // (= Tab 栏高, 浮窗底贴菜单栏顶).
+          // margin 在 Stack 子元素不生效, 改用 .offset 强制上移.
+          // offset y = -(74 + keyboardHeight):
+          //   74vp = Tab 栏高 (浮窗底贴菜单栏顶)
+          //   keyboardHeight = 软键盘高度 (W1.3: 浮窗自己上移避免键盘遮挡, 整个页面不动)
           .position({ x: 0, y: '100%' })     // 元素 (0,0) 在 (0, 100%) = Stack 左下角
           .markAnchor({ x: 0, y: '100%' })  // 元素 (0, 100%) 作为锚点 = 元素底
-          .offset({ y: -74 })               // 强制上移 74vp (offset 在 position 后一定生效)
+          .offset({ y: -(74 + this.keyboardHeight) })  // 强制上移 74 + 键盘高 vp
           .backgroundColor('#F20A0C10')      // 95% alpha (微半透)
         .borderRadius(20)
         .border({ width: 1, color: PURPLE_LIGHT })
@@ -474,5 +478,6 @@ export struct AgentFloatWindow {
     }
     .width('100%').height('100%')
     .hitTestBehavior(this.show ? HitTestMode.Default : HitTestMode.None)
+    .onKeyboardHeightChange((h: number) => { this.keyboardHeight = h; })
   }
 }
