@@ -16,7 +16,7 @@ import { router } from '@kit.ArkUI';
 @Entry
 @Component
 struct AiSettingsPage {
-  @State apiKey: [redacted] = '';
+  @State apiKey: string = '';
   @State configured: boolean = false;
   @State testing: boolean = false;
   @State endpoint: string = '';
@@ -31,7 +31,7 @@ struct AiSettingsPage {
     const config = LlmConfig.getInstance();
     const key: string | null = await config.getApiKey();
     if (key !== null && key.length > 0) {
-      this.apiKey = [redacted];
+      this.apiKey = key;
       this.configured = true;
       this.statusText = '已配置';
     }
@@ -177,7 +177,7 @@ struct AiSettingsPage {
               .backgroundColor('transparent')
               .margin({ left: 16, right: 16, top: 8 })
               .onChange((value: string) => {
-                this.apiKey = [redacted];
+                this.apiKey = value;
               });
 
             // 按钮行
