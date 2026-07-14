@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <!-- 外六边形：中心(16,16)，半径13，顶点6个 -->
+  <!-- 外六边形: 折线组成, 线条宽 1.5, 圆角连接 (顶点 linejoin=round), 无填充, 薄荷绿硬编码 -->
   <polygon points="16,3 27,9 27,23 16,29 5,23 5,9"
-           fill="none" stroke="currentColor" stroke-width="1.5" />
-  <!-- 内 M 字 + 6：一笔画，从底部左竖到右下 -->
+           fill="none" stroke="#5BE3B0" stroke-width="1.5"
+           stroke-linejoin="round" stroke-linecap="round" />
+  <!-- 内 M 字: 一笔画 path, 线条宽 2, 圆角端点 (linecap=round), 无填充, 薄荷绿硬编码 -->
   <path d="M10 22 L10 10 L13 14 L16 10 L19 14 L22 10 L22 22"
-        fill="none" stroke="currentColor" stroke-width="2"
+        fill="none" stroke="#5BE3B0" stroke-width="2"
         stroke-linecap="round" stroke-linejoin="round" />
 </svg>
