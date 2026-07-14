@@ -55,8 +55,8 @@ export struct AgentFloatWindow {
   @State busy: boolean = false;
 
   aboutToAppear(): void {
-    // 预填 AI 开场白 (W1: 用户开浮窗立即看到 AI 主动打招呼, 不是空 EmptyHint)
-    if (this.messages.length === 0) {
+    // 持久化开场白 (W1.1: 用 AppStorage 标记, 整个 App 生命周期只显示一次)
+    if (AppStorage.get<boolean>('shownGreeting') !== true) {
       this.messages = [
         {
           id: 1,
@@ -65,6 +65,7 @@ export struct AgentFloatWindow {
           ts: Date.now(),
         },
       ];
+      AppStorage.setOrCreate<boolean>('shownGreeting', true);
     }
   }
 
