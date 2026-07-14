@@ -50,7 +50,7 @@ export {
   API_CODE,
   CLASSIFY_CONFIDENCE_THRESHOLD,
 } from './models/CaptureChain';
-export type { ApiCode } from './models/CaptureChain';
+export type { ApiCode, DispatchPayload } from './models/CaptureChain';
 
 // ========== 统一日志 (Dispatcher 用) ==========
 export {

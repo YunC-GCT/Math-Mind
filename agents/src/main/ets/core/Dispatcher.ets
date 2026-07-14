@@ -1,33 +1,119 @@
-// MathMind - Dispatcher (Agent 调度中枢)
+// MathMind - Dispatcher (主 Agent 调度中枢) · 精简拍照链
 // 任务编号: D
-// 责任: 用户 (我)
-// 状态: TODO - 空壳,等待实现
-// 依赖: A1 (NoteDao) + B1 (OcrTool) + B2 (TypeClassifier) + C (KnowledgeModel) 全部完成
+// 责任: Z + Mavis
+// 状态: 实现完成(2026-07-14) · 升级 DispatchPayload signature
 //
-// 接口约定 (D1_CAPTURE_CHAIN_PLAN.md):
-//   routeDispatch(request: DispatchRequest): Promise<DispatchResult>
+// 职责:
+//   接收 DispatchRequest → 调 TypeClassifier → 调 KnowledgeModel → 返回 KnowledgeUnit
 //
-//   DispatchRequest: { source, payload (base64), imageUri }
-//   DispatchResult:  { success, route: 'D1', data: KnowledgeUnit, durationMs }
+// 通信模式(按 AGENT_COMMUNICATION.md):
+//   - 同进程 import 调函数,无 HTTP / 无 MCP / 无 JWT
+//   - 调用方: AiService.capture(imageUri, userText?) 内部 new Dispatcher().dispatch(req)
 //
-// 精简版 D1 链 (单一意图 "笔记整理"):
-//   L1 关键词匹配: "记" / "拍" / "这题" → 命中 D1
-//   (L2 DeepSeek 语义兜底 砍掉, MVP 不需要)
+// 精简拍照链(D1 · 7 文件中的 1 个):
+//   1) new TypeClassifier().classify(req.payload) → ClassificationResult(含 ocrText)
+//   2) new KnowledgeModel().structure(ocrText, type, subject, chapter) → KnowledgeUnit
+//   3) 失败 catch → errorMessage(不抛异常,UI 用 Toast 提示)
 //
-// 实现路径:
-//   1) 关键词判断 (text in ['记','拍','这题','笔记','题']?)
-//      - 命中: 走 D1 分支
-//      - 未命中: 返回 success: false, errorMessage: '意图不识别'
-//   2) D1 分支:
-//      - 调 TypeClassifier.classify({ imageBase64: payload })
-//      - 拿 OCR 文本 + ClassificationResult
-//      - 调 KnowledgeModel.structure(ocrText, classification)
-//      - 拿 KnowledgeUnit
-//   3) 包装成 DispatchResult 返回
-//      { success: true, route: 'D1', data: unit, durationMs }
+// 不做的(按 DISPATCHER_TONIGHT.md 边界):
+//   - L1 关键词匹配(只有一个意图,不需要)
+//   - L2 DeepSeek 语义兜底(不需要二次判断)
+//   - 6 路分发(只 D1,S1 阶段再加 D2-D6)
+//   - MCP Client 调用(直接 import Agent)
+//   - 4 级失败降级(失败返 errorMessage 即可)
+//   - 置信度门控(由 KnowledgeModel.structure 内部决定)
 //
-// 验证方式: POST /agents/dispatch 传 base64 → 返回完整 KnowledgeUnit
+// 依赖状态(2026-07-14):
+//   - TypeClassifier: stub 接 DispatchPayload, D 接手时填真实现
+//   - KnowledgeModel: stub 返 18 字段 mock KnowledgeUnit, L 接手时填真实现
+//   当前 build 应过,运行 mock 返数据,等 D/L 完成后跑通真链
+//
+// 验证方式(等 D 和 L 完成后):
+//   const dispatcher = new Dispatcher();
+//   const result = await dispatcher.dispatch({
+//     source: 'app',
+//     payload: { kind: 'image', imageUri: 'file://mock/photo.jpg', userText: '整理成笔记' },
+//   });
+//   // result.success === true, result.data 是 KnowledgeUnit
+
+import { TypeClassifier } from '../agents/TypeClassifier';
+import { KnowledgeModel } from '../agents/KnowledgeModel';
+import {
+  Logger,
+  KnowledgeUnit,
+  DispatchRequest,
+  DispatchResult,
+  ClassificationResult,
+} from 'common';
+
+const log = new Logger('Dispatcher');
+
+// ==================== 主类 ====================
 
 export class Dispatcher {
-  // TODO(D): 实现 routeDispatch() — L1 关键词 → D1 分支
+  // 主入口(精简拍照链 D1)
+  async dispatch(req: DispatchRequest): Promise<DispatchResult> {
+    const t0: number = Date.now();
+    log.info('dispatch enter, source=' + req.source
+      + ', payload.kind=' + req.payload.kind);
+
+    try {
+      // Step 1: 分类(图片走 OCR+分类,文本直接分类,TypeClassifier 内部判断)
+      const classifier = new TypeClassifier();
+      const classification: ClassificationResult = await classifier.classify(req.payload);
+      log.info('classification done, type=' + classification.type
+        + ', subject=' + classification.subject
+        + ', confidence=' + classification.confidence.toString());
+
+      // Step 2: 拿 ocrText(优先用 classification 返的,fallback 到 payload.text)
+      let ocrText: string = classification.ocrText ?? '';
+      if (ocrText === '') {
+        if (req.payload.kind === 'text') {
+          ocrText = req.payload.text;
+          log.info('ocrText fallback to payload.text (text kind)');
+        } else {
+          // image / file 必须有 ocrText,缺则报失败
+          return {
+            success: false,
+            route: 'D1',
+            errorMessage: 'TypeClassifier 未返回 ocrText,且 payload 非 text 类型无法 fallback',
+            durationMs: Date.now() - t0,
+          };
+        }
+      }
+
+      // Step 3: 建模 + 真值检验 + 入库(由 KnowledgeModel 内部完成)
+      const model = new KnowledgeModel();
+      const unit: KnowledgeUnit = await model.structure(
+        ocrText,
+        classification.type,
+        classification.subject,
+        classification.chapter ?? '',
+      );
+      log.info('structure done, note.id=' + unit.id);
+
+      // Step 4: 返回成功
+      return {
+        success: true,
+        route: 'D1',
+        data: unit,
+        durationMs: Date.now() - t0,
+      };
+    } catch (e) {
+      // 失败:返回错误信息(不抛异常,UI 用 errorMessage 提示)
+      const errMsg: string = (e as Error).message ?? String(e);
+      log.error('dispatch failed: ' + errMsg);
+      return {
+        success: false,
+        route: 'D1',
+        errorMessage: '拍照处理失败: ' + errMsg,
+        durationMs: Date.now() - t0,
+      };
+    }
+  }
+
+  // 兼容旧接口名(原 D 任务规划用 routeDispatch)
+  async routeDispatch(req: DispatchRequest): Promise<DispatchResult> {
+    return await this.dispatch(req);
+  }
 }

@@ -9,17 +9,17 @@
 ## 一、整链数据流
 
 ```
-UI (拍图 / 选图)
-  ↓ imageUri
-AiService.capture(imageUri)
-  ↓ imageUri → base64
+UI (拍图 + 文字 / 选图 / 选文件 / 手输文本)
+  ↓ imageUri + userText (or text / fileUri + mimeType)
+AiService.capture(...) / captureFromFile(...) / textQuery(...)
+  ↓ 构造 DispatchPayload
 new Dispatcher().dispatch({
   source: 'app',
-  payload: '<base64>',
-  imageUri: 'file://...',
+  payload: { kind: 'image' | 'text' | 'file', ... }  // discriminated union
 })
   ├─ L1 跳过(MVP 单一意图)
-  ├─ Step 1: new TypeClassifier().classify(payload) → ClassificationResult
+  ├─ Step 1: new TypeClassifier().classify(req.payload) → ClassificationResult
+  │   └─ 内部按 payload.kind switch: image/file 走 OCR,text 直进 LLM
   └─ Step 2: new KnowledgeModel().structure(ocrText, type, subject, chapter) → KnowledgeUnit
         └─ 内部: NoteDao.insert(unit) → rowId → 回填 unit.id
   ↓
@@ -35,25 +35,24 @@ UI HomePage 渲染笔记卡
 ### 2.1 `Dispatcher` (A4 · Z 责任 · **已实现**)
 
 **路径:** `agents/src/main/ets/core/Dispatcher.ets`
-**导出:** `agents/src/main/ets/Index.ets` (AGENTS_VERSION v0.0.2)
+**导出:** `agents/src/main/ets/Index.ets` (AGENTS_VERSION v0.0.3)
 
 ```typescript
-import { Dispatcher } from 'agents';
+import { Dispatcher, type DispatchPayload } from 'agents';
 
 const dispatcher = new Dispatcher();
 const result: DispatchResult = await dispatcher.dispatch({
   source: 'app',         // 'app' | 'skill' | 'card'
-  payload: '<base64>',   // 图片 base64 或纯文本
-  imageUri: 'file://...',// 原始图片 uri(调试用)
-  userText?: string,     // 可选,备用(MVP 不强制)
+  payload: { kind: 'image', imageUri: 'file://...', userText: '整理成笔记' },
 });
 ```
 
 **返回:** `DispatchResult`
 
 **责任:**
-- 判断输入类型(图片 / 文本)— 当前简化版: 不做 L1 关键词,图片/文本都走 D1
-- 调 `TypeClassifier.classify(payload)`
+- 接收 `DispatchRequest`(payload 是 `DispatchPayload` discriminated union)
+- 调 `TypeClassifier.classify(req.payload)`(图片/文本/文件内部 switch)
+- 从 `ClassificationResult.ocrText` 拿文本(空时 fallback 到 `payload.text` if kind='text')
 - 调 `KnowledgeModel.structure(ocrText, type, subject, chapter)`
 - 失败 catch 返 errorMessage(不抛异常)
 
@@ -66,34 +65,35 @@ const result: DispatchResult = await dispatcher.dispatch({
 
 ---
 
-### 2.2 `TypeClassifier` (B2 · **D 责任** · 当前 stub)
+### 2.2 `TypeClassifier` (B2 · **D 责任** · 当前 stub 接 DispatchPayload)
 
 **路径:** `agents/src/main/ets/agents/TypeClassifier.ets`
 
 ```typescript
-import { TypeClassifier, ClassificationResult } from 'agents' | 'common';
+import { TypeClassifier, ClassificationResult, type DispatchPayload } from 'agents';
 
 const classifier = new TypeClassifier();
-const result: ClassificationResult = await classifier.classify(payload: string);
+const result: ClassificationResult = await classifier.classify(payload: DispatchPayload);
 ```
 
-**输入:** `payload: string` — 图片 base64 或纯文本
+**输入:** `payload: DispatchPayload` — discriminated union(image / text / file)
 **输出:** `ClassificationResult`
 
 **D 真实现时要做:**
-1. 若 payload 是 base64 图片(以 `data:image/` / `/9j/` / `iVBOR` 开头):
-   - 调 ML Kit OCR(`@ohos.ai.mlnlp.textRecognition`) → rawText
+1. 按 `payload.kind` 分流:
+   - `'image'` 或 `'file' (image/*)` → 调 ML Kit OCR(`@ohos.ai.mlnlp.textRecognition`) → rawText
+   - `'text'` 或 `'file' (text/plain)` → 直接用 `payload.text` / 读文件
+   - 其他 mime → 返 `errorMessage: '暂不支持的 MIME: ...'`
 2. cleanText(rawText) → 清洗(去空格 / LaTeX 符号)
-3. 调 LLM (SiliconFlow / DeepSeek-V3) 走精简 prompt:
-   - 端点: `https://api.siliconflow.cn/v1/chat/completions`
-   - Temperature: `0.1`
-   - MaxTokens: `256`
-   - Timeout: `5000ms`
-   - Prompt: 按 D1_CAPTURE_CHAIN_PLAN.md 第四节
-4. 解析 JSON → `ClassificationResult`
-5. **必须填 `ocrText` 字段** (Dispatcher 用)
+3. 构造 LLM prompt:
+   - system 模板(3×3 分类规则)
+   - user 内容:`OCR/text 内容: <text>` + `用户补充: <userText>`(若有)
+4. 调 LlmClient.call(messages) → SiliconFlow DeepSeek-V3
+   - temperature 0.1, max_tokens 256, timeout 5000ms
+5. 解析 JSON → `ClassificationResult`
+6. **必须填 `ocrText` 字段** (Dispatcher 用)
 
-**当前 stub:** 返 mock `{type:'计算', subject:'高等代数', chapter:'行列式', confidence, ocrText:'mock OCR text from payload (len=N)'}`
+**当前 stub:** 按 `payload.kind` 拼 mock ocrText,返固定 `{type:'计算', subject:'高等代数', chapter:'行列式', confidence:0.85, ocrText:'mock OCR text from ...'}`
 **替换方法:** 整个 method body 删,写真实现
 
 ---
@@ -203,16 +203,20 @@ export interface ClassificationResult {
 }
 ```
 
-### 3.3 `DispatchRequest` / `DispatchResult`
+### 3.3 `DispatchRequest` / `DispatchResult` / `DispatchPayload`
 
 **路径:** `common/src/main/ets/models/CaptureChain.ets`
 
 ```typescript
+// 2026-07-14 升级:从 string 升级为 discriminated union,按 kind 显式分流
+export type DispatchPayload =
+  | { kind: 'image'; imageUri: string; userText?: string }
+  | { kind: 'text'; text: string }
+  | { kind: 'file'; fileUri: string; mimeType: string; userText?: string };
+
 export interface DispatchRequest {
   source: 'app' | 'skill' | 'card';
-  payload: string;        // base64 或文本
-  imageUri: string;       // 原始 uri
-  userText?: string;      // 可选
+  payload: DispatchPayload;  // 2026-07-14:从 string 升级
 }
 
 export interface DispatchResult {
@@ -223,6 +227,19 @@ export interface DispatchResult {
   durationMs: number;
 }
 ```
+
+**DispatchPayload 路由表:**
+
+| kind | 用途 | UI 来源 | Dispatcher 行为 |
+|------|------|---------|----------------|
+| `image` | 拍照/相册 | `CameraOverlay` / `PhotoViewPicker` | ML Kit OCR → LLM 分类 |
+| `text` | 纯文本 | 用户手输 / 复制粘贴 | 直接 LLM 分类(无 OCR) |
+| `file` | 任意文件 | `DocumentViewPicker` | 按 mimeType 分:image/* 走 OCR;text/* 走纯文本;其他返错误(MVP) |
+
+**Breaking change 提示(2026-07-14):**
+- 旧版 `payload: string` + `imageUri: string` + `userText?: string` 三个顶层字段
+- 新版合并成 `payload: DispatchPayload`,imageUri 移到 payload 内,userText 移到 payload 内(image / file 分支)
+- 已 build 验过无 caller 在用(只有 Dispatcher 自己),可大胆升级
 
 ### 3.4 `TruthCheckResult` / `TruthFlag`
 
