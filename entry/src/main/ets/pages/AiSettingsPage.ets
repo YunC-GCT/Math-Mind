@@ -51,6 +51,7 @@ struct AiSettingsPage {
   @State timeoutMs: number = 5000;
   @State configured: boolean = false;
   @State testing: boolean = false;
+  @State showKey: boolean = false;
   @State statusText: string = '未配置';
   @State tempText: string = '0.1';
   @State maxTokensText: string = '256';
@@ -289,13 +290,20 @@ struct AiSettingsPage {
           .margin({ left: S_2, right: S_2 });
 
           // ===== API Key =====
-          this.SectionHeader('API Key', '从模型服务商获取的密钥');
+          this.SectionHeader('API Key', '从模型服务商获取的密钥，支持复制粘贴');
           Row() {
+            // 显示/隐藏切换
+            Text(this.showKey ? '🙈' : '👁')
+              .fontSize(18).width(36).textAlign(TextAlign.Center)
+              .onClick(() => { this.showKey = !this.showKey; });
+
             TextInput({ text: this.apiKey, placeholder: 'sk-...' })
-              .type(InputType.Password).layoutWeight(1).height(42)
+              .type(this.showKey ? InputType.Normal : InputType.Password)
+              .layoutWeight(1).height(42)
               .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
               .backgroundColor('transparent')
               .onChange((v: string) => { this.apiKey = v; });
+
             Button(this.testing ? '...' : '测试')
               .fontSize(F_XS).fontColor(BG_DARK)
               .height(34).borderRadius(R_MD).backgroundColor(MINT)
