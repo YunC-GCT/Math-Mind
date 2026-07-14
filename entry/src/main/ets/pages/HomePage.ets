@@ -146,6 +146,9 @@ export struct HomePage {
   // 回调(由 Index.ets 传入,触发 CameraOverlay 浮层)
   onGoCamera: () => void = () => {};
 
+  // 回调(由 Index.ets 传入,点击进度环切到复习 Tab)
+  onGoReview: () => void = () => {};
+
   aboutToAppear(): void {
     this.g = greet();
     this.d = dateStr();
@@ -204,7 +207,7 @@ export struct HomePage {
               .textAlign(TextAlign.Start)
               .margin({ top: 4 });
 
-            // --- 进度环 (独立居中，无两侧重复统计) ---
+            // --- 进度环 (独立居中，无两侧重复统计) — 点击跳复习 ---
             Stack() {
               GradientRing({ pct: this.avg });
               Column() {
@@ -212,11 +215,15 @@ export struct HomePage {
                   .fontSize(26).fontWeight(700).fontColor(TEXT);
                 Text('已掌握')
                   .fontSize(F_XS).fontColor(TEXT_3).fontWeight(500);
+                Text('去复习 ›')
+                  .fontSize(F_XS).fontColor(MINT).fontWeight(600)
+                  .margin({ top: 4 });
               }.alignItems(HorizontalAlign.Center);
             }
             .width(120).height(120)
             .alignSelf(ItemAlign.Center)
-            .margin({ top: 16 });
+            .margin({ top: 16 })
+            .onClick(() => this.onGoReview());
 
             // --- 3 统计方块 ---
             Row() {

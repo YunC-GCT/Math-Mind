@@ -104,6 +104,7 @@ struct Index {
         TabContent() {
           HomePage({
             onGoCamera: (): void => { this.showCamera = true; },
+            onGoReview: (): void => { this.cur = 3; this.tc.changeIndex(3); },
           });
         }
 
