@@ -166,15 +166,13 @@ struct Index {
       });
     }
 
-    // ===== 全局 AgentFloatWindow 浮层 (在 Stack 内 Column 外, 底部弹出) =====
-    if (this.showAgentFloat) {
-      AgentFloatWindow({
-        show: this.showAgentFloat,
-        onClose: this.closeAgentFloat,
-        onGoCamera: this.goCameraFromAgent,
-        pendingImageUri: this.pendingImageUri,
-      });
-    }
+    // ===== 全局 AgentFloatWindow 浮层 (W1.1 调整: 一直存在, 不再受 if 控制, 让 messages 状态跨开关保留) =====
+    AgentFloatWindow({
+      show: this.showAgentFloat,
+      onClose: this.closeAgentFloat,
+      onGoCamera: this.goCameraFromAgent,
+      pendingImageUri: this.pendingImageUri,
+    });
   }
   .width('100%').height('100%');
 }
