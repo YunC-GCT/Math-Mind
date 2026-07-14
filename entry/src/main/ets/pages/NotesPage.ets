@@ -49,7 +49,7 @@ export struct NotesPage {
   // 浮层里点 AI 解答
   private askAi = (note: NoteItem): void => {
     this.selectedNote = null;
-    // W1 会切到 AI Tab + 弹 AiChatOverlay + 带 note 上下文
+    // W2: 切到 AI Tab + 开 AgentFloatWindow 浮窗 + 带 note 上下文
   };
 
   build() {

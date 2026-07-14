@@ -3,10 +3,11 @@
  * 对照 HTML .tabbar > .tab×4 + .tab-ai×1
  * 对照 CSS  height:74px, backdrop-filter:blur(24px), border-top
  *
- * 第 3 批改造:
- *   - AI Tab 改为真 AiChatOverlay (关闭按钮切回首页)
+ * 第 W1 调整 (2026-07-14):
+ *   - 删除 AiChatOverlay 老旧对话界面
+ *   - AI Tab 内容改为占位, 切到 AI Tab 时自动开 AgentFloatWindow 浮窗
  *   - 全局 showCamera 浮层状态 (HomePage FAB / AI 📷 都触发)
- *   - 拍完: 跳 AI Tab + 弹 AiChatOverlay + 带 pendingImageUri
+ *   - 拍完: 强制回 AgentFloatWindow 浮窗 (不再跳 AI Tab)
  */
 
 import {
@@ -28,9 +29,9 @@ import { HomePage } from './HomePage';
 import { NotesPage } from './NotesPage';
 import { ReviewPage } from './ReviewPage';
 import { MePage } from './MePage';
-import { AiChatOverlay } from '../overlays/AiChatOverlay';
 import { AgentFloatWindow } from '../overlays/AgentFloatWindow';
 import { CameraOverlay } from '../overlays/CameraOverlay';
+import { promptAction } from '@kit.ArkUI';
 
 interface TabItem {
   idx: number;
@@ -51,7 +52,6 @@ const TABS: TabItem[] = [
 struct Index {
   @State cur: number = 0;
   @State showCamera: boolean = false;
-  @State showAI: boolean = true;  // AI Tab 默认就显示浮层
   @State pendingImageUri: string = '';
   @State showAgentFloat: boolean = false;
 
@@ -61,16 +61,7 @@ struct Index {
     return this.cur === i;
   }
 
-  // 关 AI 浮层(切回首页 Tab)
-  private closeAI = (): void => {
-    this.showAI = false;
-    this.cur = 0;
-    this.tc.changeIndex(0);
-    // 下次再进 AI Tab 时重新打开
-    setTimeout(() => { this.showAI = true; }, 200);
-  };
-
-  // AI 里点拍照
+  // AI 里点拍照 (W1 调整: 拍照后回浮窗, 此回调暂保留)
   private goCamera = (): void => {
     this.showCamera = true;
   };
@@ -111,25 +102,20 @@ struct Index {
           NotesPage();
         }
 
-        // AI Tab (第 3 批: 直接渲染 AiChatOverlay 浮层)
+        // AI Tab (W1 调整: 占位背景, 浮窗在 Stack 全局渲染)
         TabContent() {
-          if (this.showAI) {
-            AiChatOverlay({
-              pendingImageUri: this.pendingImageUri,
-              onClose: this.closeAI,
-              onGoCamera: this.goCamera,
-            });
-          } else {
-            // showAI 关闭时的占位 (几乎瞬间,用户看不到)
-            Column()
-              .width('100%').height('100%')
-              .backgroundColor(BG_DARK);
-          }
+          Column()
+            .width('100%').height('100%')
+            .backgroundColor(BG_DARK);
         }
 
-        // 复习 Tab (第 2 批: 空状态 + 引导)
+        // 复习 Tab (W1 调整: '去 AI 对话' 按钮给'功能未开发'提示)
         TabContent() {
-          ReviewPage({ onGoAI: () => { this.cur = 2; this.tc.changeIndex(2); } });
+          ReviewPage({
+            onGoAI: (): void => {
+              promptAction.showToast({ message: 'AI 对话功能开发中', duration: 1500 });
+            }
+          });
         }
 
         // 我的 Tab (第 2 批: 头像 + 统计 + 5 菜单)
@@ -142,9 +128,9 @@ struct Index {
       .scrollable(false)
       .onChange((i: number) => {
         this.cur = i;
-        // 切到 AI Tab 时确保浮层显示
+        // 切到 AI Tab 时自动开 AgentFloatWindow 浮窗
         if (i === 2) {
-          this.showAI = true;
+          this.showAgentFloat = true;
         }
       });
 
