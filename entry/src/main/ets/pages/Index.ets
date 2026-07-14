@@ -66,7 +66,13 @@ struct Index {
     // 配合 AgentFloatWindow 监听 keyboardHeightChange 自己上移
     // 让 Index Stack 整体不被键盘顶起来, TabBar / HomePage 不动
     // 备注: KeyboardAvoidMode 影响整个 UIContext, 这里关闭后 AgentFloatWindow 自己处理
-    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE);
+    console.info('[Index] aboutToAppear start, UIContext:', this.getUIContext());
+    try {
+      this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE);
+      console.info('[Index] setKeyboardAvoidMode(NONE) called OK');
+    } catch (e) {
+      console.error('[Index] setKeyboardAvoidMode FAILED:', JSON.stringify(e));
+    }
   }
 
   // AI 里点拍照 (W1 调整: 拍照后回浮窗, 此回调暂保留)
