@@ -1,51 +1,51 @@
-// MathMind - TypeClassifier (ÀàĞÍ/Ñ§¿Æ·ÖÀàÆ÷)
-// ÈÎÎñ±àºÅ: B2
-// ÔğÈÎ: Z
-// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´, DeepSeek 3¡Á3·ÖÀà
+// MathMind - TypeClassifier (ï¿½ï¿½ï¿½ï¿½/Ñ§ï¿½Æ·ï¿½ï¿½ï¿½ï¿½ï¿½)
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: B2
+// ï¿½ï¿½ï¿½ï¿½: Z
+// ×´Ì¬: Êµï¿½ï¿½ï¿½ï¿½ï¿½(2026-07-14) ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½, DeepSeek 3ï¿½ï¿½3ï¿½ï¿½ï¿½ï¿½
 //
-// ½Ó¿Ú:
+// ï¿½Ó¿ï¿½:
 //   classify(payload: DispatchPayload): Promise<ClassificationResult>
 //
-// ÊµÏÖ:
-//   1) °´ payload.kind ·ÖÁ÷: image ¡ú mock OCR, text ¡ú Ö±½ÓÓÃ, file ¡ú mock OCR
-//   2) cleanText ÇåÏ´
-//   3) µ÷ LlmClient.call() ¡ú DeepSeek-V3 ·ÖÀà
-//   4) ½âÎö JSON ¡ú ClassificationResult
+// Êµï¿½ï¿½:
+//   1) ï¿½ï¿½ payload.kind ï¿½ï¿½ï¿½ï¿½: image ï¿½ï¿½ mock OCR, text ï¿½ï¿½ Ö±ï¿½ï¿½ï¿½ï¿½, file ï¿½ï¿½ mock OCR
+//   2) cleanText ï¿½ï¿½Ï´
+//   3) ï¿½ï¿½ LlmClient.call() ï¿½ï¿½ DeepSeek-V3 ï¿½ï¿½ï¿½ï¿½
+//   4) ï¿½ï¿½ï¿½ï¿½ JSON ï¿½ï¿½ ClassificationResult
 
 import { ClassificationResult, DispatchPayload, LlmClient, LlmError, ChatMessage } from 'common';
 
-const CLASSIFY_PROMPT: string = `ÄãÊÇÒ»¸öÊıÑ§ÌâÄ¿·ÖÀàÆ÷¡£Çë¶ÔÊäÈëµÄÎÄ±¾½øĞĞ·ÖÀà£¬·µ»Ø JSON ¸ñÊ½¡£
+const CLASSIFY_PROMPT: string = `ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ñ§ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½ï¿½ï¿½ï¿½Ğ·ï¿½ï¿½à£¬ï¿½ï¿½ï¿½ï¿½ JSON ï¿½ï¿½Ê½ï¿½ï¿½
 
-·ÖÀà¹æÔò:
-- type: Ö»ÄÜÊÇ "¸ÅÄî"¡¢"¼ÆËã"¡¢"Ö¤Ã÷" Ö®Ò»
-- subject: Ö»ÄÜÊÇ "¸ßµÈ´úÊı"¡¢"ÊıÑ§·ÖÎö"¡¢"½âÎö¼¸ºÎ" Ö®Ò»
-- chapter: ÕÂ½ÚÃû³Æ(Èç"ĞĞÁĞÊ½"¡¢"¼«ÏŞ"¡¢"Î¢·ÖÖĞÖµ¶¨Àí"), ÎŞ·¨ÅĞ¶ÏÊ±ÓÃ¿Õ×Ö·û´®
-- confidence: 0.0-1.0 µÄÖÃĞÅ¶È
+ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½:
+- type: Ö»ï¿½ï¿½ï¿½ï¿½ "ï¿½ï¿½ï¿½ï¿½"ï¿½ï¿½"ï¿½ï¿½ï¿½ï¿½"ï¿½ï¿½"Ö¤ï¿½ï¿½" Ö®Ò»
+- subject: Ö»ï¿½ï¿½ï¿½ï¿½ "ï¿½ßµÈ´ï¿½ï¿½ï¿½"ï¿½ï¿½"ï¿½ï¿½Ñ§ï¿½ï¿½ï¿½ï¿½"ï¿½ï¿½"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" Ö®Ò»
+- chapter: ï¿½Â½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½"ï¿½ï¿½ï¿½ï¿½Ê½"ï¿½ï¿½"ï¿½ï¿½ï¿½ï¿½"ï¿½ï¿½"Î¢ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½"), ï¿½Ş·ï¿½ï¿½Ğ¶ï¿½Ê±ï¿½Ã¿ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
+- confidence: 0.0-1.0 ï¿½ï¿½ï¿½ï¿½ï¿½Å¶ï¿½
 
-·µ»Ø¸ñÊ½(Ö»·µ»Ø JSON, ²»ÒªÆäËûÎÄ×Ö):
-{"type":"¼ÆËã","subject":"¸ßµÈ´úÊı","chapter":"ĞĞÁĞÊ½","confidence":0.92}`;
+ï¿½ï¿½ï¿½Ø¸ï¿½Ê½(Ö»ï¿½ï¿½ï¿½ï¿½ JSON, ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½):
+{"type":"ï¿½ï¿½ï¿½ï¿½","subject":"ï¿½ßµÈ´ï¿½ï¿½ï¿½","chapter":"ï¿½ï¿½ï¿½ï¿½Ê½","confidence":0.92}`;
 
 export class TypeClassifier {
   async classify(payload: DispatchPayload): Promise<ClassificationResult> {
-    // Step 1: °´ kind ÌáÈ¡ÎÄ±¾
+    // Step 1: ï¿½ï¿½ kind ï¿½ï¿½È¡ï¿½Ä±ï¿½
     let ocrText: string;
     if (payload.kind === 'text') {
       ocrText = payload.text;
     } else if (payload.kind === 'image') {
-      // MVP: ÎŞ ML Kit OCR, ÓÃÕ¼Î»ÎÄ±¾ + userText
+      // MVP: ï¿½ï¿½ ML Kit OCR, ï¿½ï¿½Õ¼Î»ï¿½Ä±ï¿½ + userText
       ocrText = payload.userText ?? 'mock OCR text from image';
     } else {
       // payload.kind === 'file'
       ocrText = payload.userText ?? 'mock OCR text from file';
     }
 
-    // Step 2: ÇåÏ´ÎÄ±¾
+    // Step 2: ï¿½ï¿½Ï´ï¿½Ä±ï¿½
     const cleaned: string = this.cleanText(ocrText);
 
-    // Step 3: µ÷ LLM ·ÖÀà
+    // Step 3: ï¿½ï¿½ LLM ï¿½ï¿½ï¿½ï¿½
     const messages: ChatMessage[] = [
       { role: 'system', content: CLASSIFY_PROMPT },
-      { role: 'user', content: 'Çë·ÖÀàÒÔÏÂÊıÑ§ÎÄ±¾:\n\n' + cleaned },
+      { role: 'user', content: 'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ§ï¿½Ä±ï¿½:\n\n' + cleaned },
     ];
 
     const client = new LlmClient();
@@ -53,25 +53,25 @@ export class TypeClassifier {
     try {
       raw = await client.call(messages);
     } catch (e) {
-      // ½µ¼¶: API ²»¿ÉÓÃÊ±·µ»ØµÍÖÃĞÅ mock
+      // ï¿½ï¿½ï¿½ï¿½: API ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ mock
       if (e instanceof LlmError && e.kind === 'NO_API_KEY') {
         return {
-          type: '¼ÆËã',
-          subject: '¸ßµÈ´úÊı',
+          type: 'æ¦‚å¿µ',
+          subject: 'é«˜ç­‰ä»£æ•°',
           chapter: '',
           confidence: 0.3,
           ocrText: cleaned,
         };
       }
-      throw e;
+      throw new Error(e instanceof Error ? e.message : String(e));
     }
 
-    // Step 4: ½âÎö JSON
+    // Step 4: ï¿½ï¿½ï¿½ï¿½ JSON
     const result: ClassificationResult = this.parseResult(raw, cleaned);
     return result;
   }
 
-  // ÇåÏ´ÎÄ±¾: È¥¶àÓà¿Õ°×¡¢½Ø¶Ï
+  // ï¿½ï¿½Ï´ï¿½Ä±ï¿½: È¥ï¿½ï¿½ï¿½ï¿½Õ°×¡ï¿½ï¿½Ø¶ï¿½
   private cleanText(text: string): string {
     let t: string = text.replace(/\s+/g, ' ').trim();
     if (t.length > 1000) {
@@ -80,16 +80,16 @@ export class TypeClassifier {
     return t;
   }
 
-  // ½âÎö LLM ·µ»ØµÄ JSON
+  // ï¿½ï¿½ï¿½ï¿½ LLM ï¿½ï¿½ï¿½Øµï¿½ JSON
   private parseResult(raw: string, ocrText: string): ClassificationResult {
-    // ³¢ÊÔ´ÓÏìÓ¦ÖĞÌáÈ¡ JSON
+    // ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½È¡ JSON
     let jsonStr: string = raw.trim();
-    // È¥µô¿ÉÄÜµÄ markdown ´úÂë¿é°ü¹ü
+    // È¥ï¿½ï¿½ï¿½ï¿½ï¿½Üµï¿½ markdown ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     const codeMatch: RegExpMatchArray | null = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (codeMatch !== null && codeMatch.length >= 2) {
       jsonStr = codeMatch[1].trim();
     }
-    // ÕÒ { ... } ×îÍâ²ã
+    // ï¿½ï¿½ { ... } ï¿½ï¿½ï¿½ï¿½ï¿½
     const braceMatch: RegExpMatchArray | null = jsonStr.match(/\{[\s\S]*\}/);
     if (braceMatch !== null) {
       jsonStr = braceMatch[0];
@@ -97,30 +97,30 @@ export class TypeClassifier {
 
     try {
       const parsed = JSON.parse(jsonStr) as Record<string, string>;
-      const type: string = parsed.type ?? '¼ÆËã';
-      const validTypes: string[] = ['¸ÅÄî', '¼ÆËã', 'Ö¤Ã÷'];
-      const finalType: string = validTypes.indexOf(type) >= 0 ? type : '¼ÆËã';
+      const type: string = parsed.type ?? 'æ¦‚å¿µ';
+      const validTypes: string[] = ['æ¦‚å¿µ', 'è®¡ç®—', 'è¯æ˜'];
+      const finalType: string = validTypes.indexOf(type) >= 0 ? type : 'æ¦‚å¿µ';
 
-      const subject: string = parsed.subject ?? '¸ßµÈ´úÊı';
-      const validSubjects: string[] = ['¸ßµÈ´úÊı', 'ÊıÑ§·ÖÎö', '½âÎö¼¸ºÎ'];
-      const finalSubject: string = validSubjects.indexOf(subject) >= 0 ? subject : '¸ßµÈ´úÊı';
+      const subject: string = parsed.subject ?? 'é«˜ç­‰ä»£æ•°';
+      const validSubjects: string[] = ['é«˜ç­‰ä»£æ•°', 'æ•°å­¦åˆ†æ', 'è§£æå‡ ä½•'];
+      const finalSubject: string = validSubjects.indexOf(subject) >= 0 ? subject : 'é«˜ç­‰ä»£æ•°';
 
       const chapter: string = parsed.chapter ?? '';
       const conf: number = parseFloat(parsed.confidence ?? '0.7');
       const confidence: number = isNaN(conf) ? 0.7 : Math.max(0, Math.min(1, conf));
 
       return {
-        type: finalType as '¸ÅÄî' | '¼ÆËã' | 'Ö¤Ã÷',
-        subject: finalSubject as '¸ßµÈ´úÊı' | 'ÊıÑ§·ÖÎö' | '½âÎö¼¸ºÎ',
+        type: finalType as 'æ¦‚å¿µ' | 'è®¡ç®—' | 'è¯æ˜',
+        subject: finalSubject as 'é«˜ç­‰ä»£æ•°' | 'æ•°å­¦åˆ†æ' | 'è§£æå‡ ä½•',
         chapter: chapter,
         confidence: confidence,
         ocrText: ocrText,
       };
     } catch (e) {
-      // JSON ½âÎöÊ§°Ü ¡ú ½µ¼¶·µ»ØÄ¬ÈÏ
+      // JSON ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½
       return {
-        type: '¼ÆËã',
-        subject: '¸ßµÈ´úÊı',
+        type: 'æ¦‚å¿µ',
+        subject: 'é«˜ç­‰ä»£æ•°',
         chapter: '',
         confidence: 0.3,
         ocrText: ocrText,

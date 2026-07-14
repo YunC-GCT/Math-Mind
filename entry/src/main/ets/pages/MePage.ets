@@ -90,7 +90,7 @@ export struct MePage {
             .margin({ bottom: 4 });
 
           // 邮箱（对�?CSS .me-email: 11.5px/text-3�?
-          Text('已登�?· 模拟账号')
+          Text('已登录 · 模拟账号')
             .fontSize(F_XS)
             .fontColor(TEXT_3)
             .margin({ bottom: 10 });
@@ -107,7 +107,7 @@ export struct MePage {
               .fontColor(PURPLE)
               .fontWeight(700);
 
-            Text('思维的长程记�?)
+            Text('思维的长程记录')
               .fontSize(F_SM)
               .fontColor(MINT)
               .fontStyle(FontStyle.Italic);
@@ -120,7 +120,7 @@ export struct MePage {
         // ===== 3 统计方块（对�?CSS .me-stats flex gap:10�?=====
         Row() {
           this.SBox(`${this.notes.length}`, '笔记');
-          this.SBox(`${this.avg}%`, '掌握�?);
+          this.SBox(`${this.avg}%`, '掌握率');
           this.SBox(`${this.todayNew()}`, '今日新增');
         }
         .width('100%')
@@ -130,8 +130,8 @@ export struct MePage {
         // ===== 5 菜单项（对照 CSS .me-menu / .mm�?=====
         Column() {
           this.MenuItem('📋', '我的复习计划', '复习计划开发中');
-          this.MenuItem('📕', '错题�?, '错题本开发中');
-          this.MenuItem('�?, '我的收藏', '收藏功能开发中');
+          this.MenuItem('📕', '错题本', '错题本开发中');
+          this.MenuItem('⭐', '我的收藏', '收藏功能开发中');
           this.MenuItem('⚙️', '设置', '');
           this.MenuItem('🚪', '切换账号', '切换账号开发中');
         }
@@ -140,7 +140,7 @@ export struct MePage {
         .margin({ bottom: 14 });
 
         // ===== 退出登录按钮（对照 CSS .me-logout-btn�?=====
-        Button('退出登�?)
+        Button('退出登录')
           .fontSize(F_SM)
           .fontWeight(600)
           .fontColor('#FFFF6B6B')
@@ -204,7 +204,7 @@ export struct MePage {
         .margin({ left: 12 });
 
       // 右箭�?�?
-      Text('�?)
+      Text('›')
         .fontSize(F_MD + 1)
         .fontColor(TEXT_4);
     }
@@ -216,7 +216,7 @@ export struct MePage {
       bottom: 13,
     })
     .border({ width: { bottom: 1 }, color: BORDER })
-    .onClick(() => { if (msg.length > 0) { this.toast(msg); } else if (label === '����') { router.pushUrl({ url: 'pages/AiSettingsPage' }); } });
+    .onClick(() => { if (msg.length > 0) { this.toast(msg); } else if (label === '设置') { router.pushUrl({ url: 'pages/AiSettingsPage' }); } });
   }
 
   // ========== Toast 提示 ==========

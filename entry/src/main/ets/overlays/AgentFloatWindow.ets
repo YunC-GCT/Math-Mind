@@ -137,13 +137,13 @@ export struct AgentFloatWindow {
       return;
     }
     if (this.busy) {
-      promptAction.openToast({ message: 'AI 正在回复�?..', duration: 1200 });
+      promptAction.openToast({ message: 'AI 正在回复中...', duration: 1200 });
       return;
     }
 
     // 构�?user message content (文字 + 图片)
     const content: string = hasImage
-      ? `📷 已发送图�?{hasText ? '\n' + text : ''}`
+      ? `📷 已发送图片${hasText ? '\n' + text : ''}`
       : text;
 
     this.messages = [
@@ -155,15 +155,15 @@ export struct AgentFloatWindow {
 
     // mock reply
     const reply: string = hasImage
-      ? `已收到图�?{hasText ? ' + �? + text + '�? : ''}，正在分�?..`
-      : `已收到：�?{text}」`;
+      ? `已收到图片${hasText ? ' + 「' + text + '」' : ''}，正在分析...`
+      : `已收到：「${text}」`;
     this.realReply(content);
   };
 
   // 快捷 prompt 发�?(W1.2: 支持 SugBtn 文字 + inputText 补充 + imagePreview 一起发)
   private sendQuick = (prompt: string): void => {
     if (this.busy) {
-      promptAction.openToast({ message: 'AI 正在回复�?..', duration: 1200 });
+      promptAction.openToast({ message: 'AI 正在回复中...', duration: 1200 });
       return;
     }
     const text: string = this.inputText.trim();
@@ -175,7 +175,7 @@ export struct AgentFloatWindow {
       content += '\n' + text;
     }
     if (hasImage) {
-      content += '\n📷 已发送图�?;
+      content += '\n📷 已发送图片';
     }
 
     this.messages = [
@@ -185,14 +185,14 @@ export struct AgentFloatWindow {
     this.inputText = '';
     this.imagePreview = '';
 
-    let reply: string = `已收到：�?{prompt}」`;
+    let reply: string = `已收到：「${prompt}」`;
     if (hasText) {
-      reply += ` + �?{text}」`;
+      reply += ` + 「${text}」`;
     }
     if (hasImage) {
       reply += ' + 图片';
     }
-    reply += '，正在分�?..';
+    reply += '，正在分析...';
     this.realReply(content);
   };
 
@@ -240,7 +240,7 @@ export struct AgentFloatWindow {
   @Builder
   Header() {
     Row() {
-      Text('�?MathMind AI')
+      Text('🧠 MathMind AI')
         .fontSize(F_SM + 1)
         .fontWeight(700)
         .fontColor(PURPLE);
@@ -256,7 +256,7 @@ export struct AgentFloatWindow {
   @Builder
   CloseBtn() {
     Stack() {
-      Text('�?)
+      Text('✕')
         .fontSize(14)
         .fontWeight(500)
         .fontColor(TEXT_3);
@@ -383,8 +383,8 @@ export struct AgentFloatWindow {
 
           // ===== 4 快捷 (40vp 紧凑一�? =====
           Row() {
-            this.SugBtn('分析题目', '帮我分析这道�?);
-            this.SugBtn('总结知识', '总结知识�?);
+            this.SugBtn('分析题目', '帮我分析这道题');
+            this.SugBtn('总结知识', '总结知识点');
             this.SugBtn('出练习题', '出几道练习题');
             this.SugBtn('学习路径', '推荐学习路径');
           }
@@ -441,7 +441,7 @@ export struct AgentFloatWindow {
                   .objectFit(ImageFit.Cover);
 
                 // 取消 X (右上�?
-                Text('�?)
+                Text('✕')
                   .fontSize(10).fontWeight(700)
                   .fontColor('#FFFFFF')
                   .width(18).height(18)
@@ -493,7 +493,7 @@ export struct AgentFloatWindow {
 
             // 发送按�?(28×28)
             Stack() {
-              Text('�?)
+              Text('➤')
                 .fontSize(15)
                 .fontWeight(700)
                 .fontColor(this.inputText.trim().length > 0 && !this.busy ? BG_DARK : TEXT_3);

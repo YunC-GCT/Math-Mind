@@ -1,16 +1,16 @@
-// MathMind - KnowledgeModel (±Ê¼Ç½á¹¹»¯ + ÕæÖµ¼ìÑé)
-// ÈÎÎñ±àºÅ: C
-// ÔğÈÎ: Z
-// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´
+// MathMind - KnowledgeModel (ï¿½Ê¼Ç½á¹¹ï¿½ï¿½ + ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½)
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: C
+// ï¿½ï¿½ï¿½ï¿½: Z
+// ×´Ì¬: Êµï¿½ï¿½ï¿½ï¿½ï¿½(2026-07-14) ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //
-// ½Ó¿Ú:
+// ï¿½Ó¿ï¿½:
 //   structure(ocrText, type, subject, chapter): Promise<KnowledgeUnit>
 //
-// ÊµÏÖ:
-//   1) ¸ù¾İ type Ñ¡Ä£°å (3Ñ¡1)
-//   2) µ÷ LlmClient ½á¹¹»¯ ¡ú Markdown
-//   3) ÕæÖµ¼ìÑé(À¨ºÅÅä¶Ô/³ıÁã/ºãµÈÊ½/Ã¬¶ÜµÈÊ½)
-//   4) ·µ»Ø KnowledgeUnit (Èë¿âÓÉµ÷ÓÃ·½ AiService ¸ºÔğ)
+// Êµï¿½ï¿½:
+//   1) ï¿½ï¿½ï¿½ï¿½ type Ñ¡Ä£ï¿½ï¿½ (3Ñ¡1)
+//   2) ï¿½ï¿½ LlmClient ï¿½á¹¹ï¿½ï¿½ ï¿½ï¿½ Markdown
+//   3) ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½Ê½/Ã¬ï¿½Üµï¿½Ê½)
+//   4) ï¿½ï¿½ï¿½ï¿½ KnowledgeUnit (ï¿½ï¿½ï¿½ï¿½Éµï¿½ï¿½Ã·ï¿½ AiService ï¿½ï¿½ï¿½ï¿½)
 
 import {
   KnowledgeUnit,
@@ -22,69 +22,69 @@ import {
   ChatMessage,
 } from 'common';
 
-// Éú³É UUID
+// ï¿½ï¿½ï¿½ï¿½ UUID
 function uuid(): string {
   return 'KB-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
 }
 
-// ===== 3 Ä£°å =====
+// ===== 3 Ä£ï¿½ï¿½ =====
 
-const TEMPLATE_CONCEPT: string = `ÄãÊÇÒ»¸öÊıÑ§ÖªÊ¶½á¹¹»¯ÖúÊÖ¡£Çë½«ÒÔÏÂÊıÑ§¸ÅÄîÎÄ±¾ÕûÀíÎª Markdown ¸ñÊ½£¬Ê¹ÓÃÒÔÏÂ½á¹¹:
+const TEMPLATE_CONCEPT: string = `ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ñ§ÖªÊ¶ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ë½«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ§ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½ï¿½ï¿½ï¿½ï¿½Îª Markdown ï¿½ï¿½Ê½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Â½á¹¹:
 
-## ¶¨Òå
-(ºËĞÄ¸ÅÄîµÄ¾«È·¶¨Òå)
+## ï¿½ï¿½ï¿½ï¿½
+(ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½Ä¾ï¿½È·ï¿½ï¿½ï¿½ï¿½)
 
-## ĞÔÖÊ
-(¸Ã¸ÅÄîµÄÖØÒªĞÔÖÊ£¬Ã¿ÌõÒ»ĞĞ)
+## ï¿½ï¿½ï¿½ï¿½
+(ï¿½Ã¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ê£ï¿½Ã¿ï¿½ï¿½Ò»ï¿½ï¿½)
 
-## Ïà¹Ø¸ÅÄî
-(ÓëÖ®Ïà¹ØµÄÆäËûÊıÑ§¸ÅÄî£¬Ã¿ÌõÒ»ĞĞ)
+## ï¿½ï¿½Ø¸ï¿½ï¿½ï¿½
+(ï¿½ï¿½Ö®ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ§ï¿½ï¿½ï¿½î£¬Ã¿ï¿½ï¿½Ò»ï¿½ï¿½)
 
-ÊäÈëÎÄ±¾:
+ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½:
 `;
 
-const TEMPLATE_COMPUTATION: string = `ÄãÊÇÒ»¸öÊıÑ§ÖªÊ¶½á¹¹»¯ÖúÊÖ¡£Çë½«ÒÔÏÂÊıÑ§¼ÆËãÌâÕûÀíÎª Markdown ¸ñÊ½£¬Ê¹ÓÃÒÔÏÂ½á¹¹:
+const TEMPLATE_COMPUTATION: string = `ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ñ§ÖªÊ¶ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ë½«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª Markdown ï¿½ï¿½Ê½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Â½á¹¹:
 
-## ÌâÄ¿
-(Ô­Ê¼ÌâÄ¿ÃèÊö)
+## ï¿½ï¿½Ä¿
+(Ô­Ê¼ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½)
 
-## ½â·¨
-(ÏêÏ¸½âÌâ²½Öè£¬·Ö²½ÁĞ³ö)
+## ï¿½â·¨
+(ï¿½ï¿½Ï¸ï¿½ï¿½ï¿½â²½ï¿½è£¬ï¿½Ö²ï¿½ï¿½Ğ³ï¿½)
 
-## ´ğ°¸
-(×îÖÕ½á¹û)
+## ï¿½ï¿½
+(ï¿½ï¿½ï¿½Õ½ï¿½ï¿½)
 
-ÊäÈëÎÄ±¾:
+ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½:
 `;
 
-const TEMPLATE_PROOF: string = `ÄãÊÇÒ»¸öÊıÑ§ÖªÊ¶½á¹¹»¯ÖúÊÖ¡£Çë½«ÒÔÏÂÊıÑ§Ö¤Ã÷ÌâÕûÀíÎª Markdown ¸ñÊ½£¬Ê¹ÓÃÒÔÏÂ½á¹¹:
+const TEMPLATE_PROOF: string = `ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ñ§ÖªÊ¶ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ë½«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ§Ö¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª Markdown ï¿½ï¿½Ê½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Â½á¹¹:
 
-## ÃüÌâ
-(´ıÖ¤Ã÷µÄÃüÌâ)
+## ï¿½ï¿½ï¿½ï¿½
+(ï¿½ï¿½Ö¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 
-## Ö¤Ã÷
-(ÏêÏ¸Ö¤Ã÷¹ı³Ì£¬·Ö²½ÁĞ³ö)
+## Ö¤ï¿½ï¿½
+(ï¿½ï¿½Ï¸Ö¤ï¿½ï¿½ï¿½ï¿½ï¿½Ì£ï¿½ï¿½Ö²ï¿½ï¿½Ğ³ï¿½)
 
-## Òªµã
-(Ö¤Ã÷ÖĞµÄ¹Ø¼ü·½·¨ºÍ¼¼ÇÉ£¬Ã¿ÌõÒ»ĞĞ)
+## Òªï¿½ï¿½
+(Ö¤ï¿½ï¿½ï¿½ĞµÄ¹Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½É£ï¿½Ã¿ï¿½ï¿½Ò»ï¿½ï¿½)
 
-ÊäÈëÎÄ±¾:
+ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½:
 `;
 
 export class KnowledgeModel {
-  // Ö÷Èë¿Ú: ½á¹¹»¯ + ÕæÖµ¼ìÑé ¡ú KnowledgeUnit (²»Èë¿â)
+  // ï¿½ï¿½ï¿½ï¿½ï¿½: ï¿½á¹¹ï¿½ï¿½ + ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ KnowledgeUnit (ï¿½ï¿½ï¿½ï¿½ï¿½)
   async structure(
     ocrText: string,
-    type: '¸ÅÄî' | '¼ÆËã' | 'Ö¤Ã÷',
-    subject: '¸ßµÈ´úÊı' | 'ÊıÑ§·ÖÎö' | '½âÎö¼¸ºÎ',
+    type: 'æ¦‚å¿µ' | 'è®¡ç®—' | 'è¯æ˜',
+    subject: 'é«˜ç­‰ä»£æ•°' | 'æ•°å­¦åˆ†æ' | 'è§£æå‡ ä½•',
     chapter: string,
   ): Promise<KnowledgeUnit> {
-    // Step 1: Ñ¡Ä£°å
+    // Step 1: Ñ¡Ä£ï¿½ï¿½
     const template: string = this.pickTemplate(type);
 
-    // Step 2: µ÷ LLM ½á¹¹»¯
+    // Step 2: ï¿½ï¿½ LLM ï¿½á¹¹ï¿½ï¿½
     const messages: ChatMessage[] = [
-      { role: 'system', content: 'ÄãÊÇÒ»¸öÊıÑ§ÖªÊ¶ÕûÀí×¨¼Ò£¬Çë°´Ö¸¶¨¸ñÊ½ÕûÀíÄÚÈİ£¬Ö»·µ»ØÕûÀíºóµÄ Markdown¡£' },
+      { role: 'system', content: 'ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ñ§ÖªÊ¶ï¿½ï¿½ï¿½ï¿½×¨ï¿½Ò£ï¿½ï¿½ë°´Ö¸ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ£ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Markdownï¿½ï¿½' },
       { role: 'user', content: template + '\n\n' + ocrText },
     ];
 
@@ -93,31 +93,31 @@ export class KnowledgeModel {
     try {
       content = await client.call(messages);
     } catch (e) {
-      // LLM ²»¿ÉÓÃÊ±Ê¹ÓÃÔ­Ê¼ÎÄ±¾ + Ä£°åÕ¼Î»
+      // LLM ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Ê¹ï¿½ï¿½Ô­Ê¼ï¿½Ä±ï¿½ + Ä£ï¿½ï¿½Õ¼Î»
       content = this.fallbackContent(type, ocrText);
     }
 
-    // Step 3: ÕæÖµ¼ìÑé
+    // Step 3: ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½
     const truth: TruthCheckResult = this.truthCheck(ocrText);
 
-    // Step 4: Éú³É title (¡Ü30×Ö, ´øÇ°×º)
-    const prefix: string = type === '¸ÅÄî' ? '¡¾¸ÅÄî¡¿' : type === '¼ÆËã' ? '¡¾¼ÆËã¡¿' : '¡¾Ö¤Ã÷¡¿';
+    // Step 4: ï¿½ï¿½ï¿½ï¿½ title (ï¿½ï¿½30ï¿½ï¿½, ï¿½ï¿½Ç°×º)
+    const prefix: string = type === 'æ¦‚å¿µ' ? 'ã€æ¦‚å¿µã€‘' : type === 'è®¡ç®—' ? 'ã€è®¡ç®—ã€‘' : 'ã€è¯æ˜ã€‘';
     const rawTitle: string = ocrText.replace(/\s+/g, ' ').trim().substring(0, 30);
     const title: string = prefix + rawTitle;
 
-    // Step 5: Éú³ÉÕªÒª
+    // Step 5: ï¿½ï¿½ï¿½ï¿½ÕªÒª
     const summary: string = content.replace(/[#*]/g, '').trim().substring(0, 100);
 
-    // Step 6: ¹¹Ôì tags
+    // Step 6: ï¿½ï¿½ï¿½ï¿½ tags
     const tags: string[] = [type, subject];
     if (chapter.length > 0) {
       tags.push(chapter);
     }
     if (!truth.passed) {
-      tags.push('´ı¸´ºË');
+      tags.push('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½');
     }
 
-    // Step 7: ¹¹Ôì KnowledgeUnit
+    // Step 7: ï¿½ï¿½ï¿½ï¿½ KnowledgeUnit
     const now: number = Date.now();
     const unit: KnowledgeUnit = {
       id: uuid(),
@@ -144,54 +144,54 @@ export class KnowledgeModel {
     return unit;
   }
 
-  // ===== Ä£°åÑ¡Ôñ =====
+  // ===== Ä£ï¿½ï¿½Ñ¡ï¿½ï¿½ =====
   private pickTemplate(type: string): string {
-    if (type === '¸ÅÄî') {
+    if (type === 'æ¦‚å¿µ') {
       return TEMPLATE_CONCEPT;
     }
-    if (type === 'Ö¤Ã÷') {
+    if (type === 'è¯æ˜') {
       return TEMPLATE_PROOF;
     }
     return TEMPLATE_COMPUTATION;
   }
 
-  // ===== LLM ½µ¼¶ =====
+  // ===== LLM ï¿½ï¿½ï¿½ï¿½ =====
   private fallbackContent(type: string, ocrText: string): string {
     const sections: string[] = [];
-    if (type === '¸ÅÄî') {
-      sections.push('## ¶¨Òå', '', ocrText, '', '## ĞÔÖÊ', '', '## Ïà¹Ø¸ÅÄî');
-    } else if (type === '¼ÆËã') {
-      sections.push('## ÌâÄ¿', '', ocrText, '', '## ½â·¨', '', '## ´ğ°¸');
+    if (type === 'æ¦‚å¿µ') {
+      sections.push('## å®šä¹‰', '', ocrText, '', '## æ€§è´¨', '', '## ç›¸å…³æ¦‚å¿µ');
+    } else if (type === 'è®¡ç®—') {
+      sections.push('## é¢˜ç›®', '', ocrText, '', '## è§£æ³•', '', '## ç­”æ¡ˆ');
     } else {
-      sections.push('## ÃüÌâ', '', ocrText, '', '## Ö¤Ã÷', '', '## Òªµã');
+      sections.push('## å‘½é¢˜', '', ocrText, '', '## è¯æ˜', '', '## è¦ç‚¹');
     }
     return sections.join('\n');
   }
 
-  // ===== ÕæÖµ¼ìÑé =====
+  // ===== ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ =====
   truthCheck(text: string): TruthCheckResult {
     const flags: TruthFlag[] = [];
 
     if (!this.bracketsBalanced(text)) {
-      flags.push('À¨ºÅ²»Åä¶Ô');
+      flags.push('æ‹¬å·ä¸é…å¯¹');
     }
     if (this.hasZeroDivision(text)) {
-      flags.push('³ıÁã');
+      flags.push('é™¤é›¶');
     }
     if (this.hasIdentity(text)) {
-      flags.push('ºãµÈÊ½');
+      flags.push('æ’ç­‰å¼');
     }
     if (this.hasContradiction(text)) {
-      flags.push('Ã¬¶ÜµÈÊ½');
+      flags.push('çŸ›ç›¾ç­‰å¼');
     }
     if (text.trim().length < 5) {
-      flags.push('ÎŞÃ÷È·ÌâÄ¿');
+      flags.push('æ— æ˜ç¡®é¢˜ç›®');
     }
 
     const passed: boolean = flags.length === 0;
     let message: string = '';
     if (!passed) {
-      message = 'ÕæÖµ¼ìÑé·¢ÏÖÎÊÌâ: ' + flags.join(', ');
+      message = 'ï¿½ï¿½Öµï¿½ï¿½ï¿½é·¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: ' + flags.join(', ');
     }
     return { passed, flags, message };
   }
@@ -200,9 +200,9 @@ export class KnowledgeModel {
     let count: number = 0;
     for (let i = 0; i < text.length; i++) {
       const ch: string = text.charAt(i);
-      if (ch === '(' || ch === '£¨' || ch === '{' || ch === '[') {
+      if (ch === '(' || ch === 'ï¿½ï¿½' || ch === '{' || ch === '[') {
         count++;
-      } else if (ch === ')' || ch === '£©' || ch === '}' || ch === ']') {
+      } else if (ch === ')' || ch === 'ï¿½ï¿½' || ch === '}' || ch === ']') {
         count--;
         if (count < 0) {
           return false;
@@ -213,7 +213,7 @@ export class KnowledgeModel {
   }
 
   private hasZeroDivision(text: string): boolean {
-    const patterns: string[] = ['/0', '¡Â0', '¡Â 0', '/ 0', '·ÖÄ¸ÎªÁã', '·ÖÄ¸Îª0', '³ıÒÔ0', '³ıÒÔ 0'];
+    const patterns: string[] = ['/0', 'ï¿½ï¿½0', 'ï¿½ï¿½ 0', '/ 0', 'ï¿½ï¿½Ä¸Îªï¿½ï¿½', 'ï¿½ï¿½Ä¸Îª0', 'ï¿½ï¿½ï¿½ï¿½0', 'ï¿½ï¿½ï¿½ï¿½ 0'];
     for (let i = 0; i < patterns.length; i++) {
       if (text.indexOf(patterns[i]) >= 0) {
         return true;
