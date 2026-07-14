@@ -55,7 +55,17 @@ export struct AgentFloatWindow {
   @State busy: boolean = false;
 
   aboutToAppear(): void {
-    // 初始欢迎语 (空消息时由 build 内 EmptyHint 渲染)
+    // 预填 AI 开场白 (W1: 用户开浮窗立即看到 AI 主动打招呼, 不是空 EmptyHint)
+    if (this.messages.length === 0) {
+      this.messages = [
+        {
+          id: 1,
+          role: 'ai',
+          content: '👋 你好我是 MathMind AI 助手\n\n点击上方 4 个快捷按钮（分析题目/总结知识/出练习题/学习路径）开始对话，或直接在底部输入问题',
+          ts: Date.now(),
+        },
+      ];
+    }
   }
 
   // @Watch 回调: pendingImageUri 变化时吞图
@@ -225,21 +235,27 @@ export struct AgentFloatWindow {
     .margin({ top: 6 });
   }
 
-  // 简洁空状态 (一行提示, 不用大欢迎语)
+  // 简洁空状态 (W1: messages 被清空时 fallback, 现在用大字+emoji 更明显)
   @Builder
   EmptyHint() {
-    Row() {
-      Text('✦')
-        .fontSize(14)
-        .fontColor(PURPLE)
-        .opacity(0.6);
-      Text(' 试试上面的快捷提示，或直接输入问题')
+    Column() {
+      Text('👋')
+        .fontSize(36)
+        .margin({ bottom: 8 });
+      Text('你好我是 MathMind AI 助手')
+        .fontSize(F_BASE)
+        .fontWeight(600)
+        .fontColor(TEXT)
+        .margin({ bottom: 6 });
+      Text('点击上方 4 个快捷按钮开始对话\n或直接在底部输入问题')
         .fontSize(F_XS)
-        .fontColor(TEXT_3);
+        .fontColor(TEXT_3)
+        .textAlign(TextAlign.Center)
+        .lineHeight(18);
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-    .justifyContent(FlexAlign.Center);
+    .padding({ left: 20, right: 20, top: 24, bottom: 24 })
+    .alignItems(HorizontalAlign.Center);
   }
 
   build() {
