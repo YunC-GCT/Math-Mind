@@ -5,7 +5,7 @@
 // 依赖: A1 (NoteDao) + B1 (OcrTool) + B2 (TypeClassifier) 全部完成
 //
 // 接口约定 (D1_CAPTURE_CHAIN_PLAN.md 第五/六节):
-//   structure(ocrText: string, classification: ClassificationResult):
+//   structure(ocrText: string, type: string, subject: string, chapter: string):
 //     Promise<KnowledgeUnit>
 //
 // 实现路径:

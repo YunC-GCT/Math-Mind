@@ -423,8 +423,9 @@ export struct CameraOverlay {
         this.state = 'preview';
         return;
       }
-    } catch (_e) {
+    } catch (e) {
       // 用户取消 / 模拟器无相机 → 降级 mock
+      console.warn('CameraPicker failed, fallback to mock:', (e as Error).message);
     } finally {
       this.busy = false;
     }
@@ -451,8 +452,9 @@ export struct CameraOverlay {
         this.state = 'preview';
         return;
       }
-    } catch (_e) {
+    } catch (e) {
       // 用户取消 / 模拟器无相册 → 降级 mock
+      console.warn('PhotoViewPicker failed, fallback to mock:', (e as Error).message);
     } finally {
       this.busy = false;
     }
