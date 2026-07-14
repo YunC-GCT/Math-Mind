@@ -39,6 +39,7 @@ import { cameraPicker } from '@kit.CameraKit';
 import { camera } from '@kit.CameraKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { common } from '@kit.AbilityKit';
+import { promptAction } from '@kit.ArkUI';
 
 // 浮层状态
 type CameraState = 'camera' | 'preview';
@@ -254,13 +255,15 @@ export struct CameraOverlay {
   @Builder
   AlbumBtn() {
     Stack() {
-      Text('🖼')
-        .fontSize(20);
+      Image($r('app.media.ic_album'))
+        .width(24)
+        .height(24)
+        .fillColor('#FFFFFF');
     }
-    .width(56).height(56)
-    .borderRadius(28)
-    .backgroundColor('rgba(255,255,255,0.08)')
-    .border({ width: 1, color: 'rgba(255,255,255,0.1)' })
+    .width(52).height(52)
+    .borderRadius(26)
+    .backgroundColor('rgba(255,255,255,0.1)')
+    .border({ width: 1, color: 'rgba(255,255,255,0.15)' })
     .alignContent(Alignment.Center)
     .onClick(() => {
       if (this.busy) {
@@ -277,11 +280,11 @@ export struct CameraOverlay {
         .width(68).height(68)
         .borderRadius(34)
         .backgroundColor('transparent')
-        .border({ width: 3, color: '#FFFFFF' });
+        .border({ width: 3, color: MINT });
       Stack()
-        .width(56).height(56)
-        .borderRadius(28)
-        .backgroundColor('#FFFFFF');
+        .width(54).height(54)
+        .borderRadius(27)
+        .backgroundColor(MINT);
     }
     .width(76).height(76)
     .alignContent(Alignment.Center)
@@ -427,6 +430,7 @@ export struct CameraOverlay {
     } catch (e) {
       // 用户取消 / 模拟器无相机 → 降级 mock
       console.warn('CameraPicker failed, fallback to mock:', (e as Error).message);
+      promptAction.showToast({ message: '模拟器不支持相机，已使用模拟图片', duration: 2000 });
     } finally {
       this.busy = false;
     }
