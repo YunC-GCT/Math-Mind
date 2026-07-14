@@ -108,11 +108,11 @@ struct GradientRing {
       }
     }, 16);
 
-    // === 光晕呼吸: glow 在 [0.45, 0.85] 三角波, 2.6s 一个周期 ===
+    // === 光晕呼吸: glow 在 [0.30, 0.80] 三角波, 步进 0.020 ≈ 3s 一周期 ===
     this.glowTimerId = setInterval(() => {
-      this.glow = this.glow + this.glowDir * 0.025;
-      if (this.glow >= 0.85) { this.glow = 0.85; this.glowDir = -1; }
-      if (this.glow <= 0.45) { this.glow = 0.45; this.glowDir = 1; }
+      this.glow = this.glow + this.glowDir * 0.020;
+      if (this.glow >= 0.80) { this.glow = 0.80; this.glowDir = -1; }
+      if (this.glow <= 0.30) { this.glow = 0.30; this.glowDir = 1; }
     }, 30);
   }
 
@@ -143,9 +143,12 @@ struct GradientRing {
         });
     }
     .width(120).height(120)
+    // 圆形裁切 + 圆角 — 让 shadow 按圆形渲染 (不按矩形边), 模拟真正圆形 glow
+    .borderRadius(60)
+    .clip(true)
     // 整体 MINT 光晕 (rgba 透明度跟 glow @State 联动, 呼吸效果)
     .shadow({
-      radius: 18,
+      radius: 32,
       color: `rgba(91, 227, 176, ${this.glow.toFixed(2)})`,
       offsetX: 0,
       offsetY: 0,
@@ -187,6 +190,7 @@ export struct HomePage {
   @State g: string = '';
   @State d: string = '';
   @State avg: number = 75;
+  @State today: number = 0;
   @State selectedNote: NoteItem | null = null;
 
   // 关闭笔记详情浮层
@@ -204,12 +208,10 @@ export struct HomePage {
     this.avg = this.notes.length > 0
       ? Math.round(this.notes.reduce((a, n) => a + n.conf, 0) / this.notes.length * 100)
       : 75;
-  }
-
-  get today(): number {
-    const now = new Date();
-    const ts = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-    return this.notes.filter(n => n.date === ts).length;
+    // 算今日新增笔记数 (date 格式 YYYY-MM-DD 补 0, 对齐 MOCK_NOTES 的 ISO 格式)
+    const now: Date = new Date();
+    const ts: string = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    this.today = this.notes.filter((n: NoteItem) => n.date === ts).length;
   }
 
   build() {
