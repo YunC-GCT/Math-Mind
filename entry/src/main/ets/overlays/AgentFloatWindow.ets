@@ -23,6 +23,7 @@ import {
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL,
 } from 'common';
 import { promptAction } from '@kit.ArkUI';
+import window from '@ohos.window';
 
 // 消息类型
 interface ChatMsg {
@@ -55,8 +56,10 @@ export struct AgentFloatWindow {
   @State busy: boolean = false;
   // 待发送图片预览 (W1.2: 拍照后存这里, 不立即发送, 让用户先补充文字)
   @State imagePreview: string = '';
-  // 键盘高度 (W1.3: onKeyboardHeightChange 监听, 浮窗自己上移避免键盘遮挡)
+  // 键盘高度 (W1.3: 浮窗自己上移避免键盘遮挡)
   @State keyboardHeight: number = 0;
+  // 窗口实例引用, 用于取消键盘监听
+  private mainWindow: window.Window | null = null;
 
   aboutToAppear(): void {
     // 持久化开场白 (W1.1: 用 AppStorage 标记, 整个 App 生命周期只显示一次)
@@ -70,6 +73,28 @@ export struct AgentFloatWindow {
         },
       ];
       AppStorage.setOrCreate<boolean>('shownGreeting', true);
+    }
+    // 注册键盘高度变化监听 (W1.3.1 改进: 用新写法 getUIContext + px2vp 单位转换 + try-catch)
+    try {
+      const ctx = this.getUIContext().getHostContext();
+      if (ctx) {
+        window.getLastWindow(ctx).then((win: window.Window) => {
+          this.mainWindow = win;
+          win.on('keyboardHeightChange', (data: number) => {
+            // data 单位是 px, 浮窗 .offset 期望 vp, 转换
+            this.keyboardHeight = this.getUIContext().px2vp(data);
+          });
+        });
+      }
+    } catch (e) {
+      // 监听注册失败, 浮窗不响应键盘 (fallback: 仍可工作, 仅 keyboard 监听失效)
+    }
+  }
+
+  aboutToDisappear(): void {
+    // 注销键盘高度变化监听
+    if (this.mainWindow) {
+      this.mainWindow.off('keyboardHeightChange');
     }
   }
 
@@ -478,6 +503,5 @@ export struct AgentFloatWindow {
     }
     .width('100%').height('100%')
     .hitTestBehavior(this.show ? HitTestMode.Default : HitTestMode.None)
-    .onKeyboardHeightChange((h: number) => { this.keyboardHeight = h; })
   }
 }
