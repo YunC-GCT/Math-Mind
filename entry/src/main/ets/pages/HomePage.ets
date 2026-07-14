@@ -166,10 +166,9 @@ export struct HomePage {
           // ===== 状态栏占位 =====
           Row().width('100%').height(this.sbh).backgroundColor(BG_DARK);
 
-          // ===== Header 54vp =====
+          // ===== Header 60vp (W1: 22×22 ic_brand → 32×32 浮空旋转 6 边形 Logo) =====
           Row() {
-            Image($r('app.media.ic_brand'))
-              .width(22).height(22).fillColor(MINT);
+            HexLogo();
             Text('MathMind')
               .fontSize(17)
               .fontWeight(600)
@@ -177,19 +176,21 @@ export struct HomePage {
               .letterSpacing(-0.2)
               .margin({ left: S_2 });
           }
-          .width('100%').height(54)
+          .width('100%').height(60)
           .padding({ left: 16, right: 16 })
+          .alignItems(VerticalAlign.Center)
           .backgroundColor(BG_DARK);
 
           // ===== Hero 区 =====
           Column() {
-            // --- 问候行 (W1: 6×6 圆点 → 32×32 浮空旋转 6 边形 Logo) ---
+            // --- 问候行 ---
             Row() {
-              HexLogo();
+              Circle({ width: 6, height: 6 })
+                .fill(MINT);
               Text(`${this.g}, Mini`)
                 .fontSize(F_XL).fontWeight(600)
                 .fontColor(TEXT)
-                .margin({ left: 8 })
+                .margin({ left: 6 })
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis });
             }
