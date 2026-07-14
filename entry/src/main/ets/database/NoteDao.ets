@@ -1,19 +1,120 @@
-// MathMind - NoteDao (å…³ç³»å‹æ•°æ®åº“è®¿é—®å±‚)
-// ä»»åŠ¡ç¼–å·: A1
-// è´£ä»»: Mavis(æˆ‘)
-// çŠ¶æ€: TODO - ç©ºå£³,ç­‰å¾…å®ç°
-// ä¾èµ–: æ—  (A é˜¶æ®µåŸºç¡€è®¾æ–½,å¯ä¸ A2 å¹¶è¡Œ)
+// MathMind - NoteDao (ÖªÊ¶µ¥ÔªÊı¾İ·ÃÎÊ²ã)
+// ÈÎÎñ±àºÅ: A1
+// ÔğÈÎ: Z
+// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´
 //
-// æ¥å£çº¦å®š (D1_CAPTURE_CHAIN_PLAN.md):
-//   insert(unit: KnowledgeUnit): number            // è¿”å› rowId
-//   queryById(id: string): KnowledgeUnit | null    // æŒ‰ä¸»é”®æŸ¥è¯¢
+// ½Ó¿Ú:
+//   insert(unit: KnowledgeUnit): Promise<number>        // ·µ»Ø rowId
+//   queryById(id: string): Promise<KnowledgeUnit | null> // °´Ö÷¼ü²éÑ¯
 //
-// éªŒè¯æ–¹å¼: è°ƒç”¨ insert â†’ è¿”å› rowId â†’ queryById æŸ¥å›
-//
-// KnowledgeUnit interface å·²åœ¨ common/src/main/ets/models/CommonTypes.ets å®šä¹‰
-// å»ºè¡¨ SQL å·²åœ¨ common/src/main/ets/DatabaseHelper.ets å…·å¤‡ (åç»­è¡¥)
-// RdbStore API è·¯å¾„: @ohos.data.relationalStore
+// ÑéÖ¤·½Ê½: insert ¡ú ·µ»Ø rowId ¡ú queryById ²é»Ø
+
+import { relationalStore } from '@kit.ArkData';
+import { KnowledgeUnit, DifficultyLevel, ReviewStatus } from 'common';
 
 export class NoteDao {
-  // TODO(A1): å®ç° insert + queryById
+  private store: relationalStore.RdbStore;
+
+  constructor(store: relationalStore.RdbStore) {
+    this.store = store;
+  }
+
+  // ²åÈëÖªÊ¶µ¥Ôª, ·µ»Ø rowId
+  async insert(unit: KnowledgeUnit): Promise<number> {
+    const valueBucket: relationalStore.ValuesBucket = {
+      'id': unit.id,
+      'title': unit.title,
+      'content': unit.content,
+      'summary': unit.summary,
+      'tags': JSON.stringify(unit.tags),
+      'difficulty': unit.difficulty.valueOf(),
+      'source': unit.source,
+      'created_at': unit.createdAt,
+      'updated_at': unit.updatedAt,
+      'review_status': unit.reviewStatus.valueOf(),
+      'next_review_at': unit.nextReviewAt,
+      'interval_days': unit.intervalDays,
+      'ease_factor': unit.easeFactor,
+      'repetitions': unit.repetitions,
+      'prerequisites': JSON.stringify(unit.prerequisites),
+      'related': JSON.stringify(unit.related),
+      'embedding': JSON.stringify(unit.embedding),
+      'user_id': unit.userId,
+      'version': unit.version,
+    };
+
+    return new Promise<number>((resolve, reject) => {
+      this.store.insert('knowledge_unit', valueBucket, (err, rowId) => {
+        if (err) {
+          reject(new Error('NoteDao.insert failed: ' + err.message));
+          return;
+        }
+        resolve(rowId);
+      });
+    });
+  }
+
+  // °´ id ²éÑ¯
+  async queryById(id: string): Promise<KnowledgeUnit | null> {
+    const predicates = new relationalStore.RdbPredicates('knowledge_unit');
+    predicates.equalTo('id', id);
+
+    return new Promise<KnowledgeUnit | null>((resolve, reject) => {
+      this.store.query(predicates, ['*'], (_err, resultSet) => {
+        if (_err) {
+          reject(new Error('NoteDao.queryById failed: ' + _err.message));
+          return;
+        }
+        if (resultSet.goToFirstRow()) {
+          const unit: KnowledgeUnit = NoteDao.rowToUnit(resultSet);
+          resultSet.close();
+          resolve(unit);
+        } else {
+          resultSet.close();
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  // ½« RDB ĞĞ×ªÎª KnowledgeUnit
+  static rowToUnit(rs: relationalStore.ResultSet): KnowledgeUnit {
+    return {
+      id: rs.getString(rs.getColumnIndex('id')),
+      title: rs.getString(rs.getColumnIndex('title')),
+      content: rs.getString(rs.getColumnIndex('content')),
+      summary: rs.getString(rs.getColumnIndex('summary')),
+      tags: NoteDao.parseArray(rs.getString(rs.getColumnIndex('tags'))),
+      difficulty: rs.getLong(rs.getColumnIndex('difficulty')) as number,
+      source: rs.getString(rs.getColumnIndex('source')),
+      createdAt: rs.getLong(rs.getColumnIndex('created_at')) as number,
+      updatedAt: rs.getLong(rs.getColumnIndex('updated_at')) as number,
+      reviewStatus: rs.getString(rs.getColumnIndex('review_status')) as ReviewStatus,
+      nextReviewAt: rs.getLong(rs.getColumnIndex('next_review_at')) as number,
+      intervalDays: rs.getLong(rs.getColumnIndex('interval_days')) as number,
+      easeFactor: rs.getDouble(rs.getColumnIndex('ease_factor')),
+      repetitions: rs.getLong(rs.getColumnIndex('repetitions')) as number,
+      prerequisites: NoteDao.parseArray(rs.getString(rs.getColumnIndex('prerequisites'))),
+      related: NoteDao.parseArray(rs.getString(rs.getColumnIndex('related'))),
+      embedding: NoteDao.parseNumberArray(rs.getString(rs.getColumnIndex('embedding'))),
+      userId: rs.getString(rs.getColumnIndex('user_id')),
+      version: rs.getLong(rs.getColumnIndex('version')) as number,
+    };
+  }
+
+  private static parseArray(json: string): string[] {
+    try {
+      return JSON.parse(json) as string[];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  private static parseNumberArray(json: string): number[] {
+    try {
+      return JSON.parse(json) as number[];
+    } catch (e) {
+      return [];
+    }
+  }
 }

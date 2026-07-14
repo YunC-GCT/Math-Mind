@@ -1,60 +1,130 @@
-// MathMind - TypeClassifier (ç±»å‹/å­¦ç§‘åˆ†ç±»å™¨)
-// ä»»åŠ¡ç¼–å·: B2
-// è´£ä»»: D
-// çŠ¶æ€: éª¨æ¶ mock(2026-07-14) - æ¥ DispatchPayload discriminated union
-// ä¾èµ–: LLM æ¨¡å—(å·²å°±ä½ fecaed1) + ML Kit OCR
+// MathMind - TypeClassifier (ÀàĞÍ/Ñ§¿Æ·ÖÀàÆ÷)
+// ÈÎÎñ±àºÅ: B2
+// ÔğÈÎ: Z
+// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´, DeepSeek 3¡Á3·ÖÀà
 //
-// æ¥å£çº¦å®š (api_contract.md ç¬¬ 2.2 èŠ‚):
+// ½Ó¿Ú:
 //   classify(payload: DispatchPayload): Promise<ClassificationResult>
 //
-//   DispatchPayload:
-//     | { kind: 'image'; imageUri: string; userText?: string }
-//     | { kind: 'text'; text: string }
-//     | { kind: 'file'; fileUri: string; mimeType: string; userText?: string }
-//
-//   ClassificationResult: {
-//     type: 'æ¦‚å¿µ' | 'è®¡ç®—' | 'è¯æ˜'
-//     subject: 'é«˜ç­‰ä»£æ•°' | 'æ•°å­¦åˆ†æ' | 'è§£æå‡ ä½•'
-//     chapter?: string
-//     confidence: number    // 0.0-1.0
-//     ocrText?: string      // D çœŸå®ç°æ—¶å¿…å¡«(å›¾ç‰‡/file è·¯å¾„)
-//   }
-//
-// D æ¥æ‰‹æ—¶: åˆ  mock body, å†™çœŸå®ç°
-//   1) æŒ‰ payload.kind åˆ†æµ:
-//      - 'image' / 'file' (image/*) â†’ ML Kit OCR æ‹¿æ–‡æœ¬
-//      - 'text' / 'file' (text/plain) â†’ ç›´æ¥ç”¨
-//      - å…¶ä»– mime â†’ æš‚è¿” error
-//   2) cleanText æ¸…æ´—
-//   3) è°ƒ LlmClient.call() èµ° SiliconFlow DeepSeek-V3
-//      prompt = system æ¨¡æ¿ + ocrText + userText(è‹¥æœ‰)
-//   4) è§£æ JSON â†’ ClassificationResult, **å¿…é¡»å¡« ocrText å­—æ®µ**
+// ÊµÏÖ:
+//   1) °´ payload.kind ·ÖÁ÷: image ¡ú mock OCR, text ¡ú Ö±½ÓÓÃ, file ¡ú mock OCR
+//   2) cleanText ÇåÏ´
+//   3) µ÷ LlmClient.call() ¡ú DeepSeek-V3 ·ÖÀà
+//   4) ½âÎö JSON ¡ú ClassificationResult
 
-import { ClassificationResult, DispatchPayload } from 'common';
+import { ClassificationResult, DispatchPayload, LlmClient, LlmError, ChatMessage } from 'common';
+
+const CLASSIFY_PROMPT: string = `ÄãÊÇÒ»¸öÊıÑ§ÌâÄ¿·ÖÀàÆ÷¡£Çë¶ÔÊäÈëµÄÎÄ±¾½øĞĞ·ÖÀà£¬·µ»Ø JSON ¸ñÊ½¡£
+
+·ÖÀà¹æÔò:
+- type: Ö»ÄÜÊÇ "¸ÅÄî"¡¢"¼ÆËã"¡¢"Ö¤Ã÷" Ö®Ò»
+- subject: Ö»ÄÜÊÇ "¸ßµÈ´úÊı"¡¢"ÊıÑ§·ÖÎö"¡¢"½âÎö¼¸ºÎ" Ö®Ò»
+- chapter: ÕÂ½ÚÃû³Æ(Èç"ĞĞÁĞÊ½"¡¢"¼«ÏŞ"¡¢"Î¢·ÖÖĞÖµ¶¨Àí"), ÎŞ·¨ÅĞ¶ÏÊ±ÓÃ¿Õ×Ö·û´®
+- confidence: 0.0-1.0 µÄÖÃĞÅ¶È
+
+·µ»Ø¸ñÊ½(Ö»·µ»Ø JSON, ²»ÒªÆäËûÎÄ×Ö):
+{"type":"¼ÆËã","subject":"¸ßµÈ´úÊı","chapter":"ĞĞÁĞÊ½","confidence":0.92}`;
 
 export class TypeClassifier {
-  // éª¨æ¶ mock: æŒ‰ payload.kind æ¨¡æ‹Ÿä¸åŒçš„"OCR æ–‡æœ¬"è¾“å…¥,
-  // è¿”å›ºå®š mock ClassificationResult,è®© Dispatcher æ•´é“¾è·‘é€š
-  // D æ¥æ‰‹æ—¶æ•´ä¸ª method body æ›¿æ¢æ‰
   async classify(payload: DispatchPayload): Promise<ClassificationResult> {
+    // Step 1: °´ kind ÌáÈ¡ÎÄ±¾
     let ocrText: string;
-    if (payload.kind === 'image') {
-      const ut: string = payload.userText ? ', userText=' + payload.userText : '';
-      ocrText = 'mock OCR text from imageUri=' + payload.imageUri + ut;
-    } else if (payload.kind === 'text') {
+    if (payload.kind === 'text') {
       ocrText = payload.text;
+    } else if (payload.kind === 'image') {
+      // MVP: ÎŞ ML Kit OCR, ÓÃÕ¼Î»ÎÄ±¾ + userText
+      ocrText = payload.userText ?? 'mock OCR text from image';
     } else {
       // payload.kind === 'file'
-      const ut: string = payload.userText ? ', userText=' + payload.userText : '';
-      ocrText = 'mock OCR text from fileUri=' + payload.fileUri
-        + ', mime=' + payload.mimeType + ut;
+      ocrText = payload.userText ?? 'mock OCR text from file';
     }
-    return {
-      type: 'è®¡ç®—',
-      subject: 'é«˜ç­‰ä»£æ•°',
-      chapter: 'è¡Œåˆ—å¼',
-      confidence: 0.85,
-      ocrText: ocrText,
-    };
+
+    // Step 2: ÇåÏ´ÎÄ±¾
+    const cleaned: string = this.cleanText(ocrText);
+
+    // Step 3: µ÷ LLM ·ÖÀà
+    const messages: ChatMessage[] = [
+      { role: 'system', content: CLASSIFY_PROMPT },
+      { role: 'user', content: 'Çë·ÖÀàÒÔÏÂÊıÑ§ÎÄ±¾:\n\n' + cleaned },
+    ];
+
+    const client = new LlmClient();
+    let raw: string;
+    try {
+      raw = await client.call(messages);
+    } catch (e) {
+      // ½µ¼¶: API ²»¿ÉÓÃÊ±·µ»ØµÍÖÃĞÅ mock
+      if (e instanceof LlmError && e.kind === 'NO_API_KEY') {
+        return {
+          type: '¼ÆËã',
+          subject: '¸ßµÈ´úÊı',
+          chapter: '',
+          confidence: 0.3,
+          ocrText: cleaned,
+        };
+      }
+      throw e;
+    }
+
+    // Step 4: ½âÎö JSON
+    const result: ClassificationResult = this.parseResult(raw, cleaned);
+    return result;
+  }
+
+  // ÇåÏ´ÎÄ±¾: È¥¶àÓà¿Õ°×¡¢½Ø¶Ï
+  private cleanText(text: string): string {
+    let t: string = text.replace(/\s+/g, ' ').trim();
+    if (t.length > 1000) {
+      t = t.substring(0, 1000);
+    }
+    return t;
+  }
+
+  // ½âÎö LLM ·µ»ØµÄ JSON
+  private parseResult(raw: string, ocrText: string): ClassificationResult {
+    // ³¢ÊÔ´ÓÏìÓ¦ÖĞÌáÈ¡ JSON
+    let jsonStr: string = raw.trim();
+    // È¥µô¿ÉÄÜµÄ markdown ´úÂë¿é°ü¹ü
+    const codeMatch: RegExpMatchArray | null = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeMatch !== null && codeMatch.length >= 2) {
+      jsonStr = codeMatch[1].trim();
+    }
+    // ÕÒ { ... } ×îÍâ²ã
+    const braceMatch: RegExpMatchArray | null = jsonStr.match(/\{[\s\S]*\}/);
+    if (braceMatch !== null) {
+      jsonStr = braceMatch[0];
+    }
+
+    try {
+      const parsed = JSON.parse(jsonStr) as Record<string, string>;
+      const type: string = parsed.type ?? '¼ÆËã';
+      const validTypes: string[] = ['¸ÅÄî', '¼ÆËã', 'Ö¤Ã÷'];
+      const finalType: string = validTypes.indexOf(type) >= 0 ? type : '¼ÆËã';
+
+      const subject: string = parsed.subject ?? '¸ßµÈ´úÊı';
+      const validSubjects: string[] = ['¸ßµÈ´úÊı', 'ÊıÑ§·ÖÎö', '½âÎö¼¸ºÎ'];
+      const finalSubject: string = validSubjects.indexOf(subject) >= 0 ? subject : '¸ßµÈ´úÊı';
+
+      const chapter: string = parsed.chapter ?? '';
+      const conf: number = parseFloat(parsed.confidence ?? '0.7');
+      const confidence: number = isNaN(conf) ? 0.7 : Math.max(0, Math.min(1, conf));
+
+      return {
+        type: finalType as '¸ÅÄî' | '¼ÆËã' | 'Ö¤Ã÷',
+        subject: finalSubject as '¸ßµÈ´úÊı' | 'ÊıÑ§·ÖÎö' | '½âÎö¼¸ºÎ',
+        chapter: chapter,
+        confidence: confidence,
+        ocrText: ocrText,
+      };
+    } catch (e) {
+      // JSON ½âÎöÊ§°Ü ¡ú ½µ¼¶·µ»ØÄ¬ÈÏ
+      return {
+        type: '¼ÆËã',
+        subject: '¸ßµÈ´úÊı',
+        chapter: '',
+        confidence: 0.3,
+        ocrText: ocrText,
+      };
+    }
   }
 }

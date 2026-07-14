@@ -1,5 +1,5 @@
-/**
- * MathMind 个人中心页 — 对照 iOS Web MVP page-me
+﻿/**
+ * MathMind 个人中心�?�?对照 iOS Web MVP page-me
  * 对照 CSS .me-wrap / .me-avatar / .me-stats / .me-menu / .mm / .me-logout-btn
  */
 
@@ -31,7 +31,7 @@ import {
   NoteItem,
   NOTES,
 } from 'common';
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, router } from '@kit.ArkUI';
 
 @Component
 export struct MePage {
@@ -41,7 +41,7 @@ export struct MePage {
     ? Math.round(this.notes.reduce((a: number, n: NoteItem) => a + n.conf, 0) / this.notes.length * 100)
     : 0;
 
-  /** 今日新增（对照 app.js 计算当天日期） */
+  /** 今日新增（对�?app.js 计算当天日期�?*/
   private todayNew(): number {
     const today = new Date();
     const ds = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -51,9 +51,9 @@ export struct MePage {
   build() {
     Scroll() {
       Column() {
-        // ===== 头像区 =====
+        // ===== 头像�?=====
         Column() {
-          // 头像（对照 CSS .me-avatar: 60×60, gradient #34d399→#10b981）
+          // 头像（对�?CSS .me-avatar: 60×60, gradient #34d399�?10b981�?
           Stack() {
             Stack()
               .width(60)
@@ -82,20 +82,20 @@ export struct MePage {
           .alignContent(Alignment.Center)
           .margin({ bottom: 12 });
 
-          // 用户名（对照 CSS .me-name: 20px/700）
+          // 用户名（对照 CSS .me-name: 20px/700�?
           Text('Mini')
             .fontSize(F_LG)
             .fontWeight(700)
             .fontColor(TEXT)
             .margin({ bottom: 4 });
 
-          // 邮箱（对照 CSS .me-email: 11.5px/text-3）
-          Text('已登录 · 模拟账号')
+          // 邮箱（对�?CSS .me-email: 11.5px/text-3�?
+          Text('已登�?· 模拟账号')
             .fontSize(F_XS)
             .fontColor(TEXT_3)
             .margin({ bottom: 10 });
 
-          // tagline（对照 CSS .me-tagline: 12px/mint italic, purple dot）
+          // tagline（对�?CSS .me-tagline: 12px/mint italic, purple dot�?
           Row() {
             Text('Where math clicks.')
               .fontSize(F_SM)
@@ -107,7 +107,7 @@ export struct MePage {
               .fontColor(PURPLE)
               .fontWeight(700);
 
-            Text('思维的长程记忆')
+            Text('思维的长程记�?)
               .fontSize(F_SM)
               .fontColor(MINT)
               .fontStyle(FontStyle.Italic);
@@ -117,30 +117,30 @@ export struct MePage {
         .width('100%')
         .alignItems(HorizontalAlign.Center);
 
-        // ===== 3 统计方块（对照 CSS .me-stats flex gap:10） =====
+        // ===== 3 统计方块（对�?CSS .me-stats flex gap:10�?=====
         Row() {
           this.SBox(`${this.notes.length}`, '笔记');
-          this.SBox(`${this.avg}%`, '掌握率');
+          this.SBox(`${this.avg}%`, '掌握�?);
           this.SBox(`${this.todayNew()}`, '今日新增');
         }
         .width('100%')
         .padding({ left: S_2, right: S_2 })
         .margin({ bottom: 18 });
 
-        // ===== 5 菜单项（对照 CSS .me-menu / .mm） =====
+        // ===== 5 菜单项（对照 CSS .me-menu / .mm�?=====
         Column() {
           this.MenuItem('📋', '我的复习计划', '复习计划开发中');
-          this.MenuItem('📕', '错题本', '错题本开发中');
-          this.MenuItem('⭐', '我的收藏', '收藏功能开发中');
-          this.MenuItem('⚙️', '设置', '设置开发中');
+          this.MenuItem('📕', '错题�?, '错题本开发中');
+          this.MenuItem('�?, '我的收藏', '收藏功能开发中');
+          this.MenuItem('⚙️', '设置', '');
           this.MenuItem('🚪', '切换账号', '切换账号开发中');
         }
         .width('100%')
         .padding({ left: S_2, right: S_2 })
         .margin({ bottom: 14 });
 
-        // ===== 退出登录按钮（对照 CSS .me-logout-btn） =====
-        Button('退出登录')
+        // ===== 退出登录按钮（对照 CSS .me-logout-btn�?=====
+        Button('退出登�?)
           .fontSize(F_SM)
           .fontWeight(600)
           .fontColor('#FFFF6B6B')
@@ -185,11 +185,11 @@ export struct MePage {
     .margin({ left: S_1, right: S_1 });
   }
 
-  // ========== 菜单项（对照 CSS .mm） ==========
+  // ========== 菜单项（对照 CSS .mm�?==========
   @Builder
   MenuItem(icon: string, label: string, msg: string) {
     Row() {
-      // 左图标
+      // 左图�?
       Text(icon)
         .fontSize(F_MD + 1)
         .width(22)
@@ -203,8 +203,8 @@ export struct MePage {
         .layoutWeight(1)
         .margin({ left: 12 });
 
-      // 右箭头 ›
-      Text('›')
+      // 右箭�?�?
+      Text('�?)
         .fontSize(F_MD + 1)
         .fontColor(TEXT_4);
     }
@@ -216,9 +216,7 @@ export struct MePage {
       bottom: 13,
     })
     .border({ width: { bottom: 1 }, color: BORDER })
-    .onClick(() => {
-      this.toast(msg);
-    });
+    .onClick(() => { if (msg.length > 0) { this.toast(msg); } else if (label === '����') { router.pushUrl({ url: 'pages/AiSettingsPage' }); } });
   }
 
   // ========== Toast 提示 ==========

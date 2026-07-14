@@ -1,27 +1,241 @@
-// MathMind - KnowledgeModel (ç¬”è®°ç»“æ„åŒ– + çœŸå€¼æ£€éªŒ + å…¥åº“)
-// ä»»åŠ¡ç¼–å·: C
-// è´£ä»»: L
-// çŠ¶æ€: TODO - ç©ºå£³,ç­‰å¾…å®ç°
-// ä¾èµ–: A1 (NoteDao) + B1 (OcrTool) + B2 (TypeClassifier) å…¨éƒ¨å®Œæˆ
+// MathMind - KnowledgeModel (±Ê¼Ç½á¹¹»¯ + ÕæÖµ¼ìÑé)
+// ÈÎÎñ±àºÅ: C
+// ÔğÈÎ: Z
+// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´
 //
-// æ¥å£çº¦å®š (D1_CAPTURE_CHAIN_PLAN.md ç¬¬äº”/å…­èŠ‚):
-//   structure(ocrText: string, classification: ClassificationResult):
-//     Promise<KnowledgeUnit>
+// ½Ó¿Ú:
+//   structure(ocrText, type, subject, chapter): Promise<KnowledgeUnit>
 //
-// å®ç°è·¯å¾„:
-//   1) æ ¹æ® classification.type é€‰æ¨¡æ¿ (3 é€‰ 1):
-//      - æ¦‚å¿µ â†’ concept_v1: ## å®šä¹‰ / ## æ€§è´¨ / ## ç›¸å…³æ¦‚å¿µ
-//      - è®¡ç®— â†’ computation_v1: ## é¢˜ç›® / ## è§£æ³• / ## ç­”æ¡ˆ
-//      - è¯æ˜ â†’ proof_v1: ## å‘½é¢˜ / ## è¯æ˜ / ## è¦ç‚¹
-//   2) title å–é¦–å¥æ‘˜è¦ (â‰¤30 å­—),å‰ç¼€ ã€æ¦‚å¿µã€‘/ã€è®¡ç®—ã€‘/ã€è¯æ˜ã€‘
-//   3) æ„é€  KnowledgeUnit (å« id/tags/truthFlag/timestamps/...)
-//   4) truthCheck(ocrText) è¿”å› TruthCheckResult
-//      - æ‹¬å·é…å¯¹ / é™¤é›¶ / æ’ç­‰å¼ / çŸ›ç›¾ç­‰å¼ / LaTeX è¯­æ³•
-//   5) NoteDao.insert(unit) â†’ rowId â†’ å›å¡« unit.id
-//   6) è¿”å›å®Œæ•´ KnowledgeUnit (UI ç›´æ¥æ¸²æŸ“)
-//
-// éªŒè¯æ–¹å¼: ä¼  OCR æ–‡æœ¬ + åˆ†ç±»ç»“æœ â†’ KnowledgeUnit â†’ NoteDao.insert â†’ æŸ¥å›
+// ÊµÏÖ:
+//   1) ¸ù¾İ type Ñ¡Ä£°å (3Ñ¡1)
+//   2) µ÷ LlmClient ½á¹¹»¯ ¡ú Markdown
+//   3) ÕæÖµ¼ìÑé(À¨ºÅÅä¶Ô/³ıÁã/ºãµÈÊ½/Ã¬¶ÜµÈÊ½)
+//   4) ·µ»Ø KnowledgeUnit (Èë¿âÓÉµ÷ÓÃ·½ AiService ¸ºÔğ)
+
+import {
+  KnowledgeUnit,
+  DifficultyLevel,
+  ReviewStatus,
+  TruthCheckResult,
+  TruthFlag,
+  LlmClient,
+  ChatMessage,
+} from 'common';
+
+// Éú³É UUID
+function uuid(): string {
+  return 'KB-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
+}
+
+// ===== 3 Ä£°å =====
+
+const TEMPLATE_CONCEPT: string = `ÄãÊÇÒ»¸öÊıÑ§ÖªÊ¶½á¹¹»¯ÖúÊÖ¡£Çë½«ÒÔÏÂÊıÑ§¸ÅÄîÎÄ±¾ÕûÀíÎª Markdown ¸ñÊ½£¬Ê¹ÓÃÒÔÏÂ½á¹¹:
+
+## ¶¨Òå
+(ºËĞÄ¸ÅÄîµÄ¾«È·¶¨Òå)
+
+## ĞÔÖÊ
+(¸Ã¸ÅÄîµÄÖØÒªĞÔÖÊ£¬Ã¿ÌõÒ»ĞĞ)
+
+## Ïà¹Ø¸ÅÄî
+(ÓëÖ®Ïà¹ØµÄÆäËûÊıÑ§¸ÅÄî£¬Ã¿ÌõÒ»ĞĞ)
+
+ÊäÈëÎÄ±¾:
+`;
+
+const TEMPLATE_COMPUTATION: string = `ÄãÊÇÒ»¸öÊıÑ§ÖªÊ¶½á¹¹»¯ÖúÊÖ¡£Çë½«ÒÔÏÂÊıÑ§¼ÆËãÌâÕûÀíÎª Markdown ¸ñÊ½£¬Ê¹ÓÃÒÔÏÂ½á¹¹:
+
+## ÌâÄ¿
+(Ô­Ê¼ÌâÄ¿ÃèÊö)
+
+## ½â·¨
+(ÏêÏ¸½âÌâ²½Öè£¬·Ö²½ÁĞ³ö)
+
+## ´ğ°¸
+(×îÖÕ½á¹û)
+
+ÊäÈëÎÄ±¾:
+`;
+
+const TEMPLATE_PROOF: string = `ÄãÊÇÒ»¸öÊıÑ§ÖªÊ¶½á¹¹»¯ÖúÊÖ¡£Çë½«ÒÔÏÂÊıÑ§Ö¤Ã÷ÌâÕûÀíÎª Markdown ¸ñÊ½£¬Ê¹ÓÃÒÔÏÂ½á¹¹:
+
+## ÃüÌâ
+(´ıÖ¤Ã÷µÄÃüÌâ)
+
+## Ö¤Ã÷
+(ÏêÏ¸Ö¤Ã÷¹ı³Ì£¬·Ö²½ÁĞ³ö)
+
+## Òªµã
+(Ö¤Ã÷ÖĞµÄ¹Ø¼ü·½·¨ºÍ¼¼ÇÉ£¬Ã¿ÌõÒ»ĞĞ)
+
+ÊäÈëÎÄ±¾:
+`;
 
 export class KnowledgeModel {
-  // TODO(C): å®ç° structure() â€” 3 æ¨¡æ¿ + çœŸå€¼æ£€éªŒ + NoteDao.insert
+  // Ö÷Èë¿Ú: ½á¹¹»¯ + ÕæÖµ¼ìÑé ¡ú KnowledgeUnit (²»Èë¿â)
+  async structure(
+    ocrText: string,
+    type: '¸ÅÄî' | '¼ÆËã' | 'Ö¤Ã÷',
+    subject: '¸ßµÈ´úÊı' | 'ÊıÑ§·ÖÎö' | '½âÎö¼¸ºÎ',
+    chapter: string,
+  ): Promise<KnowledgeUnit> {
+    // Step 1: Ñ¡Ä£°å
+    const template: string = this.pickTemplate(type);
+
+    // Step 2: µ÷ LLM ½á¹¹»¯
+    const messages: ChatMessage[] = [
+      { role: 'system', content: 'ÄãÊÇÒ»¸öÊıÑ§ÖªÊ¶ÕûÀí×¨¼Ò£¬Çë°´Ö¸¶¨¸ñÊ½ÕûÀíÄÚÈİ£¬Ö»·µ»ØÕûÀíºóµÄ Markdown¡£' },
+      { role: 'user', content: template + '\n\n' + ocrText },
+    ];
+
+    const client = new LlmClient();
+    let content: string;
+    try {
+      content = await client.call(messages);
+    } catch (e) {
+      // LLM ²»¿ÉÓÃÊ±Ê¹ÓÃÔ­Ê¼ÎÄ±¾ + Ä£°åÕ¼Î»
+      content = this.fallbackContent(type, ocrText);
+    }
+
+    // Step 3: ÕæÖµ¼ìÑé
+    const truth: TruthCheckResult = this.truthCheck(ocrText);
+
+    // Step 4: Éú³É title (¡Ü30×Ö, ´øÇ°×º)
+    const prefix: string = type === '¸ÅÄî' ? '¡¾¸ÅÄî¡¿' : type === '¼ÆËã' ? '¡¾¼ÆËã¡¿' : '¡¾Ö¤Ã÷¡¿';
+    const rawTitle: string = ocrText.replace(/\s+/g, ' ').trim().substring(0, 30);
+    const title: string = prefix + rawTitle;
+
+    // Step 5: Éú³ÉÕªÒª
+    const summary: string = content.replace(/[#*]/g, '').trim().substring(0, 100);
+
+    // Step 6: ¹¹Ôì tags
+    const tags: string[] = [type, subject];
+    if (chapter.length > 0) {
+      tags.push(chapter);
+    }
+    if (!truth.passed) {
+      tags.push('´ı¸´ºË');
+    }
+
+    // Step 7: ¹¹Ôì KnowledgeUnit
+    const now: number = Date.now();
+    const unit: KnowledgeUnit = {
+      id: uuid(),
+      title: title,
+      content: content,
+      summary: summary,
+      tags: tags,
+      difficulty: DifficultyLevel.MEDIUM,
+      source: 'camera_capture',
+      createdAt: now,
+      updatedAt: now,
+      reviewStatus: ReviewStatus.NEW,
+      nextReviewAt: now + 24 * 60 * 60 * 1000,
+      intervalDays: 1,
+      easeFactor: 2.5,
+      repetitions: 0,
+      prerequisites: [],
+      related: [],
+      embedding: [],
+      userId: '',
+      version: 1,
+    };
+
+    return unit;
+  }
+
+  // ===== Ä£°åÑ¡Ôñ =====
+  private pickTemplate(type: string): string {
+    if (type === '¸ÅÄî') {
+      return TEMPLATE_CONCEPT;
+    }
+    if (type === 'Ö¤Ã÷') {
+      return TEMPLATE_PROOF;
+    }
+    return TEMPLATE_COMPUTATION;
+  }
+
+  // ===== LLM ½µ¼¶ =====
+  private fallbackContent(type: string, ocrText: string): string {
+    const sections: string[] = [];
+    if (type === '¸ÅÄî') {
+      sections.push('## ¶¨Òå', '', ocrText, '', '## ĞÔÖÊ', '', '## Ïà¹Ø¸ÅÄî');
+    } else if (type === '¼ÆËã') {
+      sections.push('## ÌâÄ¿', '', ocrText, '', '## ½â·¨', '', '## ´ğ°¸');
+    } else {
+      sections.push('## ÃüÌâ', '', ocrText, '', '## Ö¤Ã÷', '', '## Òªµã');
+    }
+    return sections.join('\n');
+  }
+
+  // ===== ÕæÖµ¼ìÑé =====
+  truthCheck(text: string): TruthCheckResult {
+    const flags: TruthFlag[] = [];
+
+    if (!this.bracketsBalanced(text)) {
+      flags.push('À¨ºÅ²»Åä¶Ô');
+    }
+    if (this.hasZeroDivision(text)) {
+      flags.push('³ıÁã');
+    }
+    if (this.hasIdentity(text)) {
+      flags.push('ºãµÈÊ½');
+    }
+    if (this.hasContradiction(text)) {
+      flags.push('Ã¬¶ÜµÈÊ½');
+    }
+    if (text.trim().length < 5) {
+      flags.push('ÎŞÃ÷È·ÌâÄ¿');
+    }
+
+    const passed: boolean = flags.length === 0;
+    let message: string = '';
+    if (!passed) {
+      message = 'ÕæÖµ¼ìÑé·¢ÏÖÎÊÌâ: ' + flags.join(', ');
+    }
+    return { passed, flags, message };
+  }
+
+  private bracketsBalanced(text: string): boolean {
+    let count: number = 0;
+    for (let i = 0; i < text.length; i++) {
+      const ch: string = text.charAt(i);
+      if (ch === '(' || ch === '£¨' || ch === '{' || ch === '[') {
+        count++;
+      } else if (ch === ')' || ch === '£©' || ch === '}' || ch === ']') {
+        count--;
+        if (count < 0) {
+          return false;
+        }
+      }
+    }
+    return count === 0;
+  }
+
+  private hasZeroDivision(text: string): boolean {
+    const patterns: string[] = ['/0', '¡Â0', '¡Â 0', '/ 0', '·ÖÄ¸ÎªÁã', '·ÖÄ¸Îª0', '³ıÒÔ0', '³ıÒÔ 0'];
+    for (let i = 0; i < patterns.length; i++) {
+      if (text.indexOf(patterns[i]) >= 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private hasIdentity(text: string): boolean {
+    const re: RegExp = /(\d+|[a-zA-Z])\s*=\s*\1/g;
+    const match: RegExpMatchArray | null = text.match(re);
+    return match !== null && match.length > 0;
+  }
+
+  private hasContradiction(text: string): boolean {
+    const re: RegExp = /(\d+)\s*=\s*(\d+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      if (m.length >= 3 && m[1] !== m[2]) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

@@ -1,24 +1,103 @@
-// MathMind - AiService (æ‹ç…§/è°ƒç”¨ Dispatcher)
-// ä»»åŠ¡ç¼–å·: E1
-// è´£ä»»: ç”¨æˆ· (æˆ‘)
-// çŠ¶æ€: TODO - ç©ºå£³,ç­‰å¾…å®ç°
-// ä¾èµ–: A2 (ApiClient) + D (Dispatcher) å®Œæˆ
+// MathMind - AiService (ÅÄÕÕ/µ÷ÓÃ Dispatcher ½ºË®²ã + Èë¿â)
+// ÈÎÎñ±àºÅ: E1
+// ÔğÈÎ: Z
+// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´
 //
-// æ¥å£çº¦å®š (D1_CAPTURE_CHAIN_PLAN.md):
-//   capture(imageUri: string): Promise<KnowledgeUnit>
-//
-// å®ç°è·¯å¾„:
-//   1) imageUri è¯»æ–‡ä»¶ â†’ è½¬ base64 å­—ç¬¦ä¸²
-//      (ç”¨ @ohos.file.fs / @ohos.media.image)
-//   2) ApiClient.request('POST', '/agents/dispatch', {
-//        body: { source: 'app', payload: base64, imageUri }
-//      })
-//   3) è§£æå“åº”: { success, route: 'D1', data: KnowledgeUnit, durationMs }
-//   4) æ—¥å¿—æ‰“ note.id,è¿”å› KnowledgeUnit
-//
-// éªŒè¯æ–¹å¼: æ—¥å¿—æ‰“è¿”å›çš„ note.id
-//   (E1 å¯å…ˆç”¨ç¡¬ç¼–ç  base64 è‡ªæµ‹,ä¸ç­‰ E2 ç›¸æœº)
+// Á÷³Ì:
+//   imageUri ¡ú Dispatcher.dispatch()
+//     ¡ú TypeClassifier.classify() ¡ú LlmClient ·ÖÀà
+//     ¡ú KnowledgeModel.structure() ¡ú LlmClient ½á¹¹»¯ + ÕæÖµ¼ìÑé
+//   ¡û KnowledgeUnit ¡ú NoteDao.insert() ¡ú RDB Ğ´Èë
+
+import {
+  KnowledgeUnit,
+  DispatchRequest,
+  DispatchResult,
+  Logger,
+} from 'common';
+import { Dispatcher } from 'agents';
+import { NoteDao } from '../database/NoteDao';
+import { DatabaseHelper } from 'common';
+
+const log: Logger = new Logger('AiService');
 
 export class AiService {
-  // TODO(E1): å®ç° capture() â€” imageUri â†’ base64 â†’ POST dispatch
+  // ÅÄÕÕÈë¿Ú: ´«ÈëÍ¼Æ¬ URI ¡ú ·µ»ØÍêÕû KnowledgeUnit (ÒÑÈë¿â)
+  async capture(imageUri: string, userText?: string): Promise<KnowledgeUnit> {
+    log.info('capture start, imageUri=' + imageUri);
+
+    const req: DispatchRequest = {
+      source: 'app',
+      payload: {
+        kind: 'image',
+        imageUri: imageUri,
+        userText: userText,
+      },
+    };
+
+    const dispatcher = new Dispatcher();
+    const result: DispatchResult = await dispatcher.dispatch(req);
+
+    if (!result.success) {
+      const errMsg: string = result.errorMessage ?? 'unknown error';
+      log.error('capture failed: ' + errMsg);
+      throw new Error('ÅÄÕÕ´¦ÀíÊ§°Ü: ' + errMsg);
+    }
+
+    const unit: KnowledgeUnit = result.data as KnowledgeUnit;
+    if (unit.id === undefined || unit.id === null || unit.id.length === 0) {
+      throw new Error('ÅÄÕÕ´¦ÀíÊ§°Ü: KnowledgeUnit.id Îª¿Õ');
+    }
+
+    // Èë¿â
+    await this.insertNote(unit);
+
+    log.info('capture done, note.id=' + unit.id
+      + ', type=' + (unit.tags.length > 0 ? unit.tags[0] : '?')
+      + ', durationMs=' + result.durationMs.toString());
+
+    return unit;
+  }
+
+  // ÎÄ±¾Èë¿Ú: Ö±½Ó´«ÎÄ±¾ ¡ú Dispatcher
+  async captureText(text: string): Promise<KnowledgeUnit> {
+    log.info('captureText start, len=' + text.length.toString());
+
+    const req: DispatchRequest = {
+      source: 'app',
+      payload: {
+        kind: 'text',
+        text: text,
+      },
+    };
+
+    const dispatcher = new Dispatcher();
+    const result: DispatchResult = await dispatcher.dispatch(req);
+
+    if (!result.success) {
+      throw new Error('ÎÄ±¾´¦ÀíÊ§°Ü: ' + (result.errorMessage ?? 'unknown error'));
+    }
+
+    const unit: KnowledgeUnit = result.data as KnowledgeUnit;
+
+    // Èë¿â
+    await this.insertNote(unit);
+
+    log.info('captureText done, note.id=' + unit.id);
+    return unit;
+  }
+
+  // ÄÚ²¿: Èë¿â
+  private async insertNote(unit: KnowledgeUnit): Promise<void> {
+    try {
+      const rdb = DatabaseHelper.getStore();
+      if (rdb !== null) {
+        const dao = new NoteDao(rdb);
+        const rowId: number = await dao.insert(unit);
+        log.info('NoteDao.insert ok, rowId=' + rowId.toString());
+      }
+    } catch (e) {
+      log.error('NoteDao.insert failed: ' + JSON.stringify(e));
+    }
+  }
 }

@@ -1,5 +1,5 @@
 // common HSP - public API 入口
-// W1 块 3: 暴露主 Agent 业务所需的最小集(Dispatcher 用)
+// W1 �?3: 暴露�?Agent 业务所需的最小集(Dispatcher �?
 
 // ========== 设计 Token (颜色 / 尺寸 / 字号) ==========
 export {
@@ -21,7 +21,7 @@ export {
   typeChar, typeColor, subjectColor,
 } from './data/MockNotes';
 
-// ========== 主 Agent 共享类型 (Dispatcher 用) ==========
+// ========== �?Agent 共享类型 (Dispatcher �? ==========
 export {
   KnowledgeUnit,
   ReviewRecord,
@@ -38,7 +38,7 @@ export {
   ApiError,
 } from './models/CommonTypes';
 
-// ========== D1 拍照链类型 (主 Agent 业务) ==========
+// ========== D1 拍照链类�?(�?Agent 业务) ==========
 export {
   ClassificationInput,
   ClassificationResult,
@@ -52,7 +52,7 @@ export {
 } from './models/CaptureChain';
 export type { ApiCode, DispatchPayload } from './models/CaptureChain';
 
-// ========== 统一日志 (Dispatcher 用) ==========
+// ========== 统一日志 (Dispatcher �? ==========
 export {
   LogLevel,
   Logger,
@@ -61,11 +61,14 @@ export {
 } from './utils/logger';
 
 // ========== LLM 共享基础设施 (Z 2026-07-14) ==========
-//   LlmConfig:  单例,preferences 持久化 API key,UI 输入/读取入口
-//   LlmClient:  OpenAI 兼容 HTTP 客户端,所有 agent 统一调用
-//   LlmError:   统一错误类型,带 kind 分类(NO_API_KEY / NETWORK_ERROR / API_ERROR / ...)
+//   LlmConfig:  单例,preferences 持久�?API key,UI 输入/读取入口
+//   LlmClient:  OpenAI 兼容 HTTP 客户�?所�?agent 统一调用
+//   LlmError:   统一错误类型,�?kind 分类(NO_API_KEY / NETWORK_ERROR / API_ERROR / ...)
 //   LlmTypes:   ChatMessage / LlmCallOptions / LlmErrorKind
 export { LlmConfig } from './llm/LlmConfig';
 export { LlmClient } from './llm/LlmClient';
 export { LlmError } from './llm/LlmTypes';
 export type { ChatMessage, LlmCallOptions, LlmErrorKind } from './llm/LlmTypes';
+// ========== ���ݿ� (����������) ==========
+export { DatabaseHelper } from './DatabaseHelper';
+
