@@ -1,18 +1,19 @@
-// MathMind - AiService (ÅÄÕÕ/µ÷ÓÃ Dispatcher ½ºË®²ã + Èë¿â)
-// ÈÎÎñ±àºÅ: E1
-// ÔğÈÎ: Z
-// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´
+// MathMind - AiService (æ‹ç…§/è°ƒç”¨ Dispatcher èƒ¶æ°´å±‚ + å…¥åº“)
+// ä»»åŠ¡ç¼–å·: E1
+// è´£ä»»: Z
+// çŠ¶æ€: å®ç°å®Œæˆ(2026-07-14) â€” ç²¾ç®€æ‹ç…§é“¾
 //
-// Á÷³Ì:
-//   imageUri ¡ú Dispatcher.dispatch()
-//     ¡ú TypeClassifier.classify() ¡ú LlmClient ·ÖÀà
-//     ¡ú KnowledgeModel.structure() ¡ú LlmClient ½á¹¹»¯ + ÕæÖµ¼ìÑé
-//   ¡û KnowledgeUnit ¡ú NoteDao.insert() ¡ú RDB Ğ´Èë
+// æµç¨‹:
+//   imageUri â†’ Dispatcher.dispatch()
+//     â†’ TypeClassifier.classify() â†’ LlmClient åˆ†ç±»
+//     â†’ KnowledgeModel.structure() â†’ LlmClient ç»“æ„åŒ– + çœŸå€¼æ£€éªŒ
+//   â† KnowledgeUnit â†’ NoteDao.insert() â†’ RDB å†™å…¥
 
 import {
   KnowledgeUnit,
   DispatchRequest,
   DispatchResult,
+  DispatchPayload,
   Logger,
 } from 'common';
 import { Dispatcher } from 'agents';
@@ -22,72 +23,52 @@ import { DatabaseHelper } from 'common';
 const log: Logger = new Logger('AiService');
 
 export class AiService {
-  // ÅÄÕÕÈë¿Ú: ´«ÈëÍ¼Æ¬ URI ¡ú ·µ»ØÍêÕû KnowledgeUnit (ÒÑÈë¿â)
+  // æ‹ç…§å…¥å£
   async capture(imageUri: string, userText?: string): Promise<KnowledgeUnit> {
     log.info('capture start, imageUri=' + imageUri);
+    return this.dispatchAndInsert({
+      kind: 'image',
+      imageUri: imageUri,
+      userText: userText,
+    });
+  }
 
-    const req: DispatchRequest = {
-      source: 'app',
-      payload: {
-        kind: 'image',
-        imageUri: imageUri,
-        userText: userText,
-      },
-    };
+  // æ–‡æœ¬å…¥å£
+  async captureText(text: string): Promise<KnowledgeUnit> {
+    log.info('captureText start, len=' + text.length.toString());
+    return this.dispatchAndInsert({
+      kind: 'text',
+      text: text,
+    });
+  }
 
+  // é€šç”¨: dispatch â†’ æ ¡éªŒ â†’ å…¥åº“
+  private async dispatchAndInsert(payload: DispatchPayload): Promise<KnowledgeUnit> {
+    const req: DispatchRequest = { source: 'app', payload };
     const dispatcher = new Dispatcher();
     const result: DispatchResult = await dispatcher.dispatch(req);
 
     if (!result.success) {
       const errMsg: string = result.errorMessage ?? 'unknown error';
-      log.error('capture failed: ' + errMsg);
-      throw new Error('ÅÄÕÕ´¦ÀíÊ§°Ü: ' + errMsg);
+      log.error('dispatch failed: ' + errMsg);
+      throw new Error('å¤„ç†å¤±è´¥: ' + errMsg);
     }
 
     const unit: KnowledgeUnit = result.data as KnowledgeUnit;
     if (unit.id === undefined || unit.id === null || unit.id.length === 0) {
-      throw new Error('ÅÄÕÕ´¦ÀíÊ§°Ü: KnowledgeUnit.id Îª¿Õ');
+      throw new Error('å¤„ç†å¤±è´¥: KnowledgeUnit.id ä¸ºç©º');
     }
 
-    // Èë¿â
     await this.insertNote(unit);
 
-    log.info('capture done, note.id=' + unit.id
+    log.info('done, note.id=' + unit.id
       + ', type=' + (unit.tags.length > 0 ? unit.tags[0] : '?')
       + ', durationMs=' + result.durationMs.toString());
 
     return unit;
   }
 
-  // ÎÄ±¾Èë¿Ú: Ö±½Ó´«ÎÄ±¾ ¡ú Dispatcher
-  async captureText(text: string): Promise<KnowledgeUnit> {
-    log.info('captureText start, len=' + text.length.toString());
-
-    const req: DispatchRequest = {
-      source: 'app',
-      payload: {
-        kind: 'text',
-        text: text,
-      },
-    };
-
-    const dispatcher = new Dispatcher();
-    const result: DispatchResult = await dispatcher.dispatch(req);
-
-    if (!result.success) {
-      throw new Error('ÎÄ±¾´¦ÀíÊ§°Ü: ' + (result.errorMessage ?? 'unknown error'));
-    }
-
-    const unit: KnowledgeUnit = result.data as KnowledgeUnit;
-
-    // Èë¿â
-    await this.insertNote(unit);
-
-    log.info('captureText done, note.id=' + unit.id);
-    return unit;
-  }
-
-  // ÄÚ²¿: Èë¿â
+  // å†…éƒ¨: å…¥åº“
   private async insertNote(unit: KnowledgeUnit): Promise<void> {
     try {
       const rdb = DatabaseHelper.getStore();
