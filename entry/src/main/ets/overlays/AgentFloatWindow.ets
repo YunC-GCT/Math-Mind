@@ -112,20 +112,7 @@ export struct AgentFloatWindow {
     }
   }
 
-  private ingestImage = (uri: string): void => {
-    this.messages = [
-      ...this.messages,
-      {
-        id: nowId(),
-        role: 'user',
-        content: `📷 已发送图片`,
-        ts: Date.now(),
-      },
-    ];
-    this.realReply('📷 已收到图片，正在分析题目...');
-  };
-
-  // 发送消�?(W1.2: 支持文字 + 图片一起发)
+  // 发送消息 (W1.2: 支持文字 + 图片一起发)
   private send = (): void => {
     const text: string = this.inputText.trim();
     const hasImage: boolean = this.imagePreview.length > 0;

@@ -192,7 +192,7 @@ struct AiSettingsPage {
       promptAction.showToast({ message: '连接成功', duration: 1500 });
       this.statusText = '已配置 · 连接正常';
     } catch (e) {
-      promptAction.showToast({ message: '连接失败: ' + JSON.stringify(e), duration: 2500 });
+      promptAction.showToast({ message: '连接失败: ' + ((e as Error).message ?? String(e)), duration: 2500 });
       this.statusText = '已配置 · 连接失败';
     } finally {
       this.testing = false;
