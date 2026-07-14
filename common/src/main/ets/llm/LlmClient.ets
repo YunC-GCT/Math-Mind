@@ -76,7 +76,7 @@ export class LlmClient {
       });
     } catch (e) {
       httpRequest.destroy();
-      throw new LlmError(`LLM network error: ${JSON.stringify(e)}`, 'NETWORK_ERROR');
+      throw new LlmError(`LLM network error: ${(e as Error).message ?? String(e)}`, 'NETWORK_ERROR');
     }
     httpRequest.destroy();
 
@@ -92,7 +92,7 @@ export class LlmClient {
     try {
       parsed = JSON.parse(raw) as LlmResponse;
     } catch (e) {
-      throw new LlmError(`LLM response parse error: ${JSON.stringify(e)}`, 'PARSE_ERROR');
+      throw new LlmError(`LLM response parse error: ${(e as Error).message ?? String(e)}`, 'PARSE_ERROR');
     }
 
     // 6. 提取 content

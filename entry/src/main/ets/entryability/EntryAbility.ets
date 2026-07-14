@@ -12,8 +12,10 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
-    // ��ʼ�� LLM ����(�־û� API key/endpoint/model)
-    LlmConfig.getInstance().init(this.context);
+    // 初始化 LLM 配置(持久化 API key/endpoint/model)
+    LlmConfig.getInstance().init(this.context).catch((e: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'LlmConfig init failed: %{public}s', e.message);
+    });
     // 初始化数据库
     DatabaseHelper.init(this.context).catch((e: Error) => {
       hilog.error(DOMAIN, 'testTag', 'DB init failed: %{public}s', e.message);

@@ -109,8 +109,6 @@ export struct AgentFloatWindow {
     if (this.pendingImageUri && this.pendingImageUri.length > 0) {
       // 存为待发送图片预�? 不调 ingestImage
       this.imagePreview = this.pendingImageUri;
-      // 清空 pendingImageUri 防重复触�?
-      setTimeout(() => { this.pendingImageUri = ''; }, 100);
     }
   }
 
