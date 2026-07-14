@@ -461,6 +461,7 @@ export struct AgentFloatWindow {
           Row() {
             // 输入框
             TextInput({ text: this.inputText, placeholder: '输入问题...' })
+              .layoutWeight(1)
               .height(32)
               .fontSize(F_SM)
               .fontColor(TEXT)
