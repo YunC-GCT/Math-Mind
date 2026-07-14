@@ -10,7 +10,7 @@ import {
   F_XS, F_SM, F_BASE, F_MD, F_LG,
 } from 'common';
 import { LlmConfig, LlmClient } from 'common';
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, KeyboardAvoidMode } from '@kit.ArkUI';
 import { router } from '@kit.ArkUI';
 
 // 预设端点
@@ -62,7 +62,11 @@ struct AiSettingsPage {
   @State timeoutText: string = '5000';
 
   aboutToAppear(): void {
+    try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET); } catch (e) {}
     this.loadConfig();
+  }
+  aboutToDisappear(): void {
+    try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE); } catch (e) {}
   }
 
   async loadConfig(): Promise<void> {
