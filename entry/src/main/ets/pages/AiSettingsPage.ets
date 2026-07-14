@@ -16,17 +16,21 @@ import { router } from '@kit.ArkUI';
 // 预设端点
 const ENDPOINT_PRESETS: string[] = [
   'https://api.siliconflow.cn/v1/chat/completions',
-  'https://api.deepseek.com/v1/chat/completions',
+  'https://api.deepseek.com/chat/completions',
 ];
-const ENDPOINT_LABELS: string[] = ['硅基流动 (SiliconFlow)', 'DeepSeek 官方'];
+const ENDPOINT_LABELS: string[] = ['硅基流动 (SiliconFlow)', 'DeepSeek 官方 (api.deepseek.com)'];
 
 // 预设模型
 interface ModelPreset { label: string; value: string; }
-const MODEL_PRESETS: ModelPreset[] = [
+// SiliconFlow 格式 — 模型名带 `deepseek-ai/` 前缀
+const SF_MODELS: ModelPreset[] = [
   { label: 'DeepSeek-V3', value: 'deepseek-ai/DeepSeek-V3' },
   { label: 'DeepSeek-R1', value: 'deepseek-ai/DeepSeek-R1' },
-  { label: 'DeepSeek-V2.5', value: 'deepseek-ai/DeepSeek-V2.5' },
-  { label: 'Pro/DeepSeek-V3', value: 'Pro/deepseek-ai/DeepSeek-V3' },
+];
+// DeepSeek 官方格式 — 直接模型名
+const DS_MODELS: ModelPreset[] = [
+  { label: 'DeepSeek-V4-Flash', value: 'deepseek-v4-flash' },
+  { label: 'DeepSeek-V4-Pro', value: 'deepseek-v4-pro' },
 ];
 
 @Entry
@@ -88,7 +92,7 @@ struct AiSettingsPage {
 
     // 匹配模型预设
     let mMatch = -1;
-    for (let i = 0; i < MODEL_PRESETS.length; i++) {
+    for (let i = 0; i < this.getModelPresets().length; i++) {
       if (m === MODEL_PRESETS[i].value) { mMatch = i; break; }
     }
     if (mMatch >= 0) {
@@ -112,6 +116,7 @@ struct AiSettingsPage {
   private getCurrentEndpoint(): string {
     return this.useCustomEndpoint ? this.endpointCustom : ENDPOINT_PRESETS[this.endpointIdx];
   }
+  private getModelPresets(): ModelPreset[] { return this.useCustomEndpoint || this.endpointIdx !== 1 ? SF_MODELS : DS_MODELS; }
   private getCurrentModel(): string {
     return this.useCustomModel ? this.modelCustom : MODEL_PRESETS[this.modelIdx].value;
   }
@@ -261,7 +266,7 @@ struct AiSettingsPage {
           // ===== 模型选择 =====
           this.SectionHeader('模型', '选择 DeepSeek 模型或自定义');
           Column() {
-            ForEach(MODEL_PRESETS, (mp: ModelPreset, i: number) => {
+            ForEach(this.getModelPresets(), (mp: ModelPreset, i: number) => {
               Row() {
                 Radio({ value: 'md' + i, group: 'model' })
                   .checked(!this.useCustomModel && this.modelIdx === i)
