@@ -32,6 +32,7 @@ import {
   F_2XL,
   F_3XL,
 } from 'common';
+import { promptAction } from '@kit.ArkUI';
 import {
   NoteItem,
   NOTES,
@@ -302,7 +303,7 @@ export struct HomePage {
       .height('100%')
       .backgroundColor(BG_DARK);
 
-      // ===== FAB 球形渐变(第 3 批: 点击触发 CameraOverlay)=====
+      // ===== FAB (W1 调整: 改为"用户自定义笔记 - 待开发"提示) =====
       Stack() {
         Text('+')
           .fontSize(22)
@@ -314,7 +315,10 @@ export struct HomePage {
       .linearGradient({ angle: 180, colors: [[MINT, 0], [MINT_DARK, 1]] })
       .shadow({ radius: 28, color: '#595BE3B0', offsetX: 0, offsetY: 8 })
       .margin({ right: 20, bottom: 16 })
-      .onClick(() => this.onGoCamera());
+      .onClick(() => {
+        // FAB 暂不接相机 (后续 W2 改为"用户自定义笔记"创建入口)
+        promptAction.showToast({ message: '用户自定义笔记开发中', duration: 1500 });
+      });
 
       // ===== NoteDetailOverlay 浮层 =====
       if (this.selectedNote !== null) {
