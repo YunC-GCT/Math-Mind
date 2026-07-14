@@ -1,6 +1,7 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+﻿import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { LlmConfig, DatabaseHelper } from 'common';
 
 const DOMAIN = 0x0000;
 
@@ -11,6 +12,12 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
+    // ��ʼ�� LLM ����(�־û� API key/endpoint/model)
+    LlmConfig.getInstance().init(this.context);
+    // 初始化数据库
+    DatabaseHelper.init(this.context).catch((e: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'DB init failed: %{public}s', e.message);
+    });
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
@@ -22,18 +29,18 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    // 沉浸式状态栏:app 内容延伸到 status bar 区域,status bar 背景透明
-    // 视觉效果:系统时间/电量/信号/wifi 浮在 app 背景上,跟 app 无缝衔接
+    // ����ʽ״̬��:app �������쵽 status bar ����,status bar ����͸��
+    // �Ӿ�Ч��:ϵͳʱ��/����/�ź�/wifi ���� app ������,�� app �޷��ν�
     windowStage.getMainWindow().then((win: window.Window) => {
-      // 1. 沉浸式全屏(app 内容延伸到 status bar 区域)
+      // 1. ����ʽȫ��(app �������쵽 status bar ����)
       win.setWindowLayoutFullScreen(true);
-      // 2. 状态栏背景透明(让 app 背景透出来,跟 status bar 融为一体)
+      // 2. ״̬������͸��(�� app ����͸����,�� status bar ��Ϊһ��)
       win.setSystemBarProperties({
         statusBarColor: '#00000000',
         navigationBarColor: '#00000000',
-        statusBarContentColor: '#FFFFFFFF'  // 白色文字(适配深色 app 背景)
+        statusBarContentColor: '#FFFFFFFF'  // ��ɫ����(������ɫ app ����)
       });
-      // 3. 获取状态栏高度并存入 AppStorage,供页面做顶部偏移避免重叠
+      // 3. ��ȡ״̬���߶Ȳ����� AppStorage,��ҳ��������ƫ�Ʊ����ص�
       try {
         const avoidArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
         AppStorage.setOrCreate('statusBarHeight', px2vp(avoidArea.topRect.height));

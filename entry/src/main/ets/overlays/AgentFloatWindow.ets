@@ -1,16 +1,16 @@
-/**
- * MathMind 智能体浮窗 — 紧凑重制版 (2026-07-14)
+﻿/**
+ * MathMind 智能体浮�?�?紧凑重制�?(2026-07-14)
  *
  * 设计参照: D:\HMgent\MathMind\MathMind-MVP\styles.css .ai-overlay
- *   - 紧凑化: 高度 44% 视口 (~360vp @ 816vp, 比 iOS Web MVP 420 还小)
- *   - 不太透明: 95% alpha (微半透, 内容清晰可读)
- *   - 移除大欢迎语: 改用一行简洁提示
- *   - 全 padding 减半: 顶栏 8+8 / 4 快捷 6+6 / 消息流 8+8 / 输入区 6+10
- *   - 字号普遍小一档 (F_BASE → F_SM)
- *   - 4 文本快捷 + 紫底紫字 AI 气泡 + mint 浅底 mint 字 用户气泡 (沿用)
+ *   - 紧凑�? 高度 44% 视口 (~360vp @ 816vp, �?iOS Web MVP 420 还小)
+ *   - 不太透明: 95% alpha (微半�? 内容清晰可读)
+ *   - 移除大欢迎语: 改用一行简洁提�?
+ *   - �?padding 减半: 顶栏 8+8 / 4 快捷 6+6 / 消息�?8+8 / 输入�?6+10
+ *   - 字号普遍小一�?(F_BASE �?F_SM)
+ *   - 4 文本快捷 + 紫底紫字 AI 气泡 + mint 浅底 mint �?用户气泡 (沿用)
  *
- * 触发: Index.ets AI 按钮 onClick → 弹出浮窗(不跳转页面)
- * 关闭: 浮窗外点遮罩 或 顶栏 [✕]
+ * 触发: Index.ets AI 按钮 onClick �?弹出浮窗(不跳转页�?
+ * 关闭: 浮窗外点遮罩 �?顶栏 [✕]
  * 接图: @Prop @Watch pendingImageUri
  */
 
@@ -22,6 +22,7 @@ import {
   R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL,
 } from 'common';
+import { LlmClient, LlmConfig } from 'common';
 import { promptAction } from '@kit.ArkUI';
 import window from '@ohos.window';
 
@@ -39,22 +40,22 @@ function nowId(): number {
 
 @Component
 export struct AgentFloatWindow {
-  // 父组件控制可见性
+  // 父组件控制可见�?
   @Prop show: boolean = false;
   // 关闭浮窗回调
   onClose: () => void = () => {};
   // 打开拍照回调
   onGoCamera: () => void = () => {};
-  // 可选: 拍照后带图回调 (@Watch 监听变化触发 ingest)
+  // 可�? 拍照后带图回�?(@Watch 监听变化触发 ingest)
   @Prop @Watch('onPendingImageChange') pendingImageUri: string = '';
 
   // 消息列表
   @State messages: ChatMsg[] = [];
   // 输入文本
   @State inputText: string = '';
-  // AI 忙
+  // AI �?
   @State busy: boolean = false;
-  // 待发送图片预览 (W1.2: 拍照后存这里, 不立即发送, 让用户先补充文字)
+  // 待发送图片预�?(W1.2: 拍照后存这里, 不立即发�? 让用户先补充文字)
   @State imagePreview: string = '';
   // 键盘高度 (W1.3: 浮窗 .translate 自己上移避免键盘遮挡, 配合 keyboardHeightChange 监听 + px2vp 转换)
   @State keyboardHeight: number = 0;
@@ -62,7 +63,7 @@ export struct AgentFloatWindow {
   private mainWindow: window.Window | null = null;
 
   aboutToAppear(): void {
-    // 持久化开场白 (W1.1: 用 AppStorage 标记, 整个 App 生命周期只显示一次)
+    // 持久化开场白 (W1.1: �?AppStorage 标记, 整个 App 生命周期只显示一�?
     if (AppStorage.get<boolean>('shownGreeting') !== true) {
       this.messages = [
         {
@@ -74,7 +75,7 @@ export struct AgentFloatWindow {
       ];
       AppStorage.setOrCreate<boolean>('shownGreeting', true);
     }
-    // 注册键盘高度变化监听 (W1.3: getUIContext + px2vp 单位转换, 防御性 try-catch)
+    // 注册键盘高度变化监听 (W1.3: getUIContext + px2vp 单位转换, 防御�?try-catch)
     try {
       const ctx = this.getUIContext().getHostContext();
       if (ctx) {
@@ -84,15 +85,15 @@ export struct AgentFloatWindow {
             try {
               this.keyboardHeight = this.getUIContext().px2vp(data);
             } catch (e) {
-              // 防御性: px2vp 失败, 浮窗不响应键盘
+              // 防御�? px2vp 失败, 浮窗不响应键�?
             }
           });
         }).catch((err: Error) => {
-          // 防御性: getLastWindow 失败, 浮窗不响应键盘
+          // 防御�? getLastWindow 失败, 浮窗不响应键�?
         });
       }
     } catch (e) {
-      // 防御性: 监听注册失败, 浮窗不响应键盘
+      // 防御�? 监听注册失败, 浮窗不响应键�?
     }
   }
 
@@ -103,12 +104,12 @@ export struct AgentFloatWindow {
     }
   }
 
-  // @Watch 回调: pendingImageUri 变化时存到 imagePreview (W1.2: 不立即发送)
+  // @Watch 回调: pendingImageUri 变化时存�?imagePreview (W1.2: 不立即发�?
   onPendingImageChange(): void {
     if (this.pendingImageUri && this.pendingImageUri.length > 0) {
-      // 存为待发送图片预览, 不调 ingestImage
+      // 存为待发送图片预�? 不调 ingestImage
       this.imagePreview = this.pendingImageUri;
-      // 清空 pendingImageUri 防重复触发
+      // 清空 pendingImageUri 防重复触�?
       setTimeout(() => { this.pendingImageUri = ''; }, 100);
     }
   }
@@ -123,10 +124,10 @@ export struct AgentFloatWindow {
         ts: Date.now(),
       },
     ];
-    this.mockReply('已收到图片，正在分析题目...');
+    this.realReply('📷 已收到图片，正在分析题目...');
   };
 
-  // 发送消息 (W1.2: 支持文字 + 图片一起发)
+  // 发送消�?(W1.2: 支持文字 + 图片一起发)
   private send = (): void => {
     const text: string = this.inputText.trim();
     const hasImage: boolean = this.imagePreview.length > 0;
@@ -140,9 +141,9 @@ export struct AgentFloatWindow {
       return;
     }
 
-    // 构造 user message content (文字 + 图片)
+    // 构�?user message content (文字 + 图片)
     const content: string = hasImage
-      ? (hasText ? text : '分享了一张照片')
+      ? `📷 已发送图片${hasText ? '\n' + text : ''}`
       : text;
 
     this.messages = [
@@ -156,10 +157,10 @@ export struct AgentFloatWindow {
     const reply: string = hasImage
       ? `已收到图片${hasText ? ' + 「' + text + '」' : ''}，正在分析...`
       : `已收到：「${text}」`;
-    this.mockReply(reply);
+    this.realReply(content);
   };
 
-  // 快捷 prompt 发送 (W1.2: 支持 SugBtn 文字 + inputText 补充 + imagePreview 一起发)
+  // 快捷 prompt 发�?(W1.2: 支持 SugBtn 文字 + inputText 补充 + imagePreview 一起发)
   private sendQuick = (prompt: string): void => {
     if (this.busy) {
       promptAction.openToast({ message: 'AI 正在回复中...', duration: 1200 });
@@ -174,7 +175,7 @@ export struct AgentFloatWindow {
       content += '\n' + text;
     }
     if (hasImage) {
-      content += '\n分享了一张照片';
+      content += '\n📷 已发送图片';
     }
 
     this.messages = [
@@ -192,27 +193,54 @@ export struct AgentFloatWindow {
       reply += ' + 图片';
     }
     reply += '，正在分析...';
-    this.mockReply(reply);
+    this.realReply(content);
   };
 
-  // Mock AI 回复
-  private mockReply = (content: string): void => {
+  // 真实 AI 回复 (调用 LlmClient → DeepSeek)
+  private realReply = async (userContent: string): Promise<void> => {
     this.busy = true;
-    setTimeout(() => {
-      this.messages = [
-        ...this.messages,
-        { id: nowId(), role: 'ai', content: content, ts: Date.now() },
-      ];
+    try {
+      const configured: boolean = await LlmConfig.getInstance().isConfigured();
+      if (!configured) {
+        this.addAiMsg('⚠️ 请先在「我的 → 设置」中配置 API Key');
+        this.busy = false;
+        return;
+      }
+
+      const client = new LlmClient();
+      const reply: string = await client.call([
+        { role: 'system', content: '你是 MathMind AI 助手，专门帮助用户解决数学问题。请用简洁清晰的中文回答，适当使用 LaTeX 公式。' },
+        { role: 'user', content: userContent },
+      ]);
+
+      this.addAiMsg(reply);
+    } catch (e) {
+      const errMsg: string = (e as Error).message ?? String(e);
+      if (errMsg.indexOf('NO_API_KEY') >= 0) {
+        this.addAiMsg('⚠️ 请先在「我的 → 设置」中配置 API Key');
+      } else if (errMsg.indexOf('NETWORK_ERROR') >= 0) {
+        this.addAiMsg('⚠️ 网络连接失败，请检查网络后重试');
+      } else {
+        this.addAiMsg('⚠️ AI 回复异常: ' + errMsg.substring(0, 100));
+      }
+    } finally {
       this.busy = false;
-    }, 800);
+    }
   };
 
+  // 添加 AI 消息到列表
+  private addAiMsg = (content: string): void => {
+    this.messages = [
+      ...this.messages,
+      { id: nowId(), role: 'ai', content: content, ts: Date.now() },
+    ];
+  };
   // ========== UI Builders ==========
 
   @Builder
   Header() {
     Row() {
-      Text('✦ MathMind AI')
+      Text('🧠 MathMind AI')
         .fontSize(F_SM + 1)
         .fontWeight(700)
         .fontColor(PURPLE);
@@ -239,7 +267,7 @@ export struct AgentFloatWindow {
     .onClick(() => this.onClose());
   }
 
-  // 4 快捷 (一行紧凑)
+  // 4 快捷 (一行紧�?
   @Builder
   SugBtn(label: string, prompt: string) {
     Text(label)
@@ -251,7 +279,7 @@ export struct AgentFloatWindow {
       .onClick(() => this.sendQuick(prompt));
   }
 
-  // 用户气泡 (mint 浅底 + mint 字 + 右对齐)
+  // 用户气泡 (mint 浅底 + mint �?+ 右对�?
   @Builder
   UserBubble(msg: ChatMsg) {
     Row() {
@@ -270,7 +298,7 @@ export struct AgentFloatWindow {
     .margin({ top: 6 });
   }
 
-  // AI 气泡 (紫底 + 紫字 + 左对齐)
+  // AI 气泡 (紫底 + 紫字 + 左对�?
   @Builder
   AiBubble(msg: ChatMsg) {
     Row() {
@@ -289,7 +317,7 @@ export struct AgentFloatWindow {
     .margin({ top: 6 });
   }
 
-  // 打字中
+  // 打字�?
   @Builder
   TypingBubble() {
     Row() {
@@ -311,7 +339,7 @@ export struct AgentFloatWindow {
     .margin({ top: 6 });
   }
 
-  // 简洁空状态 (W1: messages 被清空时 fallback, 现在用大字+emoji 更明显)
+  // 简洁空状�?(W1: messages 被清空时 fallback, 现在用大�?emoji 更明�?
   @Builder
   EmptyHint() {
     Column() {
@@ -343,17 +371,17 @@ export struct AgentFloatWindow {
           .backgroundColor('#80000000')
           .onClick(() => this.onClose());
 
-        // ===== 浮窗主体 — 紧凑设计 =====
+        // ===== 浮窗主体 �?紧凑设计 =====
         Column() {
           // 顶栏 (32vp)
           this.Header();
 
-          // 分隔线
+          // 分隔�?
           Row()
             .width('100%').height(0.5)
             .backgroundColor(BORDER);
 
-          // ===== 4 快捷 (40vp 紧凑一行) =====
+          // ===== 4 快捷 (40vp 紧凑一�? =====
           Row() {
             this.SugBtn('分析题目', '帮我分析这道题');
             this.SugBtn('总结知识', '总结知识点');
@@ -363,12 +391,12 @@ export struct AgentFloatWindow {
           .width('100%')
           .padding({ left: 10, right: 10, top: 6, bottom: 6 });
 
-          // 分隔线
+          // 分隔�?
           Row()
             .width('100%').height(0.5)
             .backgroundColor(BORDER);
 
-          // ===== 消息流 =====
+          // ===== 消息�?=====
           Scroll() {
             Column() {
               if (this.messages.length === 0 && !this.busy) {
@@ -397,45 +425,39 @@ export struct AgentFloatWindow {
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring);
 
-          // 分隔线
+          // 分隔�?
           Row()
             .width('100%').height(0.5)
             .backgroundColor(BORDER);
 
-          // ===== 图片预览 (输入区上方独立一行) =====
-          if (this.imagePreview.length > 0) {
-            Row() {
-              // 缩略图
-              Image(this.imagePreview)
-                .width(48).height(48)
-                .borderRadius(8)
-                .objectFit(ImageFit.Cover)
-                .border({ width: 1, color: BORDER });
-
-              // 提示文字
-              Text('已选图片，可补充文字后发送')
-                .fontSize(F_XS)
-                .fontColor(TEXT_3)
-                .margin({ left: 10 })
-                .layoutWeight(1);
-
-              // 取消 X
-              Text('✕')
-                .fontSize(F_BASE)
-                .fontColor(TEXT_3)
-                .width(28).height(28)
-                .borderRadius(14)
-                .textAlign(TextAlign.Center)
-                .backgroundColor('#1AFFFFFF')
-                .onClick(() => { this.imagePreview = ''; });
-            }
-            .width('100%')
-            .padding({ left: 10, right: 10, top: 6, bottom: 4 });
-          }
-
-          // ===== 底部输入区 (52vp 紧凑) =====
+          // ===== 底部输入�?(52vp 紧凑) =====
           Row() {
-            // 输入框
+            // 图片预览 (W1.2: 拍照后缩略图 + X 取消, 跟文字一起发�?
+            if (this.imagePreview.length > 0) {
+              Stack() {
+                Image(this.imagePreview)
+                  .width(40).height(40)
+                  .borderRadius(6)
+                  .objectFit(ImageFit.Cover);
+
+                // 取消 X (右上�?
+                Text('✕')
+                  .fontSize(10).fontWeight(700)
+                  .fontColor('#FFFFFF')
+                  .width(18).height(18)
+                  .borderRadius(9)
+                  .backgroundColor('#80000000')
+                  .textAlign(TextAlign.Center)
+                  .position({ x: '100%', y: 0 })
+                  .markAnchor({ x: '100%', y: 0 })
+                  .offset({ x: -4, y: -4 })
+                  .onClick(() => { this.imagePreview = ''; });
+              }
+              .width(40).height(40)
+              .margin({ right: 8 });
+            }
+
+            // 输入�?
             TextInput({ text: this.inputText, placeholder: '输入问题...' })
               .layoutWeight(1)
               .height(32)
@@ -469,9 +491,9 @@ export struct AgentFloatWindow {
               this.onGoCamera();
             });
 
-            // 发送按钮 (28×28)
+            // 发送按�?(28×28)
             Stack() {
-              Text('↑')
+              Text('➤')
                 .fontSize(15)
                 .fontWeight(700)
                 .fontColor(this.inputText.trim().length > 0 && !this.busy ? BG_DARK : TEXT_3);
@@ -490,17 +512,17 @@ export struct AgentFloatWindow {
           .alignItems(VerticalAlign.Center);
         }
           .width('100%')
-          .height('40%')                     // 40% 视口高 (~325vp @ 816vp, 更紧凑)
-          // Stack 默认 alignContent TopStart, 子元素顶贴 Stack 顶.
-          // 强制底对齐 Stack 底 (用 position + markAnchor).
-          // margin 在 Stack 子元素不生效, 改用 .offset 强制上移.
+          .height('40%')                     // 40% 视口�?(~325vp @ 816vp, 更紧�?
+          // Stack 默认 alignContent TopStart, 子元素顶�?Stack �?
+          // 强制底对�?Stack �?(�?position + markAnchor).
+          // margin �?Stack 子元素不生效, 改用 .offset 强制上移.
           // offset y = -(74 + keyboardHeight):
           //   74vp = Tab 栏高 (浮窗底贴菜单栏顶)
-          //   keyboardHeight = 软键盘高度 (W1.3: 浮窗自己上移避免键盘遮挡, 整个页面不动)
-          .position({ x: 0, y: '100%' })     // 元素 (0,0) 在 (0, 100%) = Stack 左下角
-          .markAnchor({ x: 0, y: '100%' })  // 元素 (0, 100%) 作为锚点 = 元素底
-          .translate({ y: -(74 + this.keyboardHeight) })  // W1.3: translate 替代 offset，配合 position 动态上移
-          .backgroundColor('#F20A0C10')      // 95% alpha (微半透)
+          //   keyboardHeight = 软键盘高�?(W1.3: 浮窗自己上移避免键盘遮挡, 整个页面不动)
+          .position({ x: 0, y: '100%' })     // 元素 (0,0) �?(0, 100%) = Stack 左下�?
+          .markAnchor({ x: 0, y: '100%' })  // 元素 (0, 100%) 作为锚点 = 元素�?
+          .translate({ y: -(74 + this.keyboardHeight) })  // W1.3: translate 替代 offset，配�?position 动态上�?
+          .backgroundColor('#F20A0C10')      // 95% alpha (微半�?
         .borderRadius(20)
         .border({ width: 1, color: PURPLE_LIGHT })
         .shadow({

@@ -1,24 +1,84 @@
-// MathMind - AiService (拍照/调用 Dispatcher)
+// MathMind - AiService (拍照/调用 Dispatcher 胶水层 + 入库)
 // 任务编号: E1
-// 责任: 用户 (我)
-// 状态: TODO - 空壳,等待实现
-// 依赖: A2 (ApiClient) + D (Dispatcher) 完成
+// 责任: Z
+// 状态: 实现完成(2026-07-14) — 精简拍照链
 //
-// 接口约定 (D1_CAPTURE_CHAIN_PLAN.md):
-//   capture(imageUri: string): Promise<KnowledgeUnit>
-//
-// 实现路径:
-//   1) imageUri 读文件 → 转 base64 字符串
-//      (用 @ohos.file.fs / @ohos.media.image)
-//   2) ApiClient.request('POST', '/agents/dispatch', {
-//        body: { source: 'app', payload: base64, imageUri }
-//      })
-//   3) 解析响应: { success, route: 'D1', data: KnowledgeUnit, durationMs }
-//   4) 日志打 note.id,返回 KnowledgeUnit
-//
-// 验证方式: 日志打返回的 note.id
-//   (E1 可先用硬编码 base64 自测,不等 E2 相机)
+// 流程:
+//   imageUri → Dispatcher.dispatch()
+//     → TypeClassifier.classify() → LlmClient 分类
+//     → KnowledgeModel.structure() → LlmClient 结构化 + 真值检验
+//   ← KnowledgeUnit → NoteDao.insert() → RDB 写入
+
+import {
+  KnowledgeUnit,
+  DispatchRequest,
+  DispatchResult,
+  DispatchPayload,
+  Logger,
+} from 'common';
+import { Dispatcher } from 'agents';
+import { NoteDao } from '../database/NoteDao';
+import { DatabaseHelper } from 'common';
+
+const log: Logger = new Logger('AiService');
 
 export class AiService {
-  // TODO(E1): 实现 capture() — imageUri → base64 → POST dispatch
+  // 拍照入口
+  async capture(imageUri: string, userText?: string): Promise<KnowledgeUnit> {
+    log.info('capture start, imageUri=' + imageUri);
+    return this.dispatchAndInsert({
+      kind: 'image',
+      imageUri: imageUri,
+      userText: userText,
+    });
+  }
+
+  // 文本入口
+  async captureText(text: string): Promise<KnowledgeUnit> {
+    log.info('captureText start, len=' + text.length.toString());
+    return this.dispatchAndInsert({
+      kind: 'text',
+      text: text,
+    });
+  }
+
+  // 通用: dispatch → 校验 → 入库
+  private async dispatchAndInsert(payload: DispatchPayload): Promise<KnowledgeUnit> {
+    const req: DispatchRequest = { source: 'app', payload };
+    const dispatcher = new Dispatcher();
+    const result: DispatchResult = await dispatcher.dispatch(req);
+
+    if (!result.success) {
+      const errMsg: string = result.errorMessage ?? 'unknown error';
+      log.error('dispatch failed: ' + errMsg);
+      throw new Error('处理失败: ' + errMsg);
+    }
+
+    const unit: KnowledgeUnit = result.data as KnowledgeUnit;
+    if (unit.id === undefined || unit.id === null || unit.id.length === 0) {
+      throw new Error('处理失败: KnowledgeUnit.id 为空');
+    }
+
+    await this.insertNote(unit);
+
+    log.info('done, note.id=' + unit.id
+      + ', type=' + (unit.tags.length > 0 ? unit.tags[0] : '?')
+      + ', durationMs=' + result.durationMs.toString());
+
+    return unit;
+  }
+
+  // 内部: 入库
+  private async insertNote(unit: KnowledgeUnit): Promise<void> {
+    try {
+      const rdb = DatabaseHelper.getStore();
+      if (rdb !== null) {
+        const dao = new NoteDao(rdb);
+        const rowId: number = await dao.insert(unit);
+        log.info('NoteDao.insert ok, rowId=' + rowId.toString());
+      }
+    } catch (e) {
+      log.error('NoteDao.insert failed: ' + JSON.stringify(e));
+    }
+  }
 }
