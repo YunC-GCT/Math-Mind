@@ -19,37 +19,39 @@ import { MINT } from 'common';
 
 @Component
 export struct HexLogo {
-  @State rotate: number = 0;
+  // 状态名避开 ImageAttribute.rotate/translate (避免跟 base type 方法签名冲突)
+  @State rotDeg: number = 0;
   @State ty: number = 0;
   private timer: number = -1;
+  // 链式 setTimeout 循环需要闭包引用, 但 let 闭包互相引用在 ArkTS 1.1 strict
+  // 可能触发 TDZ 编译错误. 改用 struct 字段 (字段赋值后调用合法).
+  private startCycle: () => void = (): void => { return; };
 
   aboutToAppear(): void {
-    // 用 let + 立即空函数初始化, 避免 const 递归引用触发 TDZ
-    let startCycle: () => void = (): void => {};
-    startCycle = (): void => {
+    this.startCycle = (): void => {
       // 0% → 30%: rotate 0→5°, ty 0→-1.5
       animateTo({ duration: 1200, curve: Curve.EaseInOut }, () => {
-        this.rotate = 5;
+        this.rotDeg = 5;
         this.ty = -1.5;
       });
       // 30% → 60%: rotate 5°→-3°, ty -1.5→1
       this.timer = setTimeout(() => {
         animateTo({ duration: 1200, curve: Curve.EaseInOut }, () => {
-          this.rotate = -3;
+          this.rotDeg = -3;
           this.ty = 1;
         });
         // 60% → 100%: rotate -3°→0, ty 1→0
         this.timer = setTimeout(() => {
           animateTo({ duration: 1600, curve: Curve.EaseInOut }, () => {
-            this.rotate = 0;
+            this.rotDeg = 0;
             this.ty = 0;
           });
           // 100% 回到 0%, 启动下一个 4s 循环
-          this.timer = setTimeout(startCycle, 1600);
+          this.timer = setTimeout(() => { this.startCycle(); }, 1600);
         }, 1200);
       }, 1200);
     };
-    startCycle();
+    this.startCycle();
   }
 
   aboutToDisappear(): void {
@@ -60,7 +62,8 @@ export struct HexLogo {
     Image($r('app.media.ic_brand_hex'))
       .width(32).height(32)
       .fillColor(MINT)
-      .rotate(this.rotate)
+      // Image.rotate 接受 RotateOptions { angle: number } 对象, 不接受 number 直接
+      .rotate({ angle: this.rotDeg })
       .translate({ y: this.ty });
   }
 }
