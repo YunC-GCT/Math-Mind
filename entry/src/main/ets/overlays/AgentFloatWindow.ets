@@ -140,8 +140,9 @@ export struct AgentFloatWindow {
     }
 
     // 构�?user message content (文字 + 图片)
+    // user message content
     const content: string = hasImage
-      ? `📷 已发送图片${hasText ? '\n' + text : ''}`
+      ? (hasText ? text : '分享了一张照片')
       : text;
 
     this.messages = [
@@ -151,10 +152,6 @@ export struct AgentFloatWindow {
     this.inputText = '';
     this.imagePreview = '';
 
-    // mock reply
-    const reply: string = hasImage
-      ? `已收到图片${hasText ? ' + 「' + text + '」' : ''}，正在分析...`
-      : `已收到：「${text}」`;
     this.realReply(content);
   };
 
