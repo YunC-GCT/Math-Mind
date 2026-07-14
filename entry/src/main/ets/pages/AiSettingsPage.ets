@@ -93,7 +93,7 @@ struct AiSettingsPage {
     // 匹配模型预设
     let mMatch = -1;
     for (let i = 0; i < this.getModelPresets().length; i++) {
-      if (m === MODEL_PRESETS[i].value) { mMatch = i; break; }
+      if (m === this.getModelPresets()[i].value) { mMatch = i; break; }
     }
     if (mMatch >= 0) {
       this.modelIdx = mMatch;
@@ -118,7 +118,7 @@ struct AiSettingsPage {
   }
   private getModelPresets(): ModelPreset[] { return this.useCustomEndpoint || this.endpointIdx !== 1 ? SF_MODELS : DS_MODELS; }
   private getCurrentModel(): string {
-    return this.useCustomModel ? this.modelCustom : MODEL_PRESETS[this.modelIdx].value;
+    return this.useCustomModel ? this.modelCustom : this.getModelPresets()[this.modelIdx].value;
   }
 
   async handleSave(): Promise<void> {
