@@ -1,5 +1,5 @@
 // MathMind - 模型配置页
-// 创建: 2026-07-14
+// 创建: 2026-07-14 · 更新: endpoint预设 + 模型选择器 + 状态栏适配
 
 import {
   MINT, MINT_DARK, PURPLE, PURPLE_LIGHT,
@@ -13,12 +13,39 @@ import { LlmConfig, LlmClient } from 'common';
 import { promptAction } from '@kit.ArkUI';
 import { router } from '@kit.ArkUI';
 
+// 预设端点
+const ENDPOINT_PRESETS: string[] = [
+  'https://api.siliconflow.cn/v1/chat/completions',
+  'https://api.deepseek.com/v1/chat/completions',
+];
+const ENDPOINT_LABELS: string[] = ['硅基流动 (SiliconFlow)', 'DeepSeek 官方'];
+
+// 预设模型
+interface ModelPreset { label: string; value: string; }
+const MODEL_PRESETS: ModelPreset[] = [
+  { label: 'DeepSeek-V3', value: 'deepseek-ai/DeepSeek-V3' },
+  { label: 'DeepSeek-R1', value: 'deepseek-ai/DeepSeek-R1' },
+  { label: 'DeepSeek-V2.5', value: 'deepseek-ai/DeepSeek-V2.5' },
+  { label: 'Pro/DeepSeek-V3', value: 'Pro/deepseek-ai/DeepSeek-V3' },
+];
+
 @Entry
 @Component
 struct AiSettingsPage {
+  // 状态栏偏移
+  @StorageProp('statusBarHeight') statusBarH: number = 0;
+
   @State apiKey: string = '';
   @State endpoint: string = '';
+  @State endpointIdx: number = 0;
+  @State endpointCustom: string = '';
+  @State useCustomEndpoint: boolean = false;
+
   @State model: string = '';
+  @State modelIdx: number = 0;
+  @State modelCustom: string = '';
+  @State useCustomModel: boolean = false;
+
   @State temperature: number = 0.1;
   @State maxTokens: number = 256;
   @State timeoutMs: number = 5000;
@@ -41,8 +68,37 @@ struct AiSettingsPage {
       this.configured = true;
       this.statusText = '已配置';
     }
-    this.endpoint = c.getEndpoint();
-    this.model = c.getModel();
+    const ep = c.getEndpoint();
+    const m = c.getModel();
+
+    // 匹配端点预设
+    let epMatch = -1;
+    for (let i = 0; i < ENDPOINT_PRESETS.length; i++) {
+      if (ep === ENDPOINT_PRESETS[i]) { epMatch = i; break; }
+    }
+    if (epMatch >= 0) {
+      this.endpointIdx = epMatch;
+      this.useCustomEndpoint = false;
+    } else {
+      this.endpointCustom = ep;
+      this.useCustomEndpoint = true;
+    }
+    this.endpoint = ep;
+
+    // 匹配模型预设
+    let mMatch = -1;
+    for (let i = 0; i < MODEL_PRESETS.length; i++) {
+      if (m === MODEL_PRESETS[i].value) { mMatch = i; break; }
+    }
+    if (mMatch >= 0) {
+      this.modelIdx = mMatch;
+      this.useCustomModel = false;
+    } else {
+      this.modelCustom = m;
+      this.useCustomModel = true;
+    }
+    this.model = m;
+
     this.temperature = c.getTemperature();
     this.maxTokens = c.getMaxTokens();
     this.timeoutMs = c.getTimeoutMs();
@@ -51,32 +107,32 @@ struct AiSettingsPage {
     this.timeoutText = this.timeoutMs.toString();
   }
 
+  // 当前实际端点/模型
+  private getCurrentEndpoint(): string {
+    return this.useCustomEndpoint ? this.endpointCustom : ENDPOINT_PRESETS[this.endpointIdx];
+  }
+  private getCurrentModel(): string {
+    return this.useCustomModel ? this.modelCustom : MODEL_PRESETS[this.modelIdx].value;
+  }
+
   async handleSave(): Promise<void> {
     try {
-      const c = LlmConfig.getInstance();
-      // 处理数字字段
       const tp = parseFloat(this.tempText);
       const mt = parseInt(this.maxTokensText);
       const to = parseInt(this.timeoutText);
       if (isNaN(tp) || isNaN(mt) || isNaN(to)) {
-        promptAction.showToast({ message: '温度/最大Token/超时 必须为数字', duration: 2000 });
+        promptAction.showToast({ message: '参数必须为数字', duration: 2000 });
         return;
       }
-      this.temperature = tp;
-      this.maxTokens = mt;
-      this.timeoutMs = to;
-
-      // 保存所有配置
-      await c.saveAll(this.endpoint, this.model, this.temperature, this.maxTokens, this.timeoutMs);
-
-      // 处理 API Key
+      const c = LlmConfig.getInstance();
+      await c.saveAll(
+        this.getCurrentEndpoint(), this.getCurrentModel(),
+        tp, mt, to,
+      );
       if (this.apiKey.trim().length > 0) {
         await c.setApiKey(this.apiKey.trim());
         this.configured = true;
         this.statusText = '已保存';
-      } else {
-        this.configured = false;
-        this.statusText = '未配置 API Key';
       }
       promptAction.showToast({ message: '配置已保存', duration: 1500 });
     } catch (e) {
@@ -87,11 +143,17 @@ struct AiSettingsPage {
   async handleReset(): Promise<void> {
     try {
       await LlmConfig.getInstance().resetDefaults();
-      await this.loadConfig();
+      await LlmConfig.getInstance().clearApiKey();
       this.apiKey = '';
+      this.endpointIdx = 0;
+      this.useCustomEndpoint = false;
+      this.endpointCustom = '';
+      this.modelIdx = 0;
+      this.useCustomModel = false;
+      this.modelCustom = '';
       this.configured = false;
       this.statusText = '已恢复默认';
-      promptAction.showToast({ message: '已恢复默认配置', duration: 1500 });
+      promptAction.showToast({ message: '已恢复默认', duration: 1500 });
     } catch (e) {
       promptAction.showToast({ message: '恢复失败', duration: 1500 });
     }
@@ -103,20 +165,22 @@ struct AiSettingsPage {
       promptAction.showToast({ message: '请先输入 API Key', duration: 1500 });
       return;
     }
-    // 先临时保存以便测试
     const c = LlmConfig.getInstance();
     await c.setApiKey(key);
+    // 临时写入当前端点/模型用于测试
+    await c.saveAll(
+      this.getCurrentEndpoint(), this.getCurrentModel(),
+      this.temperature, this.maxTokens, this.timeoutMs,
+    );
     this.testing = true;
     try {
       const client = new LlmClient();
-      const reply = await client.call([
-        { role: 'system', content: 'Reply with just "OK".' },
-        { role: 'user', content: 'Say OK' },
+      await client.call([
+        { role: 'system', content: 'Reply "OK".' },
+        { role: 'user', content: 'OK' },
       ]);
-      if (reply.length > 0) {
-        promptAction.showToast({ message: '连接成功', duration: 1500 });
-        this.statusText = '已配置 · 连接正常';
-      }
+      promptAction.showToast({ message: '连接成功', duration: 1500 });
+      this.statusText = '已配置 · 连接正常';
     } catch (e) {
       promptAction.showToast({ message: '连接失败: ' + JSON.stringify(e), duration: 2500 });
       this.statusText = '已配置 · 连接失败';
@@ -127,11 +191,10 @@ struct AiSettingsPage {
 
   build() {
     Column() {
-      // 顶栏
+      // 顶栏 — 加 statusBarH 避让状态栏
       Row() {
         Text('← 返回')
-          .fontSize(F_SM)
-          .fontColor(MINT)
+          .fontSize(F_SM).fontColor(MINT)
           .onClick(() => { router.back(); });
         Blank();
         Text('模型配置')
@@ -139,18 +202,18 @@ struct AiSettingsPage {
         Blank();
         Row().width(60);
       }
-      .width('100%').padding({ left: S_2, right: S_2, top: 12, bottom: 12 });
+      .width('100%').padding({ left: S_2, right: S_2, top: 12, bottom: 12 })
+      .margin({ top: this.statusBarH });
+
       Row().width('100%').height(0.5).backgroundColor(BORDER);
 
       Scroll() {
         Column() {
-          // ===== 状态卡 =====
+          // ===== 状态 =====
           Row() {
             Column() {
-              Text('连接状态')
-                .fontSize(F_XS).fontColor(TEXT_3).margin({ bottom: 4 });
-              Text(this.statusText)
-                .fontSize(F_BASE).fontWeight(600)
+              Text('连接状态').fontSize(F_XS).fontColor(TEXT_3).margin({ bottom: 4 });
+              Text(this.statusText).fontSize(F_BASE).fontWeight(600)
                 .fontColor(this.configured ? MINT : TEXT_4);
             }.alignItems(HorizontalAlign.Start);
             Blank();
@@ -160,22 +223,76 @@ struct AiSettingsPage {
           .width('100%').padding(16).borderRadius(R_LG)
           .backgroundColor(BG_CARD).margin({ left: S_2, right: S_2, top: 16 });
 
-          // ===== 服务端点 =====
-          this.SectionHeader('服务端点', 'OpenAI 兼容的 API 地址');
-          this.InputField(this.endpoint, 'https://api.siliconflow.cn/v1/chat/completions',
-            (v: string) => { this.endpoint = v; });
+          // ===== 端点选择 =====
+          this.SectionHeader('服务端点', '选择预设或输入自定义地址');
+          Column() {
+            ForEach(ENDPOINT_PRESETS, (ep: string, i: number) => {
+              Row() {
+                Radio({ value: 'ep' + i, group: 'endpoint' })
+                  .checked(!this.useCustomEndpoint && this.endpointIdx === i)
+                  .onChange((v: boolean) => { if (v) { this.useCustomEndpoint = false; this.endpointIdx = i; } });
+                Column() {
+                  Text(ENDPOINT_LABELS[i]).fontSize(F_SM).fontColor(TEXT);
+                  Text(ep).fontSize(10).fontColor(TEXT_4).maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis });
+                }.alignItems(HorizontalAlign.Start).margin({ left: 8 }).layoutWeight(1);
+              }
+              .width('100%').padding({ left: 4, right: 4, top: 6, bottom: 6 });
+            }, (ep: string, i: number) => i.toString());
 
-          // ===== 模型名称 =====
-          this.SectionHeader('模型名称', '如 deepseek-ai/DeepSeek-V3');
-          this.InputField(this.model, 'deepseek-ai/DeepSeek-V3',
-            (v: string) => { this.model = v; });
+            // 自定义端点
+            Row() {
+              Radio({ value: 'ep_custom', group: 'endpoint' })
+                .checked(this.useCustomEndpoint)
+                .onChange((v: boolean) => { if (v) { this.useCustomEndpoint = true; } });
+              Text('自定义').fontSize(F_SM).fontColor(TEXT_3).margin({ left: 8 }).width(50);
+              TextInput({ text: this.endpointCustom, placeholder: 'https://...' })
+                .layoutWeight(1).height(34).fontSize(F_XS)
+                .fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor('#0AFFFFFF')
+                .borderRadius(R_MD)
+                .onChange((v: string) => { this.endpointCustom = v; });
+            }
+            .width('100%').padding({ left: 4, right: 8, top: 6, bottom: 10 });
+          }
+          .width('100%').borderRadius(R_LG).backgroundColor(BG_CARD)
+          .margin({ left: S_2, right: S_2 });
+
+          // ===== 模型选择 =====
+          this.SectionHeader('模型', '选择 DeepSeek 模型或自定义');
+          Column() {
+            ForEach(MODEL_PRESETS, (mp: ModelPreset, i: number) => {
+              Row() {
+                Radio({ value: 'md' + i, group: 'model' })
+                  .checked(!this.useCustomModel && this.modelIdx === i)
+                  .onChange((v: boolean) => { if (v) { this.useCustomModel = false; this.modelIdx = i; } });
+                Text(mp.label).fontSize(F_SM).fontColor(TEXT).margin({ left: 8 }).layoutWeight(1);
+                Text(mp.value).fontSize(10).fontColor(TEXT_4).maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis });
+              }
+              .width('100%').padding({ left: 4, right: 4, top: 6, bottom: 6 });
+            }, (mp: ModelPreset, i: number) => i.toString());
+
+            Row() {
+              Radio({ value: 'md_custom', group: 'model' })
+                .checked(this.useCustomModel)
+                .onChange((v: boolean) => { if (v) { this.useCustomModel = true; } });
+              Text('自定义').fontSize(F_SM).fontColor(TEXT_3).margin({ left: 8 }).width(50);
+              TextInput({ text: this.modelCustom, placeholder: 'model-id' })
+                .layoutWeight(1).height(34).fontSize(F_XS)
+                .fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor('#0AFFFFFF')
+                .borderRadius(R_MD)
+                .onChange((v: string) => { this.modelCustom = v; });
+            }
+            .width('100%').padding({ left: 4, right: 8, top: 6, bottom: 10 });
+          }
+          .width('100%').borderRadius(R_LG).backgroundColor(BG_CARD)
+          .margin({ left: S_2, right: S_2 });
 
           // ===== API Key =====
           this.SectionHeader('API Key', '从模型服务商获取的密钥');
           Row() {
             TextInput({ text: this.apiKey, placeholder: 'sk-...' })
-              .type(InputType.Password)
-              .layoutWeight(1).height(42)
+              .type(InputType.Password).layoutWeight(1).height(42)
               .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
               .backgroundColor('transparent')
               .onChange((v: string) => { this.apiKey = v; });
@@ -189,22 +306,19 @@ struct AiSettingsPage {
           .borderRadius(R_LG).backgroundColor(BG_CARD)
           .margin({ left: S_2, right: S_2 });
 
-          // ===== 参数 =====
+          // ===== 请求参数 =====
           this.SectionHeader('请求参数', '');
           Column() {
-            // Temperature
             this.NumberRow('温度', this.tempText, '0 - 2', (v: string) => { this.tempText = v; });
             Row().width('100%').height(0.5).backgroundColor(BORDER);
-            // Max Tokens
             this.NumberRow('最大 Token', this.maxTokensText, '1 - 8192', (v: string) => { this.maxTokensText = v; });
             Row().width('100%').height(0.5).backgroundColor(BORDER);
-            // Timeout
             this.NumberRow('超时(毫秒)', this.timeoutText, '1000 - 60000', (v: string) => { this.timeoutText = v; });
           }
           .width('100%').borderRadius(R_LG).backgroundColor(BG_CARD)
           .margin({ left: S_2, right: S_2 });
 
-          // ===== 按钮 =====
+          // ===== 操作按钮 =====
           Row() {
             Button('恢复默认')
               .fontSize(F_SM).fontColor(PURPLE)
@@ -227,48 +341,28 @@ struct AiSettingsPage {
     .width('100%').height('100%').backgroundColor(BG_DARK);
   }
 
-  @Builder
-  SectionHeader(title: string, desc: string) {
+  @Builder SectionHeader(title: string, desc: string) {
     Column() {
-      Text(title)
-        .fontSize(F_SM).fontWeight(600).fontColor(TEXT);
+      Text(title).fontSize(F_SM).fontWeight(600).fontColor(TEXT);
       if (desc.length > 0) {
-        Text(desc)
-          .fontSize(F_XS).fontColor(TEXT_4).margin({ top: 2 });
+        Text(desc).fontSize(F_XS).fontColor(TEXT_4).margin({ top: 2 });
       }
     }
     .alignItems(HorizontalAlign.Start)
     .width('100%').padding({ left: 20, right: S_2, top: 20, bottom: 8 });
   }
 
-  @Builder
-  InputField(value: string, placeholder: string, onChange: (v: string) => void) {
-    TextInput({ text: value, placeholder: placeholder })
-      .width('100%').height(42)
-      .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
-      .backgroundColor('transparent')
-      .padding({ left: 16, right: 16 })
-      .borderRadius(R_LG).backgroundColor(BG_CARD)
-      .margin({ left: S_2, right: S_2 })
-      .onChange(onChange);
-  }
-
-  @Builder
-  NumberRow(label: string, value: string, hint: string, onChange: (v: string) => void) {
+  @Builder NumberRow(label: string, value: string, hint: string, onChange: (v: string) => void) {
     Row() {
       Column() {
         Text(label).fontSize(F_SM).fontColor(TEXT_2);
         Text(hint).fontSize(10).fontColor(TEXT_4).margin({ top: 2 });
       }.alignItems(HorizontalAlign.Start);
-
       Blank();
-
       TextInput({ text: value, placeholder: hint })
-        .type(InputType.Number)
-        .width(90).height(34)
+        .type(InputType.Number).width(90).height(34)
         .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
-        .backgroundColor('#0AFFFFFF')
-        .borderRadius(R_MD).textAlign(TextAlign.Center)
+        .backgroundColor('#0AFFFFFF').borderRadius(R_MD).textAlign(TextAlign.Center)
         .onChange(onChange);
     }
     .width('100%').padding({ left: 16, right: 16, top: 10, bottom: 10 });
