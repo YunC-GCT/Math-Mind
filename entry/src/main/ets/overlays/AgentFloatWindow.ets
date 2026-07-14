@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MathMind 智能体浮�?�?紧凑重制�?(2026-07-14)
  *
  * 设计参照: D:\HMgent\MathMind\MathMind-MVP\styles.css .ai-overlay
@@ -431,35 +431,38 @@ export struct AgentFloatWindow {
             .backgroundColor(BORDER);
 
           // ===== 底部输入�?(52vp 紧凑) =====
-          Row() {
-            // 图片预览 (W1.2: 拍照后缩略图 + X 取消, 跟文字一起发�?
-            if (this.imagePreview.length > 0) {
-              Stack() {
-                Image(this.imagePreview)
-                  .width(40).height(40)
-                  .borderRadius(6)
-                  .objectFit(ImageFit.Cover);
+          // ===== 图片预览 (输入区上方独立一行) =====
+          if (this.imagePreview.length > 0) {
+            Row() {
+              Image(this.imagePreview)
+                .width(48).height(48)
+                .borderRadius(8)
+                .objectFit(ImageFit.Cover)
+                .border({ width: 1, color: BORDER });
 
-                // 取消 X (右上�?
-                Text('✕')
-                  .fontSize(10).fontWeight(700)
-                  .fontColor('#FFFFFF')
-                  .width(18).height(18)
-                  .borderRadius(9)
-                  .backgroundColor('#80000000')
-                  .textAlign(TextAlign.Center)
-                  .position({ x: '100%', y: 0 })
-                  .markAnchor({ x: '100%', y: 0 })
-                  .offset({ x: -4, y: -4 })
-                  .onClick(() => { this.imagePreview = ''; });
-              }
-              .width(40).height(40)
-              .margin({ right: 8 });
+              Text("已选图片，可补充文字后发送")
+                .fontSize(F_XS)
+                .fontColor(TEXT_3)
+                .margin({ left: 10 })
+                .layoutWeight(1);
+
+              Text("✕")
+                .fontSize(F_BASE)
+                .fontColor(TEXT_3)
+                .width(28).height(28)
+                .borderRadius(14)
+                .textAlign(TextAlign.Center)
+                .backgroundColor("#1AFFFFFF")
+                .onClick(() => { this.imagePreview = ""; });
             }
+            .width("100%")
+            .padding({ left: 10, right: 10, top: 6, bottom: 4 });
+          }
 
-            // 输入�?
+          // ===== 底部输入区 (52vp compact) =====
+          Row() {
+            // 输入框
             TextInput({ text: this.inputText, placeholder: '输入问题...' })
-              .layoutWeight(1)
               .height(32)
               .fontSize(F_SM)
               .fontColor(TEXT)
