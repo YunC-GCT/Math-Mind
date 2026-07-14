@@ -5,6 +5,33 @@
 
 ---
 
+## 当前状态总览
+
+### 已实现 ✅
+
+| 功能 | 说明 | 验证方式 |
+|------|------|---------|
+| 首页 5 Tab 导航 | 首页/笔记/AI/复习/我的 | DevEco 运行可见 |
+| CameraOverlay 拍照 | `cameraPicker.pick()` 华为系统相机，模拟器降级 mock | 真机点快门拉起系统相机 |
+| CameraOverlay 相册 | `PhotoViewPicker.select()` 系统图库 | 模拟器点 🖼 按钮 |
+| AgentFloatWindow 真实 AI | `LlmClient.call()` → DeepSeek，支持 V3/V4 | 设置页配 API Key → 发消息 |
+| AI 设置页 | 端点切换/模型选择/API Key/参数调优/测试连接 | 我的 → 设置 |
+| Dispatcher 调度 | `dispatch()` 串联 TypeClassifier→KnowledgeModel | 代码完整但未端到端调通 |
+| NoteDetailOverlay | 笔记详情浮层，Markdown 解析 | 首页点笔记卡片 |
+
+### 待实现 ❌
+
+| 功能 | 阻塞原因 | 负责人 |
+|------|---------|--------|
+| 拍照→AI 分析整链 | `AiService.capture()` 空壳，未桥接 CameraOverlay→Dispatcher | Mavis |
+| OCR 文字识别 | `OcrTool.ets` 空壳 | D |
+| 3×3 分类真实现 | `TypeClassifier.ets` stub mock | D |
+| 知识建模+入库 | `KnowledgeModel.ets` stub（有 `structure()` 但未调 DB） | L |
+| 笔记数据库 | `NoteDao.ets` 空壳 | L |
+| HTTP 客户端 | `ApiClient.ets` 已实现（未使用） | Mavis |
+
+---
+
 ## 一、完成的工作
 
 ### 1.1 W0 末 · 5 module 工程搭起来 (commit `bfaa8e5`)
@@ -39,18 +66,18 @@ MathMind/
 
 **做了什么**: 8 个目标文件全部建好空壳 + DevEco build 验证通过。
 
-**8 个文件当前位置**(全部都是空类,只有 TODO 注释,没有任何实际功能):
+**8 个文件当前位置**:
 
 | 文件 | 责任 | 当前内容 |
 |------|------|---------|
-| `entry/database/NoteDao.ets` | L | 空 `export class NoteDao {}` + TODO(A1) 注释 |
-| `entry/services/ApiClient.ets` | 你+Mavis | 空 `export class ApiClient {}` + TODO(A2) 注释 |
-| `entry/services/AiService.ets` | 你+Mavis | 空 `export class AiService {}` + TODO(E1) 注释 |
-| `entry/overlays/CameraOverlay.ets` | 你+Mavis | 空 `export class CameraOverlay {}` + TODO(E2) 注释 |
-| `agents/core/Dispatcher.ets` | 你+Mavis | 空 `export class Dispatcher {}` + TODO(D) 注释 |
-| `agents/agents/TypeClassifier.ets` | D | 空 `export class TypeClassifier {}` + TODO(B2) 注释 |
-| `agents/agents/KnowledgeModel.ets` | L | 空 `export class KnowledgeModel {}` + TODO(C) 注释 |
-| `agents/mcp/tools/OcrTool.ets` | D | 空 `export class OcrTool {}` + TODO(B1) 注释 |
+| `entry/database/NoteDao.ets` | L | ❌ 空壳 — TODO(A1) |
+| `entry/services/ApiClient.ets` | Mavis | ✅ 已实现 — HTTP request() + JWT + 401 重试 |
+| `entry/services/AiService.ets` | Mavis | ❌ 空壳 — TODO(E1)，拍照→Dispatcher 桥接待写 |
+| `entry/overlays/CameraOverlay.ets` | Mavis | ✅ 完整 — CameraPicker/PhotoViewPicker + UI |
+| `agents/core/Dispatcher.ets` | Mavis | ✅ 完整 — dispatch() 调度链 TypeClassifier→KnowledgeModel |
+| `agents/agents/TypeClassifier.ets` | D | ⚠️ stub mock — classify() 返固定 "计算/高等代数" |
+| `agents/agents/KnowledgeModel.ets` | L | ⚠️ stub — structure() 返 mock KnowledgeUnit |
+| `agents/mcp/tools/OcrTool.ets` | D | ❌ 空壳 — TODO(B1) |
 
 每个空壳顶部都有完整的接口约定注释(入参/返回/责任/依赖/验证方式),等责任人填实现。
 
@@ -80,17 +107,18 @@ entry/src/main/ets/
 │   ├── ReviewPage.ets          # 复习页
 │   └── MePage.ets              # 我的页
 ├── overlays/
-│   ├── CameraOverlay.ets       # 拍照浮层 (全屏)
-│   ├── AiChatOverlay.ets       # AI 对话浮层 (卡片式)
+│   ├── CameraOverlay.ets       # 拍照浮层 (CameraPicker + 系统相册)
+│   ├── AgentFloatWindow.ets    # AI 对话浮窗 (LlmClient→DeepSeek 真实回复)
 │   └── NoteDetailOverlay.ets   # 笔记详情浮层 (全屏)
 ├── components/
+│   ├── HexLogo.ets             # 6 边形 Logo SVG
 │   └── notes/
 │       └── notesData.ets       # 共享笔记数据 (NOTES_MOCK + 选中状态)
 ├── database/
 │   └── NoteDao.ets             # 数据库 DAO (空壳, 待实现)
 ├── services/
-│   ├── ApiClient.ets           # HTTP 客户端 (空壳, 待实现)
-│   └── AiService.ets           # AI 服务 (空壳, 待实现)
+│   ├── ApiClient.ets           # HTTP 客户端 (✅ 已实现)
+│   └── AiService.ets           # AI 服务 (❌ 空壳，待桥接拍照→Dispatcher)
 ├── entryability/
 │   └── EntryAbility.ets        # 应用入口
 └── entrybackupability/
@@ -266,7 +294,27 @@ entry/src/main/ets/
 
 ---
 
-## 三、构建与运行
+## 三、下一步待实现
+
+### P0 — 拍照→AI 整链打通
+| 任务 | 文件 | 负责 | 说明 |
+|------|------|------|------|
+| 实现 AiService.capture() | AiService.ets | Mavis | imageUri→base64→Dispatcher.dispatch() |
+| 接入拍照回调 | Index.ets | Mavis | onCameraConfirm 调 AiService.capture() |
+| 真值分类 | TypeClassifier.ets | D | OCR→DeepSeek 3×3 分类，替换 stub |
+| 真值建模+入库 | KnowledgeModel.ets | L | 3模板+真值检验+NoteDao INSERT |
+| 数据库 | NoteDao.ets | L | RDB INSERT + queryById |
+| OCR 识别 | OcrTool.ets | D | ML Kit OCR → LaTeX |
+
+### P1 — 体验增强
+| 任务 | 说明 |
+|------|------|
+| AI 对话历史 | LlmClient.call() 传入最近 N 轮消息 |
+| 真机 CameraPicker 验证 | 华为手机验证系统相机弹出+拍照+返回 |
+
+---
+
+## 四、构建与运行
 
 - **build 走 DevEco Studio GUI** (Build → Build Hap(s)/APP(s)),不走命令行 hvigorw (中文路径乱码)
 - **SSH 走 port 443** (`~/.ssh/config` 已配 Host github.com → ssh.github.com:443)
@@ -274,7 +322,7 @@ entry/src/main/ets/
 
 ---
 
-## 四、git 规则
+## 五、git 规则
 
 1. **未经明示禁止 push** — 本地 commit 自由,推送必须 leader 点头
 2. commit message 规则: `feat(module):` / `fix(module):` / `docs:` / `merge:`
