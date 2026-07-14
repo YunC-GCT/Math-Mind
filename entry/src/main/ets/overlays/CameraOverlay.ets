@@ -36,6 +36,7 @@ import {
   F_XS, F_SM, F_BASE, F_MD, F_LG,
 } from 'common';
 import { cameraPicker } from '@kit.CameraKit';
+import { camera } from '@kit.CameraKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { common } from '@kit.AbilityKit';
 
@@ -413,11 +414,11 @@ export struct CameraOverlay {
     this.busy = true;
     try {
       const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
-      const result: cameraPicker.PickerResult =
+      const result: cameraPicker.PickerResult | undefined =
         await cameraPicker.pick(ctx, [cameraPicker.PickerMediaType.PHOTO], {
-          cameraPosition: 0,
+          cameraPosition: camera.CameraPosition.CAMERA_POSITION_BACK,
         });
-      if (result.resultUri.length > 0) {
+      if (result !== undefined && result.resultUri.length > 0) {
         this.capturedUri = result.resultUri;
         this.capturedSrc = 'camera';
         this.state = 'preview';
