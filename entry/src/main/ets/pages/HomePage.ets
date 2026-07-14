@@ -42,6 +42,7 @@ import {
   subjectColor,
 } from 'common';
 import { NoteDetailOverlay } from '../overlays/NoteDetailOverlay';
+import { HexLogo } from '../components/HexLogo';
 
 // ========== 本地工具函数 ==========
 function greet(): string {
@@ -182,14 +183,13 @@ export struct HomePage {
 
           // ===== Hero 区 =====
           Column() {
-            // --- 问候行 ---
+            // --- 问候行 (W1: 6×6 圆点 → 32×32 浮空旋转 6 边形 Logo) ---
             Row() {
-              Circle({ width: 6, height: 6 })
-                .fill(MINT);
+              HexLogo();
               Text(`${this.g}, Mini`)
                 .fontSize(F_XL).fontWeight(600)
                 .fontColor(TEXT)
-                .margin({ left: 6 })
+                .margin({ left: 8 })
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis });
             }
