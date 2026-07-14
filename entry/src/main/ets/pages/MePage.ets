@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MathMind 个人中心�?�?对照 iOS Web MVP page-me
  * 对照 CSS .me-wrap / .me-avatar / .me-stats / .me-menu / .mm / .me-logout-btn
  */
@@ -132,7 +132,7 @@ export struct MePage {
           this.MenuItem('📋', '我的复习计划', '复习计划开发中');
           this.MenuItem('📕', '错题本', '错题本开发中');
           this.MenuItem('⭐', '我的收藏', '收藏功能开发中');
-          this.MenuItem('⚙️', '设置', '');
+          this.MenuItem('🤖', '模型', '');
           this.MenuItem('🚪', '切换账号', '切换账号开发中');
         }
         .width('100%')
@@ -216,7 +216,7 @@ export struct MePage {
       bottom: 13,
     })
     .border({ width: { bottom: 1 }, color: BORDER })
-    .onClick(() => { if (msg.length > 0) { this.toast(msg); } else if (label === '设置') { router.pushUrl({ url: 'pages/AiSettingsPage' }); } });
+    .onClick(() => { if (msg.length > 0) { this.toast(msg); } else if (label === '模型') { router.pushUrl({ url: 'pages/AiSettingsPage' }); } });
   }
 
   // ========== Toast 提示 ==========

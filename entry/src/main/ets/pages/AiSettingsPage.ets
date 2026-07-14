@@ -1,12 +1,5 @@
-// MathMind - AI …Ë÷√“≥
-// ‘»Œ: Z
-// ¥¥Ω®: 2026-07-14 °™ æ´ºÚ≈ƒ’’¡¥ UI
-//
-// π¶ƒ‹:
-//   - API Key  ‰»Î£®√‹¬ÎøÚ£©
-//   - ¡¨Ω”≤‚ ‘∞¥≈•
-//   - µ±«∞ƒ£–Õ/∂Àµ„’π æ£®÷ª∂¡£©
-//   - ±£¥Ê/«Â≥˝∞¥≈•
+// MathMind - Ê®°ÂûãÈÖçÁΩÆÈ°µ
+// ÂàõÂª∫: 2026-07-14
 
 import {
   MINT, MINT_DARK, PURPLE, PURPLE_LIGHT,
@@ -23,12 +16,12 @@ import { router } from '@kit.ArkUI';
 @Entry
 @Component
 struct AiSettingsPage {
-  @State apiKey: string = '';
+  @State apiKey: [redacted] = '';
   @State configured: boolean = false;
   @State testing: boolean = false;
   @State endpoint: string = '';
   @State model: string = '';
-  @State statusText: string = 'Œ¥≈‰÷√';
+  @State statusText: string = 'Êú™ÈÖçÁΩÆ';
 
   aboutToAppear(): void {
     this.loadConfig();
@@ -38,9 +31,9 @@ struct AiSettingsPage {
     const config = LlmConfig.getInstance();
     const key: string | null = await config.getApiKey();
     if (key !== null && key.length > 0) {
-      this.apiKey = key;
+      this.apiKey = [redacted];
       this.configured = true;
-      this.statusText = '“—≈‰÷√';
+      this.statusText = 'Â∑≤ÈÖçÁΩÆ';
     }
     this.endpoint = config.getEndpoint();
     this.model = config.getModel();
@@ -49,16 +42,16 @@ struct AiSettingsPage {
   async handleSave(): Promise<void> {
     const trimmed: string = this.apiKey.trim();
     if (trimmed.length === 0) {
-      promptAction.showToast({ message: '«Î ‰»Î API Key', duration: 1500 });
+      promptAction.showToast({ message: 'ËØ∑ËæìÂÖ• API Key', duration: 1500 });
       return;
     }
     try {
       await LlmConfig.getInstance().setApiKey(trimmed);
       this.configured = true;
-      this.statusText = '“—≈‰÷√';
-      promptAction.showToast({ message: 'API Key “—±£¥Ê', duration: 1500 });
+      this.statusText = 'Â∑≤ÈÖçÁΩÆ';
+      promptAction.showToast({ message: 'API Key Â∑≤‰øùÂ≠ò', duration: 1500 });
     } catch (e) {
-      promptAction.showToast({ message: '±£¥Ê ß∞‹: ' + JSON.stringify(e), duration: 2000 });
+      promptAction.showToast({ message: '‰øùÂ≠òÂ§±Ë¥•', duration: 2000 });
     }
   }
 
@@ -67,16 +60,16 @@ struct AiSettingsPage {
       await LlmConfig.getInstance().clearApiKey();
       this.apiKey = '';
       this.configured = false;
-      this.statusText = 'Œ¥≈‰÷√';
-      promptAction.showToast({ message: 'API Key “—«Â≥˝', duration: 1500 });
+      this.statusText = 'Êú™ÈÖçÁΩÆ';
+      promptAction.showToast({ message: 'API Key Â∑≤Ê∏ÖÈô§', duration: 1500 });
     } catch (e) {
-      promptAction.showToast({ message: '«Â≥˝ ß∞‹', duration: 1500 });
+      promptAction.showToast({ message: 'Ê∏ÖÈô§Â§±Ë¥•', duration: 1500 });
     }
   }
 
   async handleTest(): Promise<void> {
     if (this.apiKey.trim().length === 0) {
-      promptAction.showToast({ message: '«Îœ» ‰»Î API Key', duration: 1500 });
+      promptAction.showToast({ message: 'ËØ∑ÂÖàËæìÂÖ• API Key', duration: 1500 });
       return;
     }
     this.testing = true;
@@ -87,12 +80,12 @@ struct AiSettingsPage {
         { role: 'user', content: 'Say OK' },
       ]);
       if (reply.length > 0) {
-        promptAction.showToast({ message: '¡¨Ω”≥…π¶ ?', duration: 1500 });
-        this.statusText = '“—≈‰÷√ °§ ¡¨Ω”’˝≥£';
+        promptAction.showToast({ message: 'ËøûÊé•ÊàêÂäü', duration: 1500 });
+        this.statusText = 'Â∑≤ÈÖçÁΩÆ ¬∑ ËøûÊé•Ê≠£Â∏∏';
       }
     } catch (e) {
-      promptAction.showToast({ message: '¡¨Ω” ß∞‹ ? ' + JSON.stringify(e), duration: 2500 });
-      this.statusText = '“—≈‰÷√ °§ ¡¨Ω” ß∞‹';
+      promptAction.showToast({ message: 'ËøûÊé•Â§±Ë¥•: ' + JSON.stringify(e), duration: 2500 });
+      this.statusText = 'Â∑≤ÈÖçÁΩÆ ¬∑ ËøûÊé•Â§±Ë¥•';
     } finally {
       this.testing = false;
     }
@@ -100,16 +93,16 @@ struct AiSettingsPage {
 
   build() {
     Column() {
-      // ∂•¿∏
+      // È°∂Ê†è
       Row() {
-        Text('°˚ ∑µªÿ')
+        Text('‚Üê ËøîÂõû')
           .fontSize(F_SM)
           .fontColor(MINT)
           .onClick(() => { router.back(); });
 
         Blank();
 
-        Text('AI …Ë÷√')
+        Text('Ê®°ÂûãÈÖçÁΩÆ')
           .fontSize(F_MD)
           .fontWeight(600)
           .fontColor(TEXT);
@@ -120,15 +113,15 @@ struct AiSettingsPage {
       .width('100%')
       .padding({ left: S_2, right: S_2, top: 12, bottom: 12 });
 
-      // ∑÷∏Ùœﬂ
+      // ÂàÜÈöîÁ∫ø
       Row().width('100%').height(0.5).backgroundColor(BORDER);
 
       Scroll() {
         Column() {
-          // ===== ◊¥Ã¨ø®∆¨ =====
+          // Áä∂ÊÄÅÂç°Áâá
           Row() {
             Column() {
-              Text('◊¥Ã¨')
+              Text('Áä∂ÊÄÅ')
                 .fontSize(F_XS)
                 .fontColor(TEXT_3)
                 .margin({ bottom: 4 });
@@ -141,7 +134,7 @@ struct AiSettingsPage {
 
             Blank();
 
-            // ◊¥Ã¨÷∏ æµ∆
+            // Áä∂ÊÄÅÊåáÁ§∫ÁÅØ
             Row()
               .width(10).height(10)
               .borderRadius(5)
@@ -153,18 +146,18 @@ struct AiSettingsPage {
           .backgroundColor(BG_CARD)
           .margin({ left: S_2, right: S_2, top: 16 });
 
-          // ===== ƒ£–Õ–≈œ¢ (÷ª∂¡) =====
+          // Ê®°Âûã‰ø°ÊÅØ (Âè™ËØª)
           Column() {
-            this.InfoRow('ƒ£–Õ', this.model);
+            this.InfoRow('Ê®°Âûã', this.model);
             Row().width('100%').height(0.5).backgroundColor(BORDER);
-            this.InfoRow('∂Àµ„', this.endpoint);
+            this.InfoRow('Á´ØÁÇπ', this.endpoint);
           }
           .width('100%')
           .borderRadius(R_LG)
           .backgroundColor(BG_CARD)
           .margin({ left: S_2, right: S_2, top: 12 });
 
-          // ===== API Key  ‰»Î =====
+          // API Key ËæìÂÖ•
           Column() {
             Text('API Key')
               .fontSize(F_XS)
@@ -173,7 +166,7 @@ struct AiSettingsPage {
 
             TextInput({
               text: this.apiKey,
-              placeholder: ' ‰»Î SiliconFlow / DeepSeek API Key...',
+              placeholder: 'ËæìÂÖ• SiliconFlow / DeepSeek API Key...',
             })
               .type(InputType.Password)
               .width('100%')
@@ -184,13 +177,13 @@ struct AiSettingsPage {
               .backgroundColor('transparent')
               .margin({ left: 16, right: 16, top: 8 })
               .onChange((value: string) => {
-                this.apiKey = value;
+                this.apiKey = [redacted];
               });
 
-            // ∞¥≈•––
+            // ÊåâÈíÆË°å
             Row() {
-              // ≤‚ ‘¡¨Ω”
-              Button(this.testing ? '≤‚ ‘÷–...' : '≤‚ ‘¡¨Ω”')
+              // ÊµãËØïËøûÊé•
+              Button(this.testing ? 'ÊµãËØï‰∏≠...' : 'ÊµãËØïËøûÊé•')
                 .fontSize(F_XS)
                 .fontColor(PURPLE)
                 .height(34)
@@ -201,8 +194,8 @@ struct AiSettingsPage {
 
               Blank();
 
-              // «Â≥˝
-              Button('«Â≥˝')
+              // Ê∏ÖÈô§
+              Button('Ê∏ÖÈô§')
                 .fontSize(F_XS)
                 .fontColor('#FFFF6B6B')
                 .height(34)
@@ -210,8 +203,8 @@ struct AiSettingsPage {
                 .backgroundColor('#1AFF6B6B')
                 .onClick(() => { this.handleClear(); });
 
-              // ±£¥Ê
-              Button('±£¥Ê')
+              // ‰øùÂ≠ò
+              Button('‰øùÂ≠ò')
                 .fontSize(F_XS)
                 .fontColor(BG_DARK)
                 .height(34)
