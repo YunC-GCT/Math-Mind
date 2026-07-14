@@ -31,7 +31,7 @@ import { ReviewPage } from './ReviewPage';
 import { MePage } from './MePage';
 import { AgentFloatWindow } from '../overlays/AgentFloatWindow';
 import { CameraOverlay } from '../overlays/CameraOverlay';
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, KeyboardAvoidMode, SafeAreaType } from '@kit.ArkUI';
 
 interface TabItem {
   idx: number;
@@ -59,6 +59,14 @@ struct Index {
 
   private isTabActive(i: number): boolean {
     return this.cur === i;
+  }
+
+  aboutToAppear(): void {
+    // W1.3 修复 (Part 2/2): 关闭系统键盘避让
+    // 配合 AgentFloatWindow 监听 keyboardHeightChange 自己上移
+    // 让 Index Stack 整体不被键盘顶起来, TabBar / HomePage 不动
+    // 备注: KeyboardAvoidMode 影响整个 UIContext, 这里关闭后 AgentFloatWindow 自己处理
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE);
   }
 
   // AI 里点拍照 (W1 调整: 拍照后回浮窗, 此回调暂保留)
@@ -156,7 +164,8 @@ struct Index {
       .justifyContent(FlexAlign.SpaceAround)
       .alignItems(VerticalAlign.Center);
     }
-    .width('100%').height('100%').backgroundColor(BG_DARK);
+    .width('100%').height('100%').backgroundColor(BG_DARK)
+    .expandSafeArea([SafeAreaType.KEYBOARD]);  // W1.3 双重保险: 主页面 Column 主动扩展到 keyboard area, 配合 setKeyboardAvoidMode(NONE)
 
     // ===== 全局 CameraOverlay 浮层 (在 Stack 内 Column 外, 全屏覆盖) =====
     if (this.showCamera) {
