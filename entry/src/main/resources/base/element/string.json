@@ -10,7 +10,15 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "MathMind"
+    },
+    {
+      "name": "camera_reason",
+      "value": "用于拍照识别数学题目"
+    },
+    {
+      "name": "internet_reason",
+      "value": "用于访问AI服务进行题目分析"
     }
   ]
 }
