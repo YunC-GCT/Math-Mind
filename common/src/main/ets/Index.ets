@@ -1,6 +1,7 @@
 // common HSP - public API 入口
+// W1 块 3: 暴露主 Agent 业务所需的最小集(Dispatcher 用)
 
-// 设计 Token
+// ========== 设计 Token (颜色 / 尺寸 / 字号) ==========
 export {
   MINT, MINT_DARK, MINT_LIGHT, MINT_GLOW, MINT_BORDER,
   PURPLE, PURPLE_DARK, PURPLE_LIGHT, PINK, AMBER,
@@ -14,6 +15,57 @@ export {
   SCREEN_W, SCREEN_H,
 } from './constants/ColorTokens';
 
-// 共享数据模型
-export { NoteItem, NOTES, stripMD, recentDate, typeChar, typeColor, subjectColor }
-  from './data/MockNotes';
+// ========== Mock 笔记数据 (UI 开发期) ==========
+export {
+  NoteItem, NOTES, stripMD, recentDate,
+  typeChar, typeColor, subjectColor,
+} from './data/MockNotes';
+
+// ========== 主 Agent 共享类型 (Dispatcher 用) ==========
+export {
+  KnowledgeUnit,
+  ReviewRecord,
+  KGNode,
+  KGEdge,
+} from './models/CommonTypes';
+export {
+  DifficultyLevel,
+  ConfidenceLevel,
+  ReviewStatus,
+  IntentType,
+  AgentTask,
+  AgentResponse,
+  ApiError,
+} from './models/CommonTypes';
+
+// ========== D1 拍照链类型 (主 Agent 业务) ==========
+export {
+  ClassificationInput,
+  ClassificationResult,
+  TruthFlag,
+  TruthCheckResult,
+  DispatchRequest,
+  DispatchResult,
+  ApiResponse,
+  API_CODE,
+  CLASSIFY_CONFIDENCE_THRESHOLD,
+} from './models/CaptureChain';
+export type { ApiCode } from './models/CaptureChain';
+
+// ========== 统一日志 (Dispatcher 用) ==========
+export {
+  LogLevel,
+  Logger,
+  defaultLog,
+  getLogger,
+} from './utils/logger';
+
+// ========== LLM 共享基础设施 (Z 2026-07-14) ==========
+//   LlmConfig:  单例,preferences 持久化 API key,UI 输入/读取入口
+//   LlmClient:  OpenAI 兼容 HTTP 客户端,所有 agent 统一调用
+//   LlmError:   统一错误类型,带 kind 分类(NO_API_KEY / NETWORK_ERROR / API_ERROR / ...)
+//   LlmTypes:   ChatMessage / LlmCallOptions / LlmErrorKind
+export { LlmConfig } from './llm/LlmConfig';
+export { LlmClient } from './llm/LlmClient';
+export { LlmError } from './llm/LlmTypes';
+export type { ChatMessage, LlmCallOptions, LlmErrorKind } from './llm/LlmTypes';
