@@ -142,7 +142,7 @@ export struct AgentFloatWindow {
 
     // 构造 user message content (文字 + 图片)
     const content: string = hasImage
-      ? `📷 已发送图片${hasText ? '\n' + text : ''}`
+      ? (hasText ? text : '分享了一张照片')
       : text;
 
     this.messages = [
@@ -174,7 +174,7 @@ export struct AgentFloatWindow {
       content += '\n' + text;
     }
     if (hasImage) {
-      content += '\n📷 已发送图片';
+      content += '\n分享了一张照片';
     }
 
     this.messages = [
@@ -402,33 +402,39 @@ export struct AgentFloatWindow {
             .width('100%').height(0.5)
             .backgroundColor(BORDER);
 
+          // ===== 图片预览 (输入区上方独立一行) =====
+          if (this.imagePreview.length > 0) {
+            Row() {
+              // 缩略图
+              Image(this.imagePreview)
+                .width(48).height(48)
+                .borderRadius(8)
+                .objectFit(ImageFit.Cover)
+                .border({ width: 1, color: BORDER });
+
+              // 提示文字
+              Text('已选图片，可补充文字后发送')
+                .fontSize(F_XS)
+                .fontColor(TEXT_3)
+                .margin({ left: 10 })
+                .layoutWeight(1);
+
+              // 取消 X
+              Text('✕')
+                .fontSize(F_BASE)
+                .fontColor(TEXT_3)
+                .width(28).height(28)
+                .borderRadius(14)
+                .textAlign(TextAlign.Center)
+                .backgroundColor('#1AFFFFFF')
+                .onClick(() => { this.imagePreview = ''; });
+            }
+            .width('100%')
+            .padding({ left: 10, right: 10, top: 6, bottom: 4 });
+          }
+
           // ===== 底部输入区 (52vp 紧凑) =====
           Row() {
-            // 图片预览 (W1.2: 拍照后缩略图 + X 取消, 跟文字一起发送)
-            if (this.imagePreview.length > 0) {
-              Stack() {
-                Image(this.imagePreview)
-                  .width(40).height(40)
-                  .borderRadius(6)
-                  .objectFit(ImageFit.Cover);
-
-                // 取消 X (右上角)
-                Text('✕')
-                  .fontSize(10).fontWeight(700)
-                  .fontColor('#FFFFFF')
-                  .width(18).height(18)
-                  .borderRadius(9)
-                  .backgroundColor('#80000000')
-                  .textAlign(TextAlign.Center)
-                  .position({ x: '100%', y: 0 })
-                  .markAnchor({ x: '100%', y: 0 })
-                  .offset({ x: -4, y: -4 })
-                  .onClick(() => { this.imagePreview = ''; });
-              }
-              .width(40).height(40)
-              .margin({ right: 8 });
-            }
-
             // 输入框
             TextInput({ text: this.inputText, placeholder: '输入问题...' })
               .layoutWeight(1)
