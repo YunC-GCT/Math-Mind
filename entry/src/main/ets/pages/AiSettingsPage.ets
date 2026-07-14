@@ -145,6 +145,7 @@ struct AiSettingsPage {
         this.statusText = '已保存';
       }
       promptAction.showToast({ message: '配置已保存', duration: 1500 });
+      await this.loadConfig();
     } catch (e) {
       promptAction.showToast({ message: '保存失败', duration: 2000 });
     }
