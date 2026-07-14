@@ -170,10 +170,11 @@ export struct HomePage {
           Row() {
             HexLogo();
             Text('MathMind')
-              .fontSize(17)
-              .fontWeight(600)
+              .fontFamily('HarmonyOS Sans Condensed')
+              .fontSize(18)
+              .fontWeight(500)
               .fontColor(TEXT)
-              .letterSpacing(-0.2)
+              .letterSpacing(0)
               .margin({ left: S_2 });
           }
           .width('100%').height(60)
@@ -194,11 +195,14 @@ export struct HomePage {
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis });
             }
+            .width('100%')
             .alignItems(VerticalAlign.Center);
 
             Text(this.d)
               .fontSize(F_SM).fontColor(TEXT_3)
-              .margin({ left: 12, top: 4 });
+              .width('100%')
+              .textAlign(TextAlign.Start)
+              .margin({ top: 4 });
 
             // --- 进度环 (独立居中，无两侧重复统计) ---
             Stack() {
