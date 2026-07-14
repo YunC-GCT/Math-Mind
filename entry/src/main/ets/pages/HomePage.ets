@@ -82,8 +82,50 @@ function confidenceColor(c: number): string {
 @Component
 struct GradientRing {
   @Prop pct: number = 75;
+  // 动画用的中间值 (从 0 增长到 pct), @State 触发重 render → Canvas 重画
+  @State animPct: number = 0;
+  // 光晕呼吸: 0.45 ↔ 0.85, 2.6s 循环
+  @State glow: number = 0.45;
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private ctx: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
+  private fillTimerId: number = -1;
+  private glowTimerId: number = -1;
+  private glowDir: number = 1;
+
+  aboutToAppear(): void {
+    // === 加载填充: 1.4s 内 animPct 从 0 → pct (ease-out cubic) ===
+    const startTs: number = Date.now();
+    const duration: number = 1400;
+    this.fillTimerId = setInterval(() => {
+      const elapsed: number = Date.now() - startTs;
+      const t: number = Math.min(1, elapsed / duration);
+      const eased: number = 1 - Math.pow(1 - t, 3);
+      this.animPct = this.pct * eased;
+      this.draw();
+      if (t >= 1) {
+        clearInterval(this.fillTimerId);
+        this.fillTimerId = -1;
+      }
+    }, 16);
+
+    // === 光晕呼吸: glow 在 [0.45, 0.85] 三角波, 2.6s 一个周期 ===
+    this.glowTimerId = setInterval(() => {
+      this.glow = this.glow + this.glowDir * 0.025;
+      if (this.glow >= 0.85) { this.glow = 0.85; this.glowDir = -1; }
+      if (this.glow <= 0.45) { this.glow = 0.45; this.glowDir = 1; }
+    }, 30);
+  }
+
+  aboutToDisappear(): void {
+    if (this.fillTimerId !== -1) {
+      clearInterval(this.fillTimerId);
+      this.fillTimerId = -1;
+    }
+    if (this.glowTimerId !== -1) {
+      clearInterval(this.glowTimerId);
+      this.glowTimerId = -1;
+    }
+  }
 
   build() {
     Stack() {
@@ -100,7 +142,14 @@ struct GradientRing {
           this.draw();
         });
     }
-    .width(120).height(120);
+    .width(120).height(120)
+    // 整体 MINT 光晕 (rgba 透明度跟 glow @State 联动, 呼吸效果)
+    .shadow({
+      radius: 18,
+      color: `rgba(91, 227, 176, ${this.glow.toFixed(2)})`,
+      offsetX: 0,
+      offsetY: 0,
+    });
   }
 
   draw(): void {
@@ -117,9 +166,9 @@ struct GradientRing {
     grad.addColorStop(0, MINT);
     grad.addColorStop(1, PURPLE);
 
-    // 从 12 点钟方向顺时针画弧
+    // 从 12 点钟方向顺时针画弧 (用 animPct 配合动画)
     const start = -Math.PI / 2;
-    const sweep = (this.pct / 100) * 2 * Math.PI;
+    const sweep = (this.animPct / 100) * 2 * Math.PI;
 
     ctx.beginPath();
     ctx.arc(cx, cy, r, start, start + sweep);
@@ -213,8 +262,6 @@ export struct HomePage {
               Column() {
                 Text(`${this.avg}%`)
                   .fontSize(26).fontWeight(700).fontColor(TEXT);
-                Text('已掌握')
-                  .fontSize(F_XS).fontColor(TEXT_3).fontWeight(500);
                 Text('去复习 ›')
                   .fontSize(F_XS).fontColor(MINT).fontWeight(600)
                   .margin({ top: 4 });
