@@ -54,7 +54,8 @@ export type LlmErrorKind =
   | 'API_ERROR'         // API 返回非 2xx
   | 'PARSE_ERROR'       // 响应 JSON 解析失败
   | 'EMPTY_RESPONSE'    // 响应内容为空
-  | 'TIMEOUT';          // 超时
+  | 'TIMEOUT'           // 超时
+  | 'PERSIST_ERROR';    // preferences 读写失败
 
 export class LlmError extends Error {
   public kind: LlmErrorKind;

@@ -48,13 +48,27 @@ export interface TruthCheckResult {
 // 调度请求入参(2026-07-14 升级:payload 改 discriminated union,接 image/text/file)
 //   设计动机: 旧版 payload: string 太宽,UI 端要猜"是 base64 / 文本 / 啥?"
 //   新版按 kind 显式分流,TypeClassifier / KnowledgeModel 不用再做字符串嗅探
-export type DispatchPayload =
-  // 图片: 拍照 / 相册,imageUri 给 ML Kit OCR
-  | { kind: 'image'; imageUri: string; userText?: string }
-  // 纯文本: 用户手输 / 复制粘贴 / 提取后的文本,无 OCR
-  | { kind: 'text'; text: string }
-  // 任意文件: 文档选择器来的,带 mimeType 决定下游解析方式
-  | { kind: 'file'; fileUri: string; mimeType: string; userText?: string };
+//   三个分支提取为独立 interface 以满足 arkts-no-obj-literals-as-types
+
+export interface DispatchPayloadImage {
+  kind: 'image';
+  imageUri: string;
+  userText?: string;
+}
+
+export interface DispatchPayloadText {
+  kind: 'text';
+  text: string;
+}
+
+export interface DispatchPayloadFile {
+  kind: 'file';
+  fileUri: string;
+  mimeType: string;
+  userText?: string;
+}
+
+export type DispatchPayload = DispatchPayloadImage | DispatchPayloadText | DispatchPayloadFile;
 
 export interface DispatchRequest {
   // 来源标识

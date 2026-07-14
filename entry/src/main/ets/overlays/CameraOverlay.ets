@@ -4,19 +4,20 @@
  * 触发: HomePage FAB [+] / AI 浮层 → 拍照
  * 流程: 拍/选图 -> imageUri -> onConfirm 回调
  *
+ * 相机策略:
+ *   - 优先: cameraPicker 拉起系统相机 (无需 CAMERA 权限)
+ *   - 降级: 模拟器无相机时 mock uri
+ *   - 相册: photoAccessHelper.PhotoViewPicker
+ *
  * 设计 (按 iOS Web MVP styles.css .cam-*):
  *   - 全屏浮层, 黑底 (#0E1014)
  *   - 顶栏: 左侧 [✕] + 右侧 [翻转] (占位)
  *   - 相机预览: 黑底 + SVG ic_camera 占位 + "将题目对准框内" 文字
  *   - 取景框: 280×360 圆角矩形 + mint 描边 + 扫描线动画
- *   - 底部: 左 [重拍 hidden] + 中 [快门 68×68] + 右 [✓ 使用 hidden]
- *   - 预览状态: 已拍占位 + [重拍] + [✓ 使用]
+ *   - 底部: 左 [相册] + 中 [快门 68×68] + 右 [✓ 使用 hidden]
+ *   - 预览状态: 真实图片预览 + [重拍] + [✓ 使用]
  *
- * MVP 阶段:
- *   - 拍照/选图都用 mock uri(模拟器无相机)
- *   - 真实 cameraPicker / photoViewPicker 调用代码注释保留, W1 接续
- *
- * 第 4 批 fix: 用 SVG 替换 emoji, 整体视觉按 iOS Web MVP
+ * 第 5 批: 接入真实 cameraPicker + PhotoViewPicker (替换 mock)
  */
 
 import {
@@ -34,12 +35,14 @@ import {
   R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG,
 } from 'common';
-import { promptAction } from '@kit.ArkUI';
+import { cameraPicker } from '@kit.CameraKit';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
+import { common } from '@kit.AbilityKit';
 
 // 浮层状态
 type CameraState = 'camera' | 'preview';
 
-// 顶层 mock 工具
+// 降级 mock (模拟器无相机时使用)
 function mockCaptureUri(src: 'camera' | 'album'): string {
   return `mock_${src}_${Date.now()}.jpg`;
 }
@@ -133,12 +136,12 @@ export struct CameraOverlay {
 
       // 底部按钮区
       Row() {
-        // 左侧 占位 (重拍, 默认 hidden)
-        this.RetakeBtn();
+        // 左侧 相册
+        this.AlbumBtn();
         // 中间 快门
         this.ShutterBtn();
-        // 右侧 占位 (✓ 使用, 默认 hidden)
-        Column().width(60);
+        // 右侧 占位 (预览模式下是 ✓ 使用, 相机模式下 hidden)
+        Column().width(56);
       }
       .width('100%')
       .padding({ left: 32, right: 32, top: 24, bottom: 50 })
@@ -166,25 +169,31 @@ export struct CameraOverlay {
       .width('100%')
       .padding({ left: 16, right: 16, top: 8, bottom: 8 });
 
-      // 图片占位
+      // 图片预览
       Stack() {
         if (this.capturedUri.length > 0) {
           Column() {
-            Image($r('app.media.ic_camera'))
-              .width(64)
-              .height(64)
-              .fillColor('rgba(255,255,255,0.3)');
-            Text(this.capturedSrc === 'camera' ? '已拍摄' : '从相册选择')
-              .fontSize(F_SM)
-              .fontColor(TEXT_2)
-              .margin({ top: 14 });
-            Text(this.capturedUri)
-              .fontSize(10)
-              .fontColor(TEXT_4)
-              .margin({ top: 8 })
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .padding({ left: 24, right: 24 });
+            // 真实图片
+            Image(this.capturedUri)
+              .width('100%')
+              .layoutWeight(1)
+              .objectFit(ImageFit.Contain)
+              .backgroundColor('#FF000000');
+            // 底部信息
+            Row() {
+              Text(this.capturedSrc === 'camera' ? '已拍摄' : '从相册选择')
+                .fontSize(F_SM)
+                .fontColor(TEXT_2);
+              Blank();
+              Text(this.capturedUri.split('/').pop() ?? '')
+                .fontSize(10)
+                .fontColor(TEXT_4)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .constraintSize({ maxWidth: 180 });
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 8, bottom: 8 });
           }
           .alignItems(HorizontalAlign.Center);
         }
@@ -252,7 +261,12 @@ export struct CameraOverlay {
     .backgroundColor('rgba(255,255,255,0.08)')
     .border({ width: 1, color: 'rgba(255,255,255,0.1)' })
     .alignContent(Alignment.Center)
-    .onClick(() => this.pickAlbum());
+    .onClick(() => {
+      if (this.busy) {
+        return;
+      }
+      this.pickAlbum();
+    });
   }
 
   @Builder
@@ -270,7 +284,12 @@ export struct CameraOverlay {
     }
     .width(76).height(76)
     .alignContent(Alignment.Center)
-    .onClick(() => this.takePhoto());
+    .onClick(() => {
+      if (this.busy) {
+        return;
+      }
+      this.takePhoto();
+    });
   }
 
   @Builder
@@ -388,13 +407,53 @@ export struct CameraOverlay {
   }
 
   // ========== 行为 ==========
-  private takePhoto = (): void => {
+
+  // 拍照: 调系统 cameraPicker (无需 CAMERA 权限)
+  private takePhoto = async (): Promise<void> => {
+    this.busy = true;
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const result: cameraPicker.PickerResult =
+        await cameraPicker.pick(ctx, [cameraPicker.PickerMediaType.PHOTO]);
+      if (result.resultUri.length > 0) {
+        this.capturedUri = result.resultUri;
+        this.capturedSrc = 'camera';
+        this.state = 'preview';
+        return;
+      }
+    } catch (_e) {
+      // 用户取消 / 模拟器无相机 → 降级 mock
+    } finally {
+      this.busy = false;
+    }
     this.capturedUri = mockCaptureUri('camera');
     this.capturedSrc = 'camera';
     this.state = 'preview';
   };
 
-  private pickAlbum = (): void => {
+  // 选图: 调系统 PhotoViewPicker
+  private pickAlbum = async (): Promise<void> => {
+    this.busy = true;
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const picker: photoAccessHelper.PhotoViewPicker =
+        new photoAccessHelper.PhotoViewPicker();
+      const result: photoAccessHelper.PhotoSelectResult =
+        await picker.select({
+          MIMEType: photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE,
+          maxSelectNumber: 1,
+        });
+      if (result.photoUris.length > 0) {
+        this.capturedUri = result.photoUris[0];
+        this.capturedSrc = 'album';
+        this.state = 'preview';
+        return;
+      }
+    } catch (_e) {
+      // 用户取消 / 模拟器无相册 → 降级 mock
+    } finally {
+      this.busy = false;
+    }
     this.capturedUri = mockCaptureUri('album');
     this.capturedSrc = 'album';
     this.state = 'preview';

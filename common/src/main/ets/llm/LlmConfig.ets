@@ -77,18 +77,32 @@ export class LlmConfig {
       throw new LlmError('API key cannot be empty', 'NOT_INITIALIZED');
     }
     const storeRef: preferences.Preferences = this.store as preferences.Preferences;
-    await storeRef.put(KEY_API_KEY, trimmed);
-    await storeRef.flush();
+    try {
+      await storeRef.put(KEY_API_KEY, trimmed);
+      await storeRef.flush();
+    } catch (e) {
+      throw new LlmError(
+        `Failed to save API key: ${(e as Error).message}`,
+        'PERSIST_ERROR',
+      );
+    }
   }
 
   public async getApiKey(): Promise<string | null> {
     this.requireInited();
     const storeRef: preferences.Preferences = this.store as preferences.Preferences;
-    const v: string = await storeRef.get(KEY_API_KEY, '') as string;
-    if (v === '') {
-      return null;
+    try {
+      const v: string = await storeRef.get(KEY_API_KEY, '') as string;
+      if (v === '') {
+        return null;
+      }
+      return v;
+    } catch (e) {
+      throw new LlmError(
+        `Failed to read API key: ${(e as Error).message}`,
+        'PERSIST_ERROR',
+      );
     }
-    return v;
   }
 
   public async isConfigured(): Promise<boolean> {
@@ -99,8 +113,15 @@ export class LlmConfig {
   public async clearApiKey(): Promise<void> {
     this.requireInited();
     const storeRef: preferences.Preferences = this.store as preferences.Preferences;
-    await storeRef.delete(KEY_API_KEY);
-    await storeRef.flush();
+    try {
+      await storeRef.delete(KEY_API_KEY);
+      await storeRef.flush();
+    } catch (e) {
+      throw new LlmError(
+        `Failed to clear API key: ${(e as Error).message}`,
+        'PERSIST_ERROR',
+      );
+    }
   }
 
   // ===== 静态配置 getter(MVP 写死)=====
