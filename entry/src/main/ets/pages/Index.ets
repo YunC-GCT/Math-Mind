@@ -98,10 +98,11 @@ struct Index {
     this.showAgentFloat = false;
   };
 
-  // AgentFloatWindow: 点拍照 → 打开拍照浮层
-  private goCameraFromAgent = (): void => {
-    this.showCamera = true;
-  };
+    // AgentFloatWindow: 点拍照 → 先关 AI 浮窗, 再开相机
+    private goCameraFromAgent = (): void => {
+      this.showAgentFloat = false;
+      this.showCamera = true;
+    };
 
   build() {
     Stack() {
@@ -177,28 +178,29 @@ struct Index {
       .border({ width: { top: 1 }, color: BORDER })
       .justifyContent(FlexAlign.SpaceAround)
       .alignItems(VerticalAlign.Center);
-
-      // ===== 全局 CameraOverlay 浮层(HomePage FAB / AI 📷 都触发)=====
-      if (this.showCamera) {
-        CameraOverlay({
-          onClose: (): void => { this.showCamera = false; },
-          onConfirm: this.onCameraConfirm,
-        });
-      }
     }
     .width('100%').height('100%').backgroundColor(BG_DARK);
 
-      if (this.showAgentFloat) {
-        AgentFloatWindow({
-          show: this.showAgentFloat,
-          onClose: this.closeAgentFloat,
-          onGoCamera: this.goCameraFromAgent,
-          pendingImageUri: this.pendingImageUri,
-        });
-      }
+    // ===== 全局 CameraOverlay 浮层 (在 Stack 内 Column 外, 全屏覆盖) =====
+    if (this.showCamera) {
+      CameraOverlay({
+        onClose: (): void => { this.showCamera = false; },
+        onConfirm: this.onCameraConfirm,
+      });
     }
-    .width('100%').height('100%');
+
+    // ===== 全局 AgentFloatWindow 浮层 (在 Stack 内 Column 外, 底部弹出) =====
+    if (this.showAgentFloat) {
+      AgentFloatWindow({
+        show: this.showAgentFloat,
+        onClose: this.closeAgentFloat,
+        onGoCamera: this.goCameraFromAgent,
+        pendingImageUri: this.pendingImageUri,
+      });
+    }
   }
+  .width('100%').height('100%');
+}
 
   // ========== 普通 Tab ==========
   @Builder

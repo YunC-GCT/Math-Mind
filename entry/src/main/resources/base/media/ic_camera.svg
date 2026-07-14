@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">
+  <!-- 相机主体 (圆角矩形) + 顶部凸起, lens 圆环 (中心挖空) -->
+  <path d="M14.5 4l1.5 2H20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l1.5-2h5zM12 9a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
+</svg>

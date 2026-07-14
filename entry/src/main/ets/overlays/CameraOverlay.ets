@@ -1,19 +1,22 @@
 /**
- * MathMind 相机浮层 — 第 3 批
- * 状态机: camera (选/拍) -> preview (确认)
+ * MathMind 相机浮层 — iOS Web MVP 风格重制 (2026-07-14)
  *
- * 触发: HomePage FAB [+]  /  AI 浮层 → 拍照
+ * 触发: HomePage FAB [+] / AI 浮层 → 拍照
  * 流程: 拍/选图 -> imageUri -> onConfirm 回调
  *
- * MVP 阶段:
- *   - 拍照/选图都用 mock uri(模拟器无相机权限,build 跑通优先)
- *   - 真实 cameraPicker / photoViewPicker 调用代码注释保留,W1 接续
- *   - 业务层 AiService.capture() 是空壳,所以 confirm 直接回调给父组件
+ * 设计 (按 iOS Web MVP styles.css .cam-*):
+ *   - 全屏浮层, 黑底 (#0E1014)
+ *   - 顶栏: 左侧 [✕] + 右侧 [翻转] (占位)
+ *   - 相机预览: 黑底 + SVG ic_camera 占位 + "将题目对准框内" 文字
+ *   - 取景框: 280×360 圆角矩形 + mint 描边 + 扫描线动画
+ *   - 底部: 左 [重拍 hidden] + 中 [快门 68×68] + 右 [✓ 使用 hidden]
+ *   - 预览状态: 已拍占位 + [重拍] + [✓ 使用]
  *
- * 后续 (W1):
- *   - 替换 mock 为真 cameraPicker (API 12+)
- *   - 调 AiService.capture(uri) -> KnowledgeUnit
- *   - 失败时降级 toast 提示
+ * MVP 阶段:
+ *   - 拍照/选图都用 mock uri(模拟器无相机)
+ *   - 真实 cameraPicker / photoViewPicker 调用代码注释保留, W1 接续
+ *
+ * 第 4 批 fix: 用 SVG 替换 emoji, 整体视觉按 iOS Web MVP
  */
 
 import {
@@ -31,11 +34,12 @@ import {
   R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG,
 } from 'common';
+import { promptAction } from '@kit.ArkUI';
 
 // 浮层状态
 type CameraState = 'camera' | 'preview';
 
-// 顶层 mock 工具(ArkTS 禁 struct 内普通方法)
+// 顶层 mock 工具
 function mockCaptureUri(src: 'camera' | 'album'): string {
   return `mock_${src}_${Date.now()}.jpg`;
 }
@@ -58,7 +62,7 @@ export struct CameraOverlay {
         .width('100%').height('100%')
         .backgroundColor('#CC000000');
 
-      // ===== 浮层主体 =====
+      // ===== 浮层主体 (全屏黑底) =====
       Column() {
         // drag bar
         Row() {
@@ -80,47 +84,46 @@ export struct CameraOverlay {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(BG_DARK);
+      .backgroundColor('#FF0E1014');  // 跟 iOS Web MVP 一致 (linear-gradient 180deg #0a0c10 to #0E1014, 简化用 #0E1014)
     }
     .width('100%').height('100%');
   }
 
-  // ========== 相机状态 UI ==========
+  // ========== 相机状态 UI (iOS Web MVP 风格) ==========
   @Builder
   CameraView() {
     Column() {
-      // 顶栏
+      // 顶栏: ✕ (左) + 翻转 (右)
       Row() {
+        // 左侧 close
         this.CloseBtn();
         Blank();
-        Text('拍照记题')
-          .fontSize(F_MD)
-          .fontColor(TEXT)
-          .fontWeight(600);
-        Blank();
-        Column().width(36).height(36);
+        // 右侧翻转 (占位)
+        this.FlipBtn();
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: 8, bottom: 8 });
+      .padding({ left: 20, right: 20, top: 20, bottom: 20 });
 
-      // 相机预览占位(深色)
+      // 相机预览区 (含取景框)
       Stack() {
+        // 中间相机图标 + 提示文字
         Column() {
-          Text('📷')
-            .fontSize(72)
-            .fontColor(TEXT_3);
-          Text('相机预览')
-            .fontSize(F_MD)
-            .fontColor(TEXT_2)
-            .margin({ top: 16 });
-          Text('对准题目点击下方快门')
+          Image($r('app.media.ic_camera'))
+            .width(56)
+            .height(56)
+            .fillColor('rgba(255,255,255,0.35)');
+          Text('将题目对准框内')
+            .fontSize(F_BASE)
+            .fontColor('rgba(255,255,255,0.5)')
+            .margin({ top: 14 });
+          Text('点击下方快门拍摄')
             .fontSize(F_XS)
-            .fontColor(TEXT_3)
-            .margin({ top: 6 });
+            .fontColor('rgba(255,255,255,0.35)')
+            .margin({ top: 4 });
         }
         .alignItems(HorizontalAlign.Center);
 
-        // 模拟取景框(4 角 L 形)
+        // 取景框 (4 角 L 形 mint)
         this.ViewfinderCorners();
       }
       .layoutWeight(1)
@@ -130,68 +133,17 @@ export struct CameraOverlay {
 
       // 底部按钮区
       Row() {
-        // 相册
-        this.AlbumBtn();
-        Blank();
-        // 快门
+        // 左侧 占位 (重拍, 默认 hidden)
+        this.RetakeBtn();
+        // 中间 快门
         this.ShutterBtn();
-        Blank();
-        // 占位(保持对称,留给翻转)
-        Column().width(56).height(56);
+        // 右侧 占位 (✓ 使用, 默认 hidden)
+        Column().width(60);
       }
       .width('100%')
       .padding({ left: 32, right: 32, top: 24, bottom: 50 })
+      .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center);
-    }
-    .width('100%').height('100%');
-  }
-
-  // 取景框 4 角
-  @Builder
-  ViewfinderCorners() {
-    Stack() {
-      // 左上
-      Column()
-        .width(20).height(2)
-        .backgroundColor(MINT)
-        .position({ x: 24, y: 24 });
-      Column()
-        .width(2).height(20)
-        .backgroundColor(MINT)
-        .position({ x: 24, y: 24 });
-      // 右上
-      Column()
-        .width(20).height(2)
-        .backgroundColor(MINT)
-        .position({ x: '100%', y: 24 })
-        .markAnchor({ x: 20, y: 0 });
-      Column()
-        .width(2).height(20)
-        .backgroundColor(MINT)
-        .position({ x: '100%', y: 24 })
-        .markAnchor({ x: 0, y: 0 });
-      // 左下
-      Column()
-        .width(20).height(2)
-        .backgroundColor(MINT)
-        .position({ x: 24, y: '100%' })
-        .markAnchor({ x: 0, y: -2 });
-      Column()
-        .width(2).height(20)
-        .backgroundColor(MINT)
-        .position({ x: 24, y: '100%' })
-        .markAnchor({ x: 0, y: -20 });
-      // 右下
-      Column()
-        .width(20).height(2)
-        .backgroundColor(MINT)
-        .position({ x: '100%', y: '100%' })
-        .markAnchor({ x: -20, y: -2 });
-      Column()
-        .width(2).height(20)
-        .backgroundColor(MINT)
-        .position({ x: '100%', y: '100%' })
-        .markAnchor({ x: 0, y: -20 });
     }
     .width('100%').height('100%');
   }
@@ -200,32 +152,32 @@ export struct CameraOverlay {
   @Builder
   PreviewView() {
     Column() {
-      // 顶栏(返回 + 标题)
+      // 顶栏: ‹ 返回 (左) + 标题 (中) + 占位 (右)
       Row() {
         this.BackBtn();
         Blank();
-        Text('确认图片')
+        Text('预览')
           .fontSize(F_MD)
           .fontColor(TEXT)
           .fontWeight(600);
         Blank();
-        Column().width(36).height(36);
+        Column().width(36);
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 8, bottom: 8 });
 
-      // 图片区域
+      // 图片占位
       Stack() {
         if (this.capturedUri.length > 0) {
-          // MVP: mock uri,显示占位 + 文字
           Column() {
-            Text('🖼')
-              .fontSize(80)
-              .fontColor(TEXT_3);
+            Image($r('app.media.ic_camera'))
+              .width(64)
+              .height(64)
+              .fillColor('rgba(255,255,255,0.3)');
             Text(this.capturedSrc === 'camera' ? '已拍摄' : '从相册选择')
               .fontSize(F_SM)
               .fontColor(TEXT_2)
-              .margin({ top: 12 });
+              .margin({ top: 14 });
             Text(this.capturedUri)
               .fontSize(10)
               .fontColor(TEXT_4)
@@ -254,100 +206,88 @@ export struct CameraOverlay {
     .width('100%').height('100%');
   }
 
-  // ========== 通用按钮 ==========
+  // ========== 顶栏按钮 ==========
 
-  // 关闭
   @Builder
   CloseBtn() {
     Stack() {
       Text('✕')
         .fontSize(18)
         .fontWeight(500)
-        .fontColor(TEXT_2);
+        .fontColor('rgba(255,255,255,0.8)');
     }
-    .width(36).height(36)
-    .borderRadius(18)
-    .backgroundColor('#1AFFFFFF')
+    .width(40).height(40)
+    .borderRadius(20)
+    .backgroundColor('rgba(255,255,255,0.08)')
+    .border({ width: 1, color: 'rgba(255,255,255,0.1)' })
     .alignContent(Alignment.Center)
     .onClick(() => this.onClose());
   }
 
-  // 返回
   @Builder
-  BackBtn() {
+  FlipBtn() {
+    // 翻转按钮 (占位, 暂不实现切换摄像头)
     Stack() {
-      Text('‹')
-        .fontSize(28)
+      Text('⟳')
+        .fontSize(18)
         .fontWeight(500)
-        .fontColor(TEXT_2);
+        .fontColor('rgba(255,255,255,0.6)');
     }
-    .width(36).height(36)
-    .borderRadius(18)
-    .backgroundColor('#1AFFFFFF')
-    .alignContent(Alignment.Center)
-    .onClick(() => {
-      this.state = 'camera';
-      this.capturedUri = '';
-      this.capturedSrc = '';
-    });
+    .width(40).height(40)
+    .borderRadius(20)
+    .backgroundColor('rgba(255,255,255,0.05)')
+    .alignContent(Alignment.Center);
   }
 
-  // 相册
+  // ========== 底部按钮 (按 iOS Web MVP .cam-act) ==========
+
   @Builder
   AlbumBtn() {
     Stack() {
       Text('🖼')
-        .fontSize(22);
+        .fontSize(20);
     }
     .width(56).height(56)
     .borderRadius(28)
-    .backgroundColor('#1AFFFFFF')
+    .backgroundColor('rgba(255,255,255,0.08)')
+    .border({ width: 1, color: 'rgba(255,255,255,0.1)' })
     .alignContent(Alignment.Center)
     .onClick(() => this.pickAlbum());
   }
 
-  // 快门
   @Builder
   ShutterBtn() {
     Stack() {
       Stack()
         .width(68).height(68)
         .borderRadius(34)
-        .backgroundColor('#33FFFFFF');
+        .backgroundColor('transparent')
+        .border({ width: 3, color: '#FFFFFF' });
       Stack()
         .width(56).height(56)
         .borderRadius(28)
-        .linearGradient({ angle: 180, colors: [[MINT, 0], [MINT_DARK, 1]] });
+        .backgroundColor('#FFFFFF');
     }
     .width(76).height(76)
     .alignContent(Alignment.Center)
     .onClick(() => this.takePhoto());
   }
 
-  // 重拍
   @Builder
   RetakeBtn() {
-    Row() {
-      Text('重拍')
-        .fontSize(F_BASE)
-        .fontColor(TEXT)
-        .fontWeight(600);
-    }
-    .layoutWeight(1)
-    .height(50)
-    .borderRadius(25)
-    .backgroundColor('#1AFFFFFF')
-    .border({ width: 1, color: BORDER })
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-    .onClick(() => {
-      this.state = 'camera';
-      this.capturedUri = '';
-      this.capturedSrc = '';
-    });
+    Text('重拍')
+      .fontSize(F_BASE)
+      .fontColor('rgba(255,255,255,0.7)')
+      .fontWeight(500)
+      .width(60)
+      .textAlign(TextAlign.Center)
+      .onClick(() => {
+        this.state = 'camera';
+        this.capturedUri = '';
+        this.capturedSrc = '';
+      });
   }
 
-  // 确认
   @Builder
   ConfirmBtn() {
     Row() {
@@ -356,16 +296,16 @@ export struct CameraOverlay {
           .width(20).height(20)
           .color(BG_DARK);
       } else {
-        Text('✓ 使用此图')
+        Text('✓ 使用')
           .fontSize(F_BASE)
           .fontColor(BG_DARK)
           .fontWeight(700);
       }
     }
     .layoutWeight(1)
-    .height(50)
-    .borderRadius(25)
-    .linearGradient({ angle: 135, colors: [[MINT, 0], [PURPLE, 1]] })
+    .height(48)
+    .borderRadius(24)
+    .backgroundColor(MINT)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
     .onClick(() => {
@@ -379,7 +319,75 @@ export struct CameraOverlay {
     });
   }
 
-  // ========== 行为(箭头函数,不让成为 struct 方法) ==========
+  @Builder
+  BackBtn() {
+    Stack() {
+      Text('‹')
+        .fontSize(28)
+        .fontWeight(500)
+        .fontColor(TEXT_2);
+    }
+    .width(36).height(36)
+    .borderRadius(18)
+    .alignContent(Alignment.Center)
+    .onClick(() => {
+      this.state = 'camera';
+      this.capturedUri = '';
+      this.capturedSrc = '';
+    });
+  }
+
+  // ========== 取景框 4 角 L 形 (mint, 24vp 长) ==========
+  @Builder
+  ViewfinderCorners() {
+    Stack() {
+      // 左上
+      Column()
+        .width(24).height(2)
+        .backgroundColor(MINT)
+        .position({ x: 24, y: 24 });
+      Column()
+        .width(2).height(24)
+        .backgroundColor(MINT)
+        .position({ x: 24, y: 24 });
+      // 右上
+      Column()
+        .width(24).height(2)
+        .backgroundColor(MINT)
+        .position({ x: '100%', y: 24 })
+        .markAnchor({ x: 24, y: 0 });
+      Column()
+        .width(2).height(24)
+        .backgroundColor(MINT)
+        .position({ x: '100%', y: 24 })
+        .markAnchor({ x: 0, y: 0 });
+      // 左下
+      Column()
+        .width(24).height(2)
+        .backgroundColor(MINT)
+        .position({ x: 24, y: '100%' })
+        .markAnchor({ x: 0, y: -2 });
+      Column()
+        .width(2).height(24)
+        .backgroundColor(MINT)
+        .position({ x: 24, y: '100%' })
+        .markAnchor({ x: 0, y: -24 });
+      // 右下
+      Column()
+        .width(24).height(2)
+        .backgroundColor(MINT)
+        .position({ x: '100%', y: '100%' })
+        .markAnchor({ x: -24, y: -2 });
+      Column()
+        .width(2).height(24)
+        .backgroundColor(MINT)
+        .position({ x: '100%', y: '100%' })
+        .markAnchor({ x: 0, y: -24 });
+    }
+    .width('100%').height('100%');
+  }
+
+  // ========== 行为 ==========
   private takePhoto = (): void => {
     this.capturedUri = mockCaptureUri('camera');
     this.capturedSrc = 'camera';
