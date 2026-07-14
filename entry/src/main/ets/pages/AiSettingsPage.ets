@@ -17,66 +17,100 @@ import { router } from '@kit.ArkUI';
 @Component
 struct AiSettingsPage {
   @State apiKey: string = '';
-  @State configured: boolean = false;
-  @State testing: boolean = false;
   @State endpoint: string = '';
   @State model: string = '';
+  @State temperature: number = 0.1;
+  @State maxTokens: number = 256;
+  @State timeoutMs: number = 5000;
+  @State configured: boolean = false;
+  @State testing: boolean = false;
   @State statusText: string = '未配置';
+  @State tempText: string = '0.1';
+  @State maxTokensText: string = '256';
+  @State timeoutText: string = '5000';
 
   aboutToAppear(): void {
     this.loadConfig();
   }
 
   async loadConfig(): Promise<void> {
-    const config = LlmConfig.getInstance();
-    const key: string | null = await config.getApiKey();
+    const c = LlmConfig.getInstance();
+    const key = await c.getApiKey();
     if (key !== null && key.length > 0) {
       this.apiKey = key;
       this.configured = true;
       this.statusText = '已配置';
     }
-    this.endpoint = config.getEndpoint();
-    this.model = config.getModel();
+    this.endpoint = c.getEndpoint();
+    this.model = c.getModel();
+    this.temperature = c.getTemperature();
+    this.maxTokens = c.getMaxTokens();
+    this.timeoutMs = c.getTimeoutMs();
+    this.tempText = this.temperature.toString();
+    this.maxTokensText = this.maxTokens.toString();
+    this.timeoutText = this.timeoutMs.toString();
   }
 
   async handleSave(): Promise<void> {
-    const trimmed: string = this.apiKey.trim();
-    if (trimmed.length === 0) {
-      promptAction.showToast({ message: '请输入 API Key', duration: 1500 });
-      return;
-    }
     try {
-      await LlmConfig.getInstance().setApiKey(trimmed);
-      this.configured = true;
-      this.statusText = '已配置';
-      promptAction.showToast({ message: 'API Key 已保存', duration: 1500 });
+      const c = LlmConfig.getInstance();
+      // 处理数字字段
+      const tp = parseFloat(this.tempText);
+      const mt = parseInt(this.maxTokensText);
+      const to = parseInt(this.timeoutText);
+      if (isNaN(tp) || isNaN(mt) || isNaN(to)) {
+        promptAction.showToast({ message: '温度/最大Token/超时 必须为数字', duration: 2000 });
+        return;
+      }
+      this.temperature = tp;
+      this.maxTokens = mt;
+      this.timeoutMs = to;
+
+      // 保存所有配置
+      await c.saveAll(this.endpoint, this.model, this.temperature, this.maxTokens, this.timeoutMs);
+
+      // 处理 API Key
+      if (this.apiKey.trim().length > 0) {
+        await c.setApiKey(this.apiKey.trim());
+        this.configured = true;
+        this.statusText = '已保存';
+      } else {
+        this.configured = false;
+        this.statusText = '未配置 API Key';
+      }
+      promptAction.showToast({ message: '配置已保存', duration: 1500 });
     } catch (e) {
       promptAction.showToast({ message: '保存失败', duration: 2000 });
     }
   }
 
-  async handleClear(): Promise<void> {
+  async handleReset(): Promise<void> {
     try {
-      await LlmConfig.getInstance().clearApiKey();
+      await LlmConfig.getInstance().resetDefaults();
+      await this.loadConfig();
       this.apiKey = '';
       this.configured = false;
-      this.statusText = '未配置';
-      promptAction.showToast({ message: 'API Key 已清除', duration: 1500 });
+      this.statusText = '已恢复默认';
+      promptAction.showToast({ message: '已恢复默认配置', duration: 1500 });
     } catch (e) {
-      promptAction.showToast({ message: '清除失败', duration: 1500 });
+      promptAction.showToast({ message: '恢复失败', duration: 1500 });
     }
   }
 
   async handleTest(): Promise<void> {
-    if (this.apiKey.trim().length === 0) {
+    const key = this.apiKey.trim();
+    if (key.length === 0) {
       promptAction.showToast({ message: '请先输入 API Key', duration: 1500 });
       return;
     }
+    // 先临时保存以便测试
+    const c = LlmConfig.getInstance();
+    await c.setApiKey(key);
     this.testing = true;
     try {
       const client = new LlmClient();
-      const reply: string = await client.call([
-        { role: 'system', content: 'You are a helpful assistant. Reply with just "OK".' },
+      const reply = await client.call([
+        { role: 'system', content: 'Reply with just "OK".' },
         { role: 'user', content: 'Say OK' },
       ]);
       if (reply.length > 0) {
@@ -99,155 +133,144 @@ struct AiSettingsPage {
           .fontSize(F_SM)
           .fontColor(MINT)
           .onClick(() => { router.back(); });
-
         Blank();
-
         Text('模型配置')
-          .fontSize(F_MD)
-          .fontWeight(600)
-          .fontColor(TEXT);
-
+          .fontSize(F_MD).fontWeight(600).fontColor(TEXT);
         Blank();
         Row().width(60);
       }
-      .width('100%')
-      .padding({ left: S_2, right: S_2, top: 12, bottom: 12 });
-
-      // 分隔线
+      .width('100%').padding({ left: S_2, right: S_2, top: 12, bottom: 12 });
       Row().width('100%').height(0.5).backgroundColor(BORDER);
 
       Scroll() {
         Column() {
-          // 状态卡片
+          // ===== 状态卡 =====
           Row() {
             Column() {
-              Text('状态')
-                .fontSize(F_XS)
-                .fontColor(TEXT_3)
-                .margin({ bottom: 4 });
+              Text('连接状态')
+                .fontSize(F_XS).fontColor(TEXT_3).margin({ bottom: 4 });
               Text(this.statusText)
-                .fontSize(F_BASE)
-                .fontWeight(600)
+                .fontSize(F_BASE).fontWeight(600)
                 .fontColor(this.configured ? MINT : TEXT_4);
-            }
-            .alignItems(HorizontalAlign.Start);
-
+            }.alignItems(HorizontalAlign.Start);
             Blank();
-
-            // 状态指示灯
-            Row()
-              .width(10).height(10)
-              .borderRadius(5)
+            Row().width(10).height(10).borderRadius(5)
               .backgroundColor(this.configured ? MINT : '#FF666666');
           }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-          .borderRadius(R_LG)
-          .backgroundColor(BG_CARD)
-          .margin({ left: S_2, right: S_2, top: 16 });
+          .width('100%').padding(16).borderRadius(R_LG)
+          .backgroundColor(BG_CARD).margin({ left: S_2, right: S_2, top: 16 });
 
-          // 模型信息 (只读)
-          Column() {
-            this.InfoRow('模型', this.model);
-            Row().width('100%').height(0.5).backgroundColor(BORDER);
-            this.InfoRow('端点', this.endpoint);
-          }
-          .width('100%')
-          .borderRadius(R_LG)
-          .backgroundColor(BG_CARD)
-          .margin({ left: S_2, right: S_2, top: 12 });
+          // ===== 服务端点 =====
+          this.SectionHeader('服务端点', 'OpenAI 兼容的 API 地址');
+          this.InputField(this.endpoint, 'https://api.siliconflow.cn/v1/chat/completions',
+            (v: string) => { this.endpoint = v; });
 
-          // API Key 输入
-          Column() {
-            Text('API Key')
-              .fontSize(F_XS)
-              .fontColor(TEXT_3)
-              .margin({ left: 16, top: 14 });
+          // ===== 模型名称 =====
+          this.SectionHeader('模型名称', '如 deepseek-ai/DeepSeek-V3');
+          this.InputField(this.model, 'deepseek-ai/DeepSeek-V3',
+            (v: string) => { this.model = v; });
 
-            TextInput({
-              text: this.apiKey,
-              placeholder: '输入 SiliconFlow / DeepSeek API Key...',
-            })
+          // ===== API Key =====
+          this.SectionHeader('API Key', '从模型服务商获取的密钥');
+          Row() {
+            TextInput({ text: this.apiKey, placeholder: 'sk-...' })
               .type(InputType.Password)
-              .width('100%')
-              .height(44)
-              .fontSize(F_SM)
-              .fontColor(TEXT)
-              .placeholderColor(TEXT_4)
+              .layoutWeight(1).height(42)
+              .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
               .backgroundColor('transparent')
-              .margin({ left: 16, right: 16, top: 8 })
-              .onChange((value: string) => {
-                this.apiKey = value;
-              });
-
-            // 按钮行
-            Row() {
-              // 测试连接
-              Button(this.testing ? '测试中...' : '测试连接')
-                .fontSize(F_XS)
-                .fontColor(PURPLE)
-                .height(34)
-                .borderRadius(R_MD)
-                .backgroundColor(PURPLE_LIGHT)
-                .enabled(!this.testing)
-                .onClick(() => { this.handleTest(); });
-
-              Blank();
-
-              // 清除
-              Button('清除')
-                .fontSize(F_XS)
-                .fontColor('#FFFF6B6B')
-                .height(34)
-                .borderRadius(R_MD)
-                .backgroundColor('#1AFF6B6B')
-                .onClick(() => { this.handleClear(); });
-
-              // 保存
-              Button('保存')
-                .fontSize(F_XS)
-                .fontColor(BG_DARK)
-                .height(34)
-                .borderRadius(R_MD)
-                .backgroundColor(MINT)
-                .margin({ left: 8 })
-                .onClick(() => { this.handleSave(); });
-            }
-            .width('100%')
-            .padding({ left: 16, right: 16, top: 12, bottom: 14 });
+              .onChange((v: string) => { this.apiKey = v; });
+            Button(this.testing ? '...' : '测试')
+              .fontSize(F_XS).fontColor(BG_DARK)
+              .height(34).borderRadius(R_MD).backgroundColor(MINT)
+              .enabled(!this.testing).margin({ left: 8 })
+              .onClick(() => { this.handleTest(); });
           }
-          .width('100%')
-          .borderRadius(R_LG)
-          .backgroundColor(BG_CARD)
-          .margin({ left: S_2, right: S_2, top: 12 });
-        }
-        .width('100%')
-        .padding({ bottom: 40 });
+          .width('100%').padding({ left: 16, right: 16, top: 8, bottom: 8 })
+          .borderRadius(R_LG).backgroundColor(BG_CARD)
+          .margin({ left: S_2, right: S_2 });
+
+          // ===== 参数 =====
+          this.SectionHeader('请求参数', '');
+          Column() {
+            // Temperature
+            this.NumberRow('温度', this.tempText, '0 - 2', (v: string) => { this.tempText = v; });
+            Row().width('100%').height(0.5).backgroundColor(BORDER);
+            // Max Tokens
+            this.NumberRow('最大 Token', this.maxTokensText, '1 - 8192', (v: string) => { this.maxTokensText = v; });
+            Row().width('100%').height(0.5).backgroundColor(BORDER);
+            // Timeout
+            this.NumberRow('超时(毫秒)', this.timeoutText, '1000 - 60000', (v: string) => { this.timeoutText = v; });
+          }
+          .width('100%').borderRadius(R_LG).backgroundColor(BG_CARD)
+          .margin({ left: S_2, right: S_2 });
+
+          // ===== 按钮 =====
+          Row() {
+            Button('恢复默认')
+              .fontSize(F_SM).fontColor(PURPLE)
+              .height(44).borderRadius(R_MD).backgroundColor(PURPLE_LIGHT)
+              .layoutWeight(1)
+              .onClick(() => { this.handleReset(); });
+            Button('保存配置')
+              .fontSize(F_SM).fontColor(BG_DARK)
+              .height(44).borderRadius(R_MD).backgroundColor(MINT)
+              .layoutWeight(1).margin({ left: 12 })
+              .onClick(() => { this.handleSave(); });
+          }
+          .width('100%').padding({ left: S_2, right: S_2, top: 20 });
+
+          Blank().height(40);
+        }.width('100%');
       }
-      .layoutWeight(1)
-      .width('100%');
+      .layoutWeight(1).width('100%');
     }
-    .width('100%').height('100%')
-    .backgroundColor(BG_DARK);
+    .width('100%').height('100%').backgroundColor(BG_DARK);
   }
 
   @Builder
-  InfoRow(label: string, value: string) {
-    Row() {
-      Text(label)
-        .fontSize(F_SM)
-        .fontColor(TEXT_3)
-        .width(48)
-        .flexShrink(0);
-
-      Text(value)
-        .fontSize(F_XS)
-        .fontColor(TEXT_2)
-        .layoutWeight(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .maxLines(1);
+  SectionHeader(title: string, desc: string) {
+    Column() {
+      Text(title)
+        .fontSize(F_SM).fontWeight(600).fontColor(TEXT);
+      if (desc.length > 0) {
+        Text(desc)
+          .fontSize(F_XS).fontColor(TEXT_4).margin({ top: 2 });
+      }
     }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 });
+    .alignItems(HorizontalAlign.Start)
+    .width('100%').padding({ left: 20, right: S_2, top: 20, bottom: 8 });
+  }
+
+  @Builder
+  InputField(value: string, placeholder: string, onChange: (v: string) => void) {
+    TextInput({ text: value, placeholder: placeholder })
+      .width('100%').height(42)
+      .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
+      .backgroundColor('transparent')
+      .padding({ left: 16, right: 16 })
+      .borderRadius(R_LG).backgroundColor(BG_CARD)
+      .margin({ left: S_2, right: S_2 })
+      .onChange(onChange);
+  }
+
+  @Builder
+  NumberRow(label: string, value: string, hint: string, onChange: (v: string) => void) {
+    Row() {
+      Column() {
+        Text(label).fontSize(F_SM).fontColor(TEXT_2);
+        Text(hint).fontSize(10).fontColor(TEXT_4).margin({ top: 2 });
+      }.alignItems(HorizontalAlign.Start);
+
+      Blank();
+
+      TextInput({ text: value, placeholder: hint })
+        .type(InputType.Number)
+        .width(90).height(34)
+        .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
+        .backgroundColor('#0AFFFFFF')
+        .borderRadius(R_MD).textAlign(TextAlign.Center)
+        .onChange(onChange);
+    }
+    .width('100%').padding({ left: 16, right: 16, top: 10, bottom: 10 });
   }
 }
