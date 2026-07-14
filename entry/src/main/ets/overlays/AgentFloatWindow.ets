@@ -53,6 +53,8 @@ export struct AgentFloatWindow {
   @State inputText: string = '';
   // AI 忙
   @State busy: boolean = false;
+  // 待发送图片预览 (W1.2: 拍照后存这里, 不立即发送, 让用户先补充文字)
+  @State imagePreview: string = '';
 
   aboutToAppear(): void {
     // 持久化开场白 (W1.1: 用 AppStorage 标记, 整个 App 生命周期只显示一次)
@@ -69,10 +71,13 @@ export struct AgentFloatWindow {
     }
   }
 
-  // @Watch 回调: pendingImageUri 变化时吞图
+  // @Watch 回调: pendingImageUri 变化时存到 imagePreview (W1.2: 不立即发送)
   onPendingImageChange(): void {
     if (this.pendingImageUri && this.pendingImageUri.length > 0) {
-      this.ingestImage(this.pendingImageUri);
+      // 存为待发送图片预览, 不调 ingestImage
+      this.imagePreview = this.pendingImageUri;
+      // 清空 pendingImageUri 防重复触发
+      setTimeout(() => { this.pendingImageUri = ''; }, 100);
     }
   }
 
@@ -89,35 +94,73 @@ export struct AgentFloatWindow {
     this.mockReply('已收到图片，正在分析题目...');
   };
 
-  // 发送消息
+  // 发送消息 (W1.2: 支持文字 + 图片一起发)
   private send = (): void => {
     const text: string = this.inputText.trim();
-    if (text.length === 0) {
+    const hasImage: boolean = this.imagePreview.length > 0;
+    const hasText: boolean = text.length > 0;
+
+    if (!hasText && !hasImage) {
       return;
     }
     if (this.busy) {
       promptAction.openToast({ message: 'AI 正在回复中...', duration: 1200 });
       return;
     }
+
+    // 构造 user message content (文字 + 图片)
+    const content: string = hasImage
+      ? `📷 已发送图片${hasText ? '\n' + text : ''}`
+      : text;
+
     this.messages = [
       ...this.messages,
-      { id: nowId(), role: 'user', content: text, ts: Date.now() },
+      { id: nowId(), role: 'user', content, ts: Date.now() },
     ];
     this.inputText = '';
-    this.mockReply(`已收到：「${text}」`);
+    this.imagePreview = '';
+
+    // mock reply
+    const reply: string = hasImage
+      ? `已收到图片${hasText ? ' + 「' + text + '」' : ''}，正在分析...`
+      : `已收到：「${text}」`;
+    this.mockReply(reply);
   };
 
-  // 快捷 prompt 发送 (SugBtn 4 快捷按钮调)
+  // 快捷 prompt 发送 (W1.2: 支持 SugBtn 文字 + inputText 补充 + imagePreview 一起发)
   private sendQuick = (prompt: string): void => {
     if (this.busy) {
       promptAction.openToast({ message: 'AI 正在回复中...', duration: 1200 });
       return;
     }
+    const text: string = this.inputText.trim();
+    const hasImage: boolean = this.imagePreview.length > 0;
+    const hasText: boolean = text.length > 0;
+
+    let content: string = prompt;
+    if (hasText) {
+      content += '\n' + text;
+    }
+    if (hasImage) {
+      content += '\n📷 已发送图片';
+    }
+
     this.messages = [
       ...this.messages,
-      { id: nowId(), role: 'user', content: prompt, ts: Date.now() },
+      { id: nowId(), role: 'user', content, ts: Date.now() },
     ];
-    this.mockReply(`已收到：「${prompt}」`);
+    this.inputText = '';
+    this.imagePreview = '';
+
+    let reply: string = `已收到：「${prompt}」`;
+    if (hasText) {
+      reply += ` + 「${text}」`;
+    }
+    if (hasImage) {
+      reply += ' + 图片';
+    }
+    reply += '，正在分析...';
+    this.mockReply(reply);
   };
 
   // Mock AI 回复
@@ -329,6 +372,31 @@ export struct AgentFloatWindow {
 
           // ===== 底部输入区 (52vp 紧凑) =====
           Row() {
+            // 图片预览 (W1.2: 拍照后缩略图 + X 取消, 跟文字一起发送)
+            if (this.imagePreview.length > 0) {
+              Stack() {
+                Image(this.imagePreview)
+                  .width(40).height(40)
+                  .borderRadius(6)
+                  .objectFit(ImageFit.Cover);
+
+                // 取消 X (右上角)
+                Text('✕')
+                  .fontSize(10).fontWeight(700)
+                  .fontColor('#FFFFFF')
+                  .width(18).height(18)
+                  .borderRadius(9)
+                  .backgroundColor('#80000000')
+                  .textAlign(TextAlign.Center)
+                  .position({ x: '100%', y: 0 })
+                  .markAnchor({ x: '100%', y: 0 })
+                  .offset({ x: -4, y: -4 })
+                  .onClick(() => { this.imagePreview = ''; });
+              }
+              .width(40).height(40)
+              .margin({ right: 8 });
+            }
+
             // 输入框
             TextInput({ text: this.inputText, placeholder: '输入问题...' })
               .layoutWeight(1)
