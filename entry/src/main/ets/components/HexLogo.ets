@@ -61,7 +61,8 @@ export struct HexLogo {
   build() {
     Image($r('app.media.ic_brand_hex'))
       .width(32).height(32)
-      .fillColor(MINT)
+      // SVG 已硬编码 stroke="#5BE3B0" + fill="none", Image.fillColor 在 ArkUI 1.1 可能覆盖 SVG fill
+      // 删 fillColor 让 SVG fill="none" 生效, 6 边形保持空心线条 (不变成实心)
       // Image.rotate 接受 RotateOptions { angle: number } 对象, 不接受 number 直接
       .rotate({ angle: this.rotDeg })
       .translate({ y: this.ty });
