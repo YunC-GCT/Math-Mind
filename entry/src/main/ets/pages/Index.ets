@@ -75,22 +75,13 @@ struct Index {
     this.showCamera = true;
   };
 
-  // 拍照完成 → 跳 AI Tab 或传图给 AgentFloatWindow
+  // 拍照完成 → 强制回到浮窗对话窗口 (不论之前浮窗是开是关)
   private onCameraConfirm = (uri: string, _src: 'camera' | 'album'): void => {
     this.showCamera = false;
-
-    if (this.showAgentFloat) {
-      // 拍照来自 AgentFloatWindow → 传图过去, 不清浮窗
-      this.pendingImageUri = uri;
-      setTimeout(() => { this.pendingImageUri = ''; }, 100);
-      return;
-    }
-
-    // 原逻辑: 跳 AI Tab
+    // 任何拍照后都回浮窗 (不再跳 AI Tab + AiChatOverlay 老旧界面)
+    this.showAgentFloat = true;
     this.pendingImageUri = uri;
-    this.cur = 2;
-    this.tc.changeIndex(2);
-    this.showAI = true;
+    setTimeout(() => { this.pendingImageUri = ''; }, 100);
   };
 
   // AgentFloatWindow: 关闭浮窗
