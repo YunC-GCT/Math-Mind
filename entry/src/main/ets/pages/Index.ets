@@ -31,7 +31,7 @@ import { ReviewPage } from './ReviewPage';
 import { MePage } from './MePage';
 import { AgentFloatWindow } from '../overlays/AgentFloatWindow';
 import { CameraOverlay } from '../overlays/CameraOverlay';
-import { promptAction, KeyboardAvoidMode, SafeAreaType } from '@kit.ArkUI';
+import { promptAction, KeyboardAvoidMode } from '@kit.ArkUI';
 
 interface TabItem {
   idx: number;
@@ -164,8 +164,7 @@ struct Index {
       .justifyContent(FlexAlign.SpaceAround)
       .alignItems(VerticalAlign.Center);
     }
-    .width('100%').height('100%').backgroundColor(BG_DARK)
-    .expandSafeArea([SafeAreaType.KEYBOARD]);  // W1.3 双重保险: 主页面 Column 主动扩展到 keyboard area, 配合 setKeyboardAvoidMode(NONE)
+    .width('100%').height('100%').backgroundColor(BG_DARK);
 
     // ===== 全局 CameraOverlay 浮层 (在 Stack 内 Column 外, 全屏覆盖) =====
     if (this.showCamera) {
