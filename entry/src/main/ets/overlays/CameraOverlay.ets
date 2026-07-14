@@ -414,7 +414,9 @@ export struct CameraOverlay {
     try {
       const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
       const result: cameraPicker.PickerResult =
-        await cameraPicker.pick(ctx, [cameraPicker.PickerMediaType.PHOTO]);
+        await cameraPicker.pick(ctx, [cameraPicker.PickerMediaType.PHOTO], {
+          cameraPosition: 0,
+        });
       if (result.resultUri.length > 0) {
         this.capturedUri = result.resultUri;
         this.capturedSrc = 'camera';
