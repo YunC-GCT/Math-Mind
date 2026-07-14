@@ -170,7 +170,7 @@ export struct AgentFloatWindow {
       content += '\n' + text;
     }
     if (hasImage) {
-      content += '\n📷 已发送图片';
+      content += '\n分享了一张照片';
     }
 
     this.messages = [
@@ -180,14 +180,6 @@ export struct AgentFloatWindow {
     this.inputText = '';
     this.imagePreview = '';
 
-    let reply: string = `已收到：「${prompt}」`;
-    if (hasText) {
-      reply += ` + 「${text}」`;
-    }
-    if (hasImage) {
-      reply += ' + 图片';
-    }
-    reply += '，正在分析...';
     this.realReply(content);
   };
 
