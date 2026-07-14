@@ -1,7 +1,7 @@
 # MathMind · 当前状态
 
 > 工程: YunC-GCT/Math-Mind · 5 module HarmonyOS 数学学习助手  
-> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-13 22:00
+> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-14
 
 ---
 
@@ -186,6 +186,42 @@ entry/src/main/ets/
 
 ---
 
+### 1.9 center 分支合并 · AI 设置页 + DeepSeek V4 (2026-07-14)
+
+- `53b09c0` merge: center→main — 精简拍照链 D1 + AI 模型配置 + 全 Agent 接入 DeepSeek
+- **AiSettingsPage**（我的 → 设置）: 端点预设（硅基流动 / DeepSeek 官方）、模型选择（V3/R1/V4-Flash/V4-Pro）、API Key 显隐切换、参数调优（Temperature/MaxTokens/Timeout）、一键测试连接
+- **LlmConfig 运行时配置**: `saveAll()` 持久化端点+模型+参数，`loadAll()` 启动时恢复
+- **DeepSeek V4 模型**: `deepseek-v4-flash`（快速便宜）、`deepseek-v4-pro`（推理更强），端点自适应切换 `api.deepseek.com/chat/completions`
+- **全 Agent 接入 DeepSeek**: TypeClassifier 等 Agent 统一通过 `LlmClient.call()` 调 LLM
+
+### 1.10 CameraOverlay · 接入真实 CameraPicker (2026-07-14)
+
+- `9db3309` CameraOverlay 接入 `cameraPicker.pick()` 华为系统相机（无需 CAMERA 权限）
+- `56229ec` cameraPosition 用 `camera.CameraPosition.CAMERA_POSITION_BACK` 枚举 + result 空值防护
+- `e155fae` 相册按钮换 SVG 图标 `ic_album.svg` + 快门改 MINT 品牌色 + 模拟器 toast 提示
+- `33d3a5d` + `40508ae` module.json5 加 CAMERA + INTERNET 权限声明，修复合并冲突导致 CAMERA 权限丢失
+- **降级策略**: 模拟器无相机 → catch 降级 mock uri + toast "模拟器不支持相机"
+- **已知限制**: 拍照→Dispatcher 链路待 `AiService.capture()` 桥接（当前仅浮窗预览）
+
+### 1.11 AgentFloatWindow · 接入 LlmClient 真实 AI 对话 (2026-07-14)
+
+- `7e3f4da` `realReply()` 替代 `mockReply()`: `LlmClient.call()` 调 DeepSeek → AI 气泡显示真实回复
+- 系统提示词: "你是 MathMind AI 助手，用简洁中文回答数学问题，适当使用 LaTeX"
+- 错误分类: `NO_API_KEY` → "请先配置 API Key" / `NETWORK_ERROR` → "网络连接失败" / 其他 → 截断显示
+- 图片预览从输入框左侧移到上方独立行（48×48 缩略图 + "已选图片" + ✕ 取消）
+- 发送文案 "📷 已发送图片" → "分享了一张照片"
+- `6d2b45b` 修复 TextInput 丢 `.layoutWeight(1)` 导致相机/发送按钮被挤出
+
+### 1.12 编译修复 + 代码清理 (2026-07-14)
+
+- **类型重命名**: center 合并后 `DispatchPayloadImage→ImagePayload` 等，`ef0cca3` 桶导出对齐
+- **LlmClient**: `1a1f8a7` 错误序列化 `JSON.stringify(e)` → `(e as Error).message`
+- **LlmConfig init 竞态**: `1a1f8a7` `EntryAbility` 补 `.catch()` 错误处理
+- **AiSettingsPage**: `8053cfa` save 后 `loadConfig()` 自动刷新 UI
+- **死代码清理**: 删 `ingestImage()` / `send()`/`sendQuick()` 中的 mock reply 残留
+
+---
+
 ## 二、待实现 — D1 精简拍照链 (后端链)
 
 > 目标: 拍照 → OCR → DeepSeek 3×3 分类 → 3 模板 → 真值检验 → 入库 → 显示  
@@ -218,10 +254,10 @@ entry/src/main/ets/
 
 ### 2.4 LLM 配置
 
-- Provider: **SiliconFlow / DeepSeek-V3** (`deepseek-ai/DeepSeek-V3`)
-- 端点: `https://api.siliconflow.cn/v1/chat/completions`
-- Temperature: **0.1** · MaxTokens: **256** · Timeout: **5s**
-
+- **双端点**: SiliconFlow (`api.siliconflow.cn`) / DeepSeek 官方 (`api.deepseek.com`)，设置页一键切换
+- **模型列表**: SiliconFlow → DeepSeek-V3 / R1；DeepSeek 官方 → V4-Flash / V4-Pro
+- Temperature: **0.1** · MaxTokens: [redacted] · Timeout: **5s**
+- **配置持久化**: `preferences` 存储，换设备需重新输入 API Key
 ### 2.5 3×3 分类体系 + 3 模板
 
 - 学科: 高等代数 / 数学分析 / 解析几何
