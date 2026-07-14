@@ -62,16 +62,12 @@ struct Index {
   }
 
   aboutToAppear(): void {
-    // W1.3 修复 (Part 2/2): 关闭系统键盘避让
-    // 配合 AgentFloatWindow 监听 keyboardHeightChange 自己上移
+    // W1.3: 关闭系统键盘避让, 配合 AgentFloatWindow 监听 keyboardHeightChange 自己上移
     // 让 Index Stack 整体不被键盘顶起来, TabBar / HomePage 不动
-    // 备注: KeyboardAvoidMode 影响整个 UIContext, 这里关闭后 AgentFloatWindow 自己处理
-    console.info('[Index] aboutToAppear start, UIContext:', this.getUIContext());
     try {
       this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE);
-      console.info('[Index] setKeyboardAvoidMode(NONE) called OK');
     } catch (e) {
-      console.error('[Index] setKeyboardAvoidMode FAILED:', JSON.stringify(e));
+      // 防御性: API 调用失败, 浮窗键盘避让可能失效, 业务可继续
     }
   }
 

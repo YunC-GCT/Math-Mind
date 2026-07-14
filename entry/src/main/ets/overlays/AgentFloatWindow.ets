@@ -56,8 +56,8 @@ export struct AgentFloatWindow {
   @State busy: boolean = false;
   // 待发送图片预览 (W1.2: 拍照后存这里, 不立即发送, 让用户先补充文字)
   @State imagePreview: string = '';
-  // 键盘高度 (W1.3: 浮窗自己上移避免键盘遮挡)
-  @State @Watch('onKeyboardHeightChange') keyboardHeight: number = 0;
+  // 键盘高度 (W1.3: 浮窗 .translate 自己上移避免键盘遮挡, 配合 keyboardHeightChange 监听 + px2vp 转换)
+  @State keyboardHeight: number = 0;
   // 窗口实例引用, 用于取消键盘监听
   private mainWindow: window.Window | null = null;
 
@@ -74,35 +74,25 @@ export struct AgentFloatWindow {
       ];
       AppStorage.setOrCreate<boolean>('shownGreeting', true);
     }
-    // 注册键盘高度变化监听 (W1.3.1 改进: 用新写法 getUIContext + px2vp 单位转换 + try-catch)
+    // 注册键盘高度变化监听 (W1.3: getUIContext + px2vp 单位转换, 防御性 try-catch)
     try {
-      console.info('[AgentFloat] register keyboard listener start');
       const ctx = this.getUIContext().getHostContext();
-      console.info('[AgentFloat] hostContext:', ctx);
       if (ctx) {
         window.getLastWindow(ctx).then((win: window.Window) => {
-          console.info('[AgentFloat] getLastWindow OK, win:', win);
           this.mainWindow = win;
           win.on('keyboardHeightChange', (data: number) => {
-            console.info('[AgentFloat] keyboardHeightChange data:', data);
             try {
-              const vp = this.getUIContext().px2vp(data);
-              console.info('[AgentFloat] px2vp result:', vp);
-              this.keyboardHeight = vp;
-              console.info('[AgentFloat] @State keyboardHeight set to:', this.keyboardHeight);
+              this.keyboardHeight = this.getUIContext().px2vp(data);
             } catch (e) {
-              console.error('[AgentFloat] px2vp FAILED:', JSON.stringify(e));
+              // 防御性: px2vp 失败, 浮窗不响应键盘
             }
           });
-          console.info('[AgentFloat] listener registered');
         }).catch((err: Error) => {
-          console.error('[AgentFloat] getLastWindow FAILED:', JSON.stringify(err));
+          // 防御性: getLastWindow 失败, 浮窗不响应键盘
         });
-      } else {
-        console.warn('[AgentFloat] hostContext is null, skip');
       }
     } catch (e) {
-      console.error('[AgentFloat] register FAILED:', JSON.stringify(e));
+      // 防御性: 监听注册失败, 浮窗不响应键盘
     }
   }
 
@@ -111,12 +101,6 @@ export struct AgentFloatWindow {
     if (this.mainWindow) {
       this.mainWindow.off('keyboardHeightChange');
     }
-  }
-
-  // @Watch 回调: keyboardHeight 变化
-  onKeyboardHeightChange(): void {
-    console.info('[AgentFloat] @Watch keyboardHeight changed to:', this.keyboardHeight,
-      ' → offset:', -(74 + this.keyboardHeight));
   }
 
   // @Watch 回调: pendingImageUri 变化时存到 imagePreview (W1.2: 不立即发送)
