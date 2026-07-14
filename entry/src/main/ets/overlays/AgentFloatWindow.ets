@@ -369,9 +369,12 @@ export struct AgentFloatWindow {
           .width('100%')
           .height('40%')                     // 40% 视口高 (~325vp @ 816vp, 更紧凑)
           // Stack 默认 alignContent TopStart, 子元素顶贴 Stack 顶.
-          // 强制底对齐 Stack 底 (用 position + markAnchor), 然后 margin bottom 74 才有效.
+          // 强制底对齐 Stack 底 (用 position + markAnchor).
+          // margin 在 Stack 子元素不生效, 改用 .offset({ y: -74 }) 强制上移 74vp
+          // (= Tab 栏高, 浮窗底贴菜单栏顶).
           .position({ x: 0, y: '100%' })     // 元素 (0,0) 在 (0, 100%) = Stack 左下角
           .markAnchor({ x: 0, y: '100%' })  // 元素 (0, 100%) 作为锚点 = 元素底
+          .offset({ y: -74 })               // 强制上移 74vp (offset 在 position 后一定生效)
           .backgroundColor('#F20A0C10')      // 95% alpha (微半透)
         .borderRadius(20)
         .border({ width: 1, color: PURPLE_LIGHT })
@@ -381,7 +384,7 @@ export struct AgentFloatWindow {
           offsetX: 0,
           offsetY: -4,
         })
-        .margin({ left: 12, right: 12, bottom: 74 })  // 74vp = Tab 栏高, 浮窗底贴菜单栏顶
+        .margin({ left: 12, right: 12 })    // 去掉 bottom 74 (offset 替代)
       }
     }
     .width('100%').height('100%')
