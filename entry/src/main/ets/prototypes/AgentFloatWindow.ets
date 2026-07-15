@@ -252,7 +252,7 @@ export struct AgentFloatWindow {
         }
         .width("100%").height("44%")
         .borderRadius({ topLeft: R_XL, topRight: R_XL }).backgroundColor(BG_DARK)
-        .margin({ left: S_3, right: S_3, bottom: 74 })
+        .width('100%').padding({ left: S_3, right: S_3 }).position({ x: 0, y: '100%' }).markAnchor({ x: 0, y: '100%' }).translate({ y: -(74 + this.keyboardHeight) })
         .translate({ y: -this.keyboardHeight })
       }
     }.width("100%").height("100%")
