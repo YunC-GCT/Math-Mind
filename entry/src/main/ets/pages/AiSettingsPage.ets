@@ -12,7 +12,7 @@ import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
 import { router } from "@kit.ArkUI"
 import { StatusCard } from "../molecules/StatusCard"
 import { SectionHeader } from "../atoms/SectionHeader"
-import { ParamRow } from "../atoms/ParamRow"`nimport { SettingsActionBar } from "../atoms/SettingsActionBar"
+import { ParamRow } from "../atoms/ParamRow"`nimport { SettingsActionBar } from "../atoms/SettingsActionBar"`nimport { KeyInput } from "../molecules/KeyInput"
 
 const EP_PRESETS: string[] = [
   "https://api.siliconflow.cn/v1/chat/completions",
@@ -150,7 +150,6 @@ struct AiSettingsPage {
   @State timeoutMs: number = 5000
   @State configured: boolean = false
   @State testing: boolean = false
-  @State showKey: boolean = false
   @State statusText: string = "未配置"
   @State tempText: string = "0.1"
   @State maxTokensText: string = "256"
