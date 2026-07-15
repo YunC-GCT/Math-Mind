@@ -76,7 +76,7 @@ struct Index {
     this.showCamera = true;
   };
 
-  // 鎷嶇収瀹屾垚 鈫?寮哄埗鍥炲埌娴獥瀵硅瘽绐楀彛 (涓嶈涔嬪墠娴獥鏄紑鏄叧)
+  // 拍照完成 → 强制回到浮窗对话窗口 (不论之前浮窗是开是关)
   private onCameraConfirm = (uri: string, _src: 'camera' | 'album'): void => {
     this.showCamera = false;
     // 浠讳綍鎷嶇収鍚庨兘鍥炴诞绐?(涓嶅啀璺?AI Tab + AiChatOverlay 鑰佹棫鐣岄潰)
