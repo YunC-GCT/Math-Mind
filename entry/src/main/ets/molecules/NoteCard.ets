@@ -8,7 +8,7 @@
 
 import {
   MINT, BG_DARK,
-  S_3,
+  S_1, S_3,
   BORDER,
   WARNING,
   DANGER,
