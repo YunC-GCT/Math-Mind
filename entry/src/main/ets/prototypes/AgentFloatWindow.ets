@@ -113,13 +113,16 @@ export struct AgentFloatWindow {
       // 在线状态绿点 + 模型名
       Circle({ width: 6, height: 6 }).fill(MINT).margin({ right: S_2 })
       Text("DeepSeek-V3").fontSize(F_XS).fontColor(TEXT_2).fontWeight(W_MEDIUM)
-      // 花瓣形思考开关: ◌·◌
+      // 思考胶囊: 描边圆角 + 图标 + 文字 (DeepSeek风格)
       Row() {
-        Circle({ width: 10, height: 14 }).fill(this.deepThink ? MINT : '#00000000').stroke(this.deepThink ? MINT : TEXT_4).strokeWidth(1.5)
-        Circle({ width: 5, height: 5 }).fill(this.deepThink ? MINT_DARK : TEXT_4).margin({ left: 2, right: 2 })
-        Circle({ width: 10, height: 14 }).fill(this.deepThink ? MINT : '#00000000').stroke(this.deepThink ? MINT : TEXT_4).strokeWidth(1.5)
+        Text("⚛").fontSize(F_SM).fontColor(this.deepThink ? MINT : TEXT_3)
+        Text(" 深度思考").fontSize(F_XS).fontColor(this.deepThink ? MINT : TEXT_3).fontWeight(W_MEDIUM)
       }
-      .width(52).height(44).justifyContent(FlexAlign.Center).alignItems(VerticalAlign.Center).margin({ left: S_4 })
+      .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
+      .borderRadius(R_FULL)
+      .border({ width: 1, color: this.deepThink ? MINT : TEXT_4 })
+      .backgroundColor(this.deepThink ? MINT_LIGHT : BG_DARK)
+      .margin({ left: S_4 })
       .onClick((): void => { this.deepThink = !this.deepThink })
       Blank()
       Stack() { Text("✕").fontSize(F_BASE).fontColor(TEXT_3) }
