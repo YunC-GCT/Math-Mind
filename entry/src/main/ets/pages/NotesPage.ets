@@ -1,49 +1,42 @@
 ﻿/**
- * MathMind 笔记列表页 — 对照 iOS Web MVP page-notes
- * 复用 HomePage note-card 视觉：渐变图标 + 彩色 meta + 标题 + 摘要
- * 对照 CSS .note-list / .note-card 分隔线模式
- *
- * W2 优化 (2026-07-15): Scroll+Column → List+ListItem（scenarios/01 推荐）、ForEach 补 key
- */import {
-  MINT,
-  PURPLE,
-  BG_DARK,
-  BORDER,
-  SUBJECT_COLORS,
-  TYPE_COLORS,
-  TEXT,
-  TEXT_2,
-  TEXT_3,
-  TEXT_4,
-  S_1,
-  S_2,
-  S_3,
-  S_4,
-  R_MD,
-  R_LG,
-  F_XS,
-  F_SM,
-  F_BASE,
-  F_MD,
-  NoteItem,
-  NOTES,} from "common";
-import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay";
-import { NoteCard } from "../molecules/NoteCard";@Component
+ * MathMind 笔记列表页
+ * W3 UI 优化 (2026-07-15): 标题栏视觉提升、全量令牌化
+ */
+
+import {
+  MINT, BG_DARK, BORDER, TEXT, TEXT_2, TEXT_3, TEXT_4,
+  S_4, S_5, S_6,
+  R_MD, R_LG,
+  F_XS, F_SM, F_BASE, F_MD,
+  W_MEDIUM, W_SEMIBOLD,
+  NoteItem, NOTES,
+} from "common"
+import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
+import { NoteCard } from "../molecules/NoteCard"
+
+@Component
 export struct NotesPage {
-  @State selectedNote: NoteItem | null = null;  private notes: NoteItem[] = NOTES;  private closeDetail = (): void => {
-    this.selectedNote = null;
-  };  private askAi = (note: NoteItem): void => {
-    this.selectedNote = null;
-  };  build() {
+  @State selectedNote: NoteItem | null = null
+  private notes: NoteItem[] = NOTES
+
+  private closeDetail = (): void => { this.selectedNote = null }
+  private askAi = (_note: NoteItem): void => { this.selectedNote = null }
+
+  build() {
     Stack() {
       Column() {
-        // ===== 标题栏（固定顶部） =====
-        Text("全部笔记 · " + this.notes.length + " 条")
-          .fontSize(F_MD)
-          .fontWeight(600)
-          .fontColor(TEXT)
-          .width("100%")
-          .padding({ left: 20, right: 20, top: 14, bottom: 10 });        // ===== 笔记列表（List 替代 Scroll+Column，scenarios/01 推荐） =====
+        // ---- 标题栏 ----
+        Row() {
+          Text("全部笔记")
+            .fontSize(F_MD).fontWeight(W_SEMIBOLD).fontColor(TEXT)
+          Blank()
+          Text(this.notes.length + " 条")
+            .fontSize(F_XS).fontColor(TEXT_3)
+        }
+        .width("100%")
+        .padding({ left: S_5, right: S_5, top: S_4, bottom: S_4 })
+
+        // ---- 笔记列表 ----
         List() {
           ForEach(this.notes,
             (note: NoteItem, idx: number): void => {
@@ -56,27 +49,26 @@ export struct NotesPage {
               }
             },
             (note: NoteItem): string => note.id.toString()
-          );          // FAB 留白
+          )
           ListItem() {
             Column() { Blank().height(80) }
           }
         }
-        
         .layoutWeight(1)
-        .scrollBar(BarState.Off);
+        .scrollBar(BarState.Off)
       }
-      .width("100%")
-      .height("100%")
-      .backgroundColor(BG_DARK);      // ===== NoteDetailOverlay 浮层 =====
+      .width("100%").height("100%")
+      .backgroundColor(BG_DARK)
+
       if (this.selectedNote !== null) {
         NoteDetailOverlay({
           note: this.selectedNote,
           onClose: this.closeDetail,
           onAskAi: this.askAi,
-        });
+        })
       }
     }
-    .width("100%")
-    .height("100%")
-    .backgroundColor(BG_DARK);
-  }}
+    .width("100%").height("100%")
+    .backgroundColor(BG_DARK)
+  }
+}

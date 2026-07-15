@@ -8,6 +8,7 @@
 
 import {
   MINT,
+  S_3,
   BORDER,
   WARNING,
   DANGER,
@@ -124,7 +125,7 @@ export struct NoteCard {
     }
     .width("100%")
     .alignItems(VerticalAlign.Top)
-    .padding({ top: 14, bottom: 14 })
+    .padding({ top: S_3, bottom: S_3 })
     .border({
       width: { bottom: this.isLast ? 0 : 1 },
       color: BORDER,

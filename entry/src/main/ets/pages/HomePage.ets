@@ -1,29 +1,16 @@
 ﻿/**
  * MathMind 首页
- * 严格对照 iOS Web MVP: styles.css Hero/.note-card/.fab/progress-ring
- *                      + app.js updateHome() / noteCardHTML()
- *
- * W2 原子化 (2026-07-15): GradientRing / StatsBox / NoteCard 抽取独立组件
+ * W3 UI 优化 (2026-07-15): Hero 视觉层次提升、全量令牌化、间距统一
  */
 
 import {
-  MINT,
-  MINT_DARK,
-  PURPLE,
-  BG_DARK,
-  BORDER,
-  TEXT,
-  TEXT_2,
-  TEXT_3,
-  S_1,
-  S_2,
-  R_MD,
-  R_2XL,
-  F_XS,
-  F_SM,
-  F_BASE,
-  F_MD,
-  F_XL,
+  MINT, MINT_DARK, MINT_LIGHT, PURPLE, PURPLE_LIGHT, PINK,
+  BG_DARK, BORDER, TEXT, TEXT_2, TEXT_3,
+  S_1, S_2, S_4, S_5, S_6,
+  R_MD, R_2XL,
+  F_XS, F_SM, F_BASE, F_MD, F_XL, F_2XL,
+  W_MEDIUM, W_SEMIBOLD, W_BOLD,
+  SHADOW_FAB,
 } from "common"
 import { promptAction } from "@kit.ArkUI"
 import { NoteItem, NOTES } from "common"
@@ -33,7 +20,6 @@ import { GradientRing } from "../atoms/GradientRing"
 import { StatsBox } from "../atoms/StatsBox"
 import { HexLogo } from "../atoms/HexLogo"
 
-// ---- 本地工具函数 ----
 function greet(): string {
   const h: number = new Date().getHours()
   if (h < 6) { return "凌晨好" }
@@ -49,7 +35,6 @@ function dateStr(): string {
   return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 · 周" + w[d.getDay()]
 }
 
-// ========== 首页主组件 ==========
 @Component
 export struct HomePage {
   @StorageProp("statusBarHeight") sbh: number = 0
@@ -80,78 +65,78 @@ export struct HomePage {
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
-        // ---- 状态栏占位 ----
+        // ---- 状态栏 ----
         Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
 
-        // ---- Header 60vp ----
+        // ---- Header ----
         Row() {
           HexLogo()
           Text("MathMind")
             .fontFamily("HarmonyOS Sans Condensed")
-            .fontSize(18)
-            .fontWeight(500)
+            .fontSize(F_MD + 2)
+            .fontWeight(W_MEDIUM)
             .fontColor(TEXT)
-            .letterSpacing(0)
             .margin({ left: S_2 })
         }
         .width("100%").height(60)
-        .padding({ left: 16, right: 16 })
+        .padding({ left: S_4, right: S_4 })
         .alignItems(VerticalAlign.Center)
         .backgroundColor(BG_DARK)
 
         // ---- Hero 区 ----
         Column() {
-          // 问候行
+          // 问候行：绿点 + 更大字号 + 更粗字重
           Row() {
-            Circle({ width: 6, height: 6 }).fill(MINT)
+            Circle({ width: 8, height: 8 }).fill(MINT)
             Text(this.g + ", Mini")
-              .fontSize(F_XL).fontWeight(600)
+              .fontSize(F_2XL).fontWeight(W_BOLD)
               .fontColor(TEXT)
-              .margin({ left: 6 })
+              .margin({ left: S_2 })
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
           }
           .width("100%")
           .alignItems(VerticalAlign.Center)
 
+          // 日期：稍大字号
           Text(this.d)
-            .fontSize(F_SM).fontColor(TEXT_3)
+            .fontSize(F_BASE).fontColor(TEXT_3)
             .width("100%")
-            .textAlign(TextAlign.Start)
-            .margin({ top: 4 })
+            .margin({ top: S_2 })
 
-          // 进度环
+          // 进度环：居中 + 更大圈
           Stack() {
             GradientRing({ pct: this.avg })
             Column() {
               Text(this.avg + "%")
-                .fontSize(26).fontWeight(700).fontColor(TEXT)
+                .fontSize(F_2XL).fontWeight(W_BOLD).fontColor(TEXT)
               Text("去复习 >")
-                .fontSize(F_XS).fontColor(MINT).fontWeight(600)
-                .margin({ top: 4 })
+                .fontSize(F_SM).fontColor(MINT).fontWeight(W_SEMIBOLD)
+                .margin({ top: S_1 })
             }.alignItems(HorizontalAlign.Center)
           }
           .width(120).height(120)
           .alignSelf(ItemAlign.Center)
-          .margin({ top: 16 })
+          .margin({ top: S_6 })
           .onClick((): void => this.onGoReview())
 
-          // 3 统计方块
+          // 统计方块：间距加大
           Row() {
             StatsBox({ value: this.notes.length + "", label: "笔记" })
             StatsBox({ value: this.avg + "%", label: "掌握率" })
             StatsBox({ value: this.today + "", label: "今日新增" })
           }
-          .width("100%").justifyContent(FlexAlign.SpaceEvenly).margin({ top: 14 })
+          .width("100%").justifyContent(FlexAlign.SpaceEvenly).margin({ top: S_5 })
         }
         .width("100%")
-        .padding({ left: 20, right: 20, top: 16, bottom: 20 })
+        .padding({ left: S_5, right: S_5, top: S_5, bottom: S_6 })
         .borderRadius({ bottomLeft: R_2XL, bottomRight: R_2XL })
+        // 令牌化渐变：MINT_LIGHT→PURPLE_LIGHT→PINK 透明度阶梯
         .linearGradient({
           angle: 180,
           colors: [
-            ["#2E5BE3B0", 0],
-            ["#2E9775FA", 0.5],
+            [MINT_LIGHT, 0],
+            [PURPLE_LIGHT, 0.5],
             ["#1AFF6B9D", 1],
           ],
         })
@@ -165,22 +150,26 @@ export struct HomePage {
               .fontSize(F_SM).fontColor(MINT).lineHeight(18)
           }
           .width("100%")
-          .padding({ left: 14, right: 14, top: 10, bottom: 10 })
-          .margin({ left: 16, right: 16, top: S_1 })
+          .padding({ left: S_4, right: S_4, top: S_3, bottom: S_3 })
+          .margin({ left: S_4, right: S_4, top: S_2 })
           .borderRadius(R_MD)
           .linearGradient({
             angle: 135,
-            colors: [["#1F5BE3B0", 0], ["#0D9775FA", 1]],
+            colors: [[MINT_LIGHT, 0], [PURPLE_LIGHT, 1]],
           })
-          .border({ width: 1, color: "#335BE3B0" })
+          .border({ width: 1, color: MINT_LIGHT })
         }
 
         // ---- 最近笔记标题 ----
-        Text("最近笔记")
-          .fontSize(F_BASE).fontWeight(600).fontColor(TEXT)
-          .width("100%")
-          .padding({ left: 20, right: 20, top: S_1, bottom: S_1 })
-          .margin({ top: S_1 })
+        Row() {
+          Text("最近笔记")
+            .fontSize(F_BASE).fontWeight(W_SEMIBOLD).fontColor(TEXT)
+          Blank()
+          Text(this.notes.length + " 条")
+            .fontSize(F_XS).fontColor(TEXT_3)
+        }
+        .width("100%")
+        .padding({ left: S_5, right: S_5, top: S_4, bottom: S_2 })
 
         // ---- 笔记列表 ----
         Scroll() {
@@ -198,7 +187,7 @@ export struct HomePage {
             Blank().height(48)
           }
           .width("100%")
-          .padding({ left: 20, right: 20, top: 14, bottom: 20 })
+          .padding({ left: S_5, right: S_5, top: S_3, bottom: S_5 })
         }
         .layoutWeight(1)
         .scrollBar(BarState.Off)
@@ -207,18 +196,18 @@ export struct HomePage {
       .width("100%").height("100%")
       .backgroundColor(BG_DARK)
 
-      // ---- FAB ----
+      // ---- FAB (使用 SHADOW_FAB 预设) ----
       Stack() {
         Text("+")
           .fontSize(22)
-          .fontColor("#FF0A0C10")
+          .fontColor(BG_DARK)
           .fontWeight(FontWeight.Bold)
       }
       .width(54).height(54)
       .borderRadius(27)
       .linearGradient({ angle: 180, colors: [[MINT, 0], [MINT_DARK, 1]] })
-      .shadow({ radius: 28, color: "#595BE3B0", offsetX: 0, offsetY: 8 })
-      .margin({ right: 20, bottom: 16 })
+      .shadow(SHADOW_FAB)
+      .margin({ right: S_5, bottom: S_4 })
       .onClick((): void => {
         promptAction.showToast({ message: "用户自定义笔记开发中", duration: 1500 })
       })

@@ -1,11 +1,9 @@
 ﻿// ============================================================================
-//  components/StatsBox.ets — 统计方块原子组件
-//  ----------------------------------------------------------------------------
-//  职责: 展示单个统计数据（数值 + 标签），用于 Hero 区统计行。
-//  来源: 从 HomePage.ets SBox @Builder 抽取。
-//  ============================================================================
+//  atoms/StatsBox.ets — 统计方块原子组件
+//  W3: 边框减细 + 间距令牌化
+// ============================================================================
 
-import { TEXT, TEXT_3, BORDER, GLASS_8, F_XS, F_MD } from "common"
+import { TEXT, TEXT_3, BORDER, GLASS_8, S_2, S_3, F_XS, F_MD, W_BOLD } from "common"
 
 @Component
 export struct StatsBox {
@@ -15,19 +13,20 @@ export struct StatsBox {
   build() {
     Column() {
       Text(this.value)
-        .fontSize(F_MD + 1)
-        .fontWeight(700)
+        .fontSize(F_MD + 2)
+        .fontWeight(W_BOLD)
         .fontColor(TEXT)
+        .fontFamily("HarmonyOS Sans Condensed")
       Text(this.label)
         .fontSize(F_XS)
         .fontColor(TEXT_3)
-        .margin({ top: 2 })
+        .margin({ top: S_2 })
     }
     .layoutWeight(1)
-    .padding({ top: 10, bottom: 10 })
+    .padding({ top: S_3, bottom: S_3 })
     .borderRadius(12)
     .backgroundColor(GLASS_8)
-    .border({ width: 1, color: BORDER })
+    .border({ width: 0.5, color: BORDER })
     .alignItems(HorizontalAlign.Center)
   }
 }
