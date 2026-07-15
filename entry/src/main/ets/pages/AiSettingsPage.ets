@@ -12,7 +12,7 @@ import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
 import { router } from "@kit.ArkUI"
 import { StatusCard } from "../molecules/StatusCard"
 import { SectionHeader } from "../atoms/SectionHeader"
-import { ParamRow } from "../atoms/ParamRow"
+import { ParamRow } from "../atoms/ParamRow"`nimport { SettingsActionBar } from "../atoms/SettingsActionBar"
 
 const EP_PRESETS: string[] = [
   "https://api.siliconflow.cn/v1/chat/completions",
@@ -20,7 +20,7 @@ const EP_PRESETS: string[] = [
 ]
 const EP_LABELS: string[] = ["硅基流动", "DeepSeek 官方"]
 
-interface ModelPreset { label: string; value: string }
+interface ModelPreset { label: string; value: string; ctx?: string; price?: string }
 const SF_MODELS: ModelPreset[] = [
   { label: "DeepSeek-V3", value: "deepseek-ai/DeepSeek-V3" },
   { label: "DeepSeek-R1", value: "deepseek-ai/DeepSeek-R1" },
@@ -86,8 +86,10 @@ struct ModelPicker {
             Radio({ value: "md" + i, group: "md" })
               .checked(!this.useCustom && this.mdlIdx === i)
               .onChange((v: boolean): void => { if (v && this.onSelect) { this.onSelect(i) } })
-            Text(mp.label).fontSize(F_SM).fontColor(TEXT).margin({ left: 8 }).layoutWeight(1)
-            Text(mp.value).fontSize(10).fontColor(TEXT_4).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            Column() {
+              Text(mp.label).fontSize(F_SM).fontColor(TEXT)
+              if (mp.ctx) { Text((mp.ctx ?? '') + ' · ' + (mp.price ?? '')).fontSize(9).fontColor(TEXT_4).margin({ top: 1 }) }
+            }.alignItems(HorizontalAlign.Start).margin({ left: 8 }).layoutWeight(1)
           }.width("100%").padding({ left: 4, right: 4, top: 6, bottom: 6 })
         },
         (mp: ModelPreset, i: number): string => i.toString()
