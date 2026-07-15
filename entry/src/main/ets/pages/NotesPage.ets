@@ -27,8 +27,8 @@
   F_MD,
   NoteItem,
   NOTES,} from "common";
-import { NoteDetailOverlay } from "../overlays/NoteDetailOverlay";
-import { NoteCard } from "../components/NoteCard";@Component
+import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay";
+import { NoteCard } from "../molecules/NoteCard";@Component
 export struct NotesPage {
   @State selectedNote: NoteItem | null = null;  private notes: NoteItem[] = NOTES;  private closeDetail = (): void => {
     this.selectedNote = null;

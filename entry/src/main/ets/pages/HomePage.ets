@@ -27,11 +27,11 @@ import {
 } from "common"
 import { promptAction } from "@kit.ArkUI"
 import { NoteItem, NOTES } from "common"
-import { NoteDetailOverlay } from "../overlays/NoteDetailOverlay"
-import { NoteCard } from "../components/NoteCard"
-import { GradientRing } from "../components/GradientRing"
-import { StatsBox } from "../components/StatsBox"
-import { HexLogo } from "../components/HexLogo"
+import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
+import { NoteCard } from "../molecules/NoteCard"
+import { GradientRing } from "../atoms/GradientRing"
+import { StatsBox } from "../atoms/StatsBox"
+import { HexLogo } from "../atoms/HexLogo"
 
 // ---- 本地工具函数 ----
 function greet(): string {

@@ -16,6 +16,7 @@ import {
   MINT, MINT_DARK, MINT_GLOW, MINT_BORDER, PURPLE, PINK, AMBER,
   BG_DARK, BG_CARD,
   TEXT, TEXT_2, TEXT_3, TEXT_4, BORDER,
+  GLASS_10, DANGER, OVERLAY_MASK_SOLID,
   S_1, S_2, S_3, S_4, S_5,
   R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL, F_2XL,
@@ -23,7 +24,7 @@ import {
 } from "common"
 import { promptAction } from "@kit.ArkUI"
 import { AlertDialog } from "@kit.ArkUI"
-import { ConfBadge } from "../components/ConfBadge"
+import { ConfBadge } from "../atoms/ConfBadge"
 
 // 解析 body 成章节
 interface Section {
@@ -70,7 +71,7 @@ export struct NoteDetailOverlay {
       // 半透明遮罩
       Column()
         .width("100%").height("100%")
-        .backgroundColor("#CC000000")
+        .backgroundColor(OVERLAY_MASK_SOLID)
         .onClick((): void => this.onClose())
 
       // 浮层主体
@@ -100,7 +101,7 @@ export struct NoteDetailOverlay {
           }
           .padding({ left: 10, right: 10, top: 4, bottom: 4 })
           .borderRadius(R_FULL)
-          .backgroundColor("#1AFFFFFF")
+          .backgroundColor(GLASS_10)
           .border({ width: 1, color: BORDER })
 
           Blank()
@@ -189,7 +190,7 @@ export struct NoteDetailOverlay {
 
         // 底部操作栏
         Row() {
-          this.ActionBtn("🗑", "删除", "#FF6B6B", (): void => this.confirmDelete())
+          this.ActionBtn("🗑", "删除", DANGER, (): void => this.confirmDelete())
           Blank().width(8)
           this.ActionBtn("✎", "编辑", TEXT_2, (): void => this.mockEdit())
           Blank().width(8)
@@ -294,7 +295,7 @@ export struct NoteDetailOverlay {
     }
     .width(32).height(32)
     .borderRadius(16)
-    .backgroundColor("#1AFFFFFF")
+    .backgroundColor(GLASS_10)
     .alignContent(Alignment.Center)
     .onClick((): void => this.onClose())
   }
@@ -308,7 +309,7 @@ export struct NoteDetailOverlay {
     }
     .layoutWeight(1).height(44)
     .borderRadius(R_MD)
-    .backgroundColor("#1AFFFFFF")
+    .backgroundColor(GLASS_10)
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .onClick((): void => action())
@@ -338,7 +339,7 @@ export struct NoteDetailOverlay {
       primaryButton: { value: "取消", action: (): void => {} },
       secondaryButton: {
         value: "删除",
-        fontColor: "#FF6B6B",
+        fontColor: DANGER,
         action: (): void => {
           this.onDelete(this.note.id)
           this.onClose()

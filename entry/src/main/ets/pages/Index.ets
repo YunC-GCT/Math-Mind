@@ -1,13 +1,13 @@
-/**
- * MathMind 主容器 — 5 Tab 底部导航（含中央 AI 渐变凸起圆）
- * 对照 HTML .tabbar > .tab×4 + .tab-ai×1
- * 对照 CSS  height:74px, backdrop-filter:blur(24px), border-top
+﻿/**
+ * MathMind 涓诲鍣?鈥?5 Tab 搴曢儴瀵艰埅锛堝惈涓ぎ AI 娓愬彉鍑歌捣鍦嗭級
+ * 瀵圭収 HTML .tabbar > .tab脳4 + .tab-ai脳1
+ * 瀵圭収 CSS  height:74px, backdrop-filter:blur(24px), border-top
  *
- * 第 W1 调整 (2026-07-14):
- *   - 删除 AiChatOverlay 老旧对话界面
- *   - AI Tab 内容改为占位, 切到 AI Tab 时自动开 AgentFloatWindow 浮窗
- *   - 全局 showCamera 浮层状态 (HomePage FAB / AI 📷 都触发)
- *   - 拍完: 强制回 AgentFloatWindow 浮窗 (不再跳 AI Tab)
+ * 绗?W1 璋冩暣 (2026-07-14):
+ *   - 鍒犻櫎 AiChatOverlay 鑰佹棫瀵硅瘽鐣岄潰
+ *   - AI Tab 鍐呭鏀逛负鍗犱綅, 鍒囧埌 AI Tab 鏃惰嚜鍔ㄥ紑 AgentFloatWindow 娴獥
+ *   - 鍏ㄥ眬 showCamera 娴眰鐘舵€?(HomePage FAB / AI 馃摲 閮借Е鍙?
+ *   - 鎷嶅畬: 寮哄埗鍥?AgentFloatWindow 娴獥 (涓嶅啀璺?AI Tab)
  */
 
 import {
@@ -40,11 +40,11 @@ interface TabItem {
 }
 
 const TABS: TabItem[] = [
-  { idx: 0, name: '首页', icon: $r('app.media.ic_home') },
-  { idx: 1, name: '笔记', icon: $r('app.media.ic_notes') },
+  { idx: 0, name: '棣栭〉', icon: $r('app.media.ic_home') },
+  { idx: 1, name: '绗旇', icon: $r('app.media.ic_notes') },
   { idx: 2, name: 'AI', icon: $r('app.media.ic_ai') },
-  { idx: 3, name: '复习', icon: $r('app.media.ic_review') },
-  { idx: 4, name: '我的', icon: $r('app.media.ic_me') },
+  { idx: 3, name: '澶嶄範', icon: $r('app.media.ic_review') },
+  { idx: 4, name: '鎴戠殑', icon: $r('app.media.ic_me') },
 ];
 
 @Entry
@@ -62,35 +62,35 @@ struct Index {
   }
 
   aboutToAppear(): void {
-    // W1.3: 关闭系统键盘避让, 配合 AgentFloatWindow 监听 keyboardHeightChange 自己上移
-    // 让 Index Stack 整体不被键盘顶起来, TabBar / HomePage 不动
+    // W1.3: 鍏抽棴绯荤粺閿洏閬胯, 閰嶅悎 AgentFloatWindow 鐩戝惉 keyboardHeightChange 鑷繁涓婄Щ
+    // 璁?Index Stack 鏁翠綋涓嶈閿洏椤惰捣鏉? TabBar / HomePage 涓嶅姩
     try {
       this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE);
     } catch (e) {
-      // 防御性: API 调用失败, 浮窗键盘避让可能失效, 业务可继续
+      // 闃插尽鎬? API 璋冪敤澶辫触, 娴獥閿洏閬胯鍙兘澶辨晥, 涓氬姟鍙户缁?
     }
   }
 
-  // AI 里点拍照 (W1 调整: 拍照后回浮窗, 此回调暂保留)
+  // AI 閲岀偣鎷嶇収 (W1 璋冩暣: 鎷嶇収鍚庡洖娴獥, 姝ゅ洖璋冩殏淇濈暀)
   private goCamera = (): void => {
     this.showCamera = true;
   };
 
-  // 拍照完成 → 强制回到浮窗对话窗口 (不论之前浮窗是开是关)
+  // 鎷嶇収瀹屾垚 鈫?寮哄埗鍥炲埌娴獥瀵硅瘽绐楀彛 (涓嶈涔嬪墠娴獥鏄紑鏄叧)
   private onCameraConfirm = (uri: string, _src: 'camera' | 'album'): void => {
     this.showCamera = false;
-    // 任何拍照后都回浮窗 (不再跳 AI Tab + AiChatOverlay 老旧界面)
+    // 浠讳綍鎷嶇収鍚庨兘鍥炴诞绐?(涓嶅啀璺?AI Tab + AiChatOverlay 鑰佹棫鐣岄潰)
     this.showAgentFloat = true;
     this.pendingImageUri = uri;
     setTimeout(() => { this.pendingImageUri = ''; }, 100);
   };
 
-  // AgentFloatWindow: 关闭浮窗
+  // AgentFloatWindow: 鍏抽棴娴獥
   private closeAgentFloat = (): void => {
     this.showAgentFloat = false;
   };
 
-    // AgentFloatWindow: 点拍照 → 先关 AI 浮窗, 再开相机
+    // AgentFloatWindow: 鐐规媿鐓?鈫?鍏堝叧 AI 娴獥, 鍐嶅紑鐩告満
     private goCameraFromAgent = (): void => {
       this.showAgentFloat = false;
       this.showCamera = true;
@@ -99,7 +99,7 @@ struct Index {
   build() {
     Stack() {
       Column() {
-      // ===== 内容区 =====
+      // ===== 鍐呭鍖?=====
       Tabs({ index: this.cur, controller: this.tc }) {
         TabContent() {
           HomePage({
@@ -108,28 +108,28 @@ struct Index {
           });
         }
 
-        // 笔记 Tab (第 2 批: 真实列表)
+        // 绗旇 Tab (绗?2 鎵? 鐪熷疄鍒楄〃)
         TabContent() {
           NotesPage();
         }
 
-        // AI Tab (W1 调整: 占位背景, 浮窗在 Stack 全局渲染)
+        // AI Tab (W1 璋冩暣: 鍗犱綅鑳屾櫙, 娴獥鍦?Stack 鍏ㄥ眬娓叉煋)
         TabContent() {
           Column()
             .width('100%').height('100%')
             .backgroundColor(BG_DARK);
         }
 
-        // 复习 Tab (W1 调整: '去 AI 对话' 按钮给'功能未开发'提示)
+        // 澶嶄範 Tab (W1 璋冩暣: '鍘?AI 瀵硅瘽' 鎸夐挳缁?鍔熻兘鏈紑鍙?鎻愮ず)
         TabContent() {
           ReviewPage({
             onGoAI: (): void => {
-              promptAction.showToast({ message: 'AI 对话功能开发中', duration: 1500 });
+              promptAction.showToast({ message: 'AI 瀵硅瘽鍔熻兘寮€鍙戜腑', duration: 1500 });
             }
           });
         }
 
-        // 我的 Tab (第 2 批: 头像 + 统计 + 5 菜单)
+        // 鎴戠殑 Tab (绗?2 鎵? 澶村儚 + 缁熻 + 5 鑿滃崟)
         TabContent() {
           MePage();
         }
@@ -139,13 +139,13 @@ struct Index {
       .scrollable(false)
       .onChange((i: number) => {
         this.cur = i;
-        // 切到 AI Tab 时自动开 AgentFloatWindow 浮窗
+        // 鍒囧埌 AI Tab 鏃惰嚜鍔ㄥ紑 AgentFloatWindow 娴獥
         if (i === 2) {
           this.showAgentFloat = true;
         }
       });
 
-      // ===== 自定义 TabBar 74vp =====
+      // ===== 鑷畾涔?TabBar 74vp =====
       Row() {
         ForEach(TABS, (tab: TabItem, i: number) => {
           if (i === 2) {
@@ -169,7 +169,7 @@ struct Index {
     }
     .width('100%').height('100%').backgroundColor(BG_DARK);
 
-    // ===== 全局 CameraOverlay 浮层 (在 Stack 内 Column 外, 全屏覆盖) =====
+    // ===== 鍏ㄥ眬 CameraOverlay 娴眰 (鍦?Stack 鍐?Column 澶? 鍏ㄥ睆瑕嗙洊) =====
     if (this.showCamera) {
       CameraOverlay({
         onClose: (): void => { this.showCamera = false; },
@@ -177,7 +177,7 @@ struct Index {
       });
     }
 
-    // ===== 全局 AgentFloatWindow 浮层 (W1.1 调整: 一直存在, 不再受 if 控制, 让 messages 状态跨开关保留) =====
+    // ===== 鍏ㄥ眬 AgentFloatWindow 娴眰 (W1.1 璋冩暣: 涓€鐩村瓨鍦? 涓嶅啀鍙?if 鎺у埗, 璁?messages 鐘舵€佽法寮€鍏充繚鐣? =====
     AgentFloatWindow({
       show: this.showAgentFloat,
       onClose: this.closeAgentFloat,
@@ -188,7 +188,7 @@ struct Index {
   .width('100%').height('100%');
 }
 
-  // ========== 普通 Tab ==========
+  // ========== 鏅€?Tab ==========
   @Builder
   TabBtn(tab: TabItem, i: number) {
     Column() {
@@ -210,7 +210,7 @@ struct Index {
     });
   }
 
-  // ========== 中央 AI 渐变凸起圆 ==========
+  // ========== 涓ぎ AI 娓愬彉鍑歌捣鍦?==========
   @Builder
   AiBtn(i: number) {
     Column() {

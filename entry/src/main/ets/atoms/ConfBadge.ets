@@ -5,12 +5,12 @@
 //  来源: 从 NoteDetailOverlay.ets ConfBadge @Builder 抽取。
 //  ============================================================================
 
-import { MINT, AMBER, F_XS } from "common"
+import { MINT, AMBER, DANGER, F_XS } from "common"
 
 function confColor(c: number): string {
   if (c >= 0.85) { return MINT }
   if (c >= 0.6) { return AMBER }
-  return "#FF6B6B"
+  return DANGER
 }
 
 function confLabel(c: number): string {

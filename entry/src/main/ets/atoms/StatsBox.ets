@@ -5,7 +5,7 @@
 //  来源: 从 HomePage.ets SBox @Builder 抽取。
 //  ============================================================================
 
-import { TEXT, TEXT_3, BORDER, F_XS, F_MD } from "common"
+import { TEXT, TEXT_3, BORDER, GLASS_8, F_XS, F_MD } from "common"
 
 @Component
 export struct StatsBox {
@@ -26,7 +26,7 @@ export struct StatsBox {
     .layoutWeight(1)
     .padding({ top: 10, bottom: 10 })
     .borderRadius(12)
-    .backgroundColor("#08FFFFFF")
+    .backgroundColor(GLASS_8)
     .border({ width: 1, color: BORDER })
     .alignItems(HorizontalAlign.Center)
   }

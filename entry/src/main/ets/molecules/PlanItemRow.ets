@@ -7,8 +7,8 @@
 //  ArkTS 1.1 strict: @Prop 仅接收原始类型（string/boolean/number），避免 class 浅拷贝导致 UI 不更新。
 //  ============================================================================
 
-import { MINT, TEXT, TEXT_3, S_5, F_MD, F_XS } from "common"
-import { PriorityBadge } from "./PriorityBadge"
+import { MINT, TEXT, TEXT_3, DANGER_BRIGHT, S_5, F_MD, F_XS } from "common"
+import { PriorityBadge } from "../atoms/PriorityBadge"
 
 @Component
 export struct PlanItemRow {
@@ -60,7 +60,7 @@ export struct PlanItemRow {
     .padding({ top: 14, bottom: 14, left: S_5, right: S_5 })
     .swipeAction({ end: false }) {
       Button("删除")
-        .backgroundColor("#FFEF4444")
+        .backgroundColor(DANGER_BRIGHT)
         .fontColor(TEXT)
         .onClick((): void => {
           if (this.onDelete) {

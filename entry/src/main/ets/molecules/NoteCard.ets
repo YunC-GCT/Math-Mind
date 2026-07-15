@@ -9,6 +9,8 @@
 import {
   MINT,
   BORDER,
+  WARNING,
+  DANGER,
   TEXT,
   TEXT_3,
   TEXT_4,
@@ -26,18 +28,15 @@ import {
 } from "common"
 
 // ---- 置信度色板 (本地常量) ----
-const CONF_HIGH: string = MINT
-const CONF_MID: string = "#FFFBBF24"
-const CONF_LOW: string = "#FFFF6B6B"
 
 function confColor(c: number): string {
   if (c > 0.8) {
-    return CONF_HIGH
+    return MINT
   }
   if (c > 0.5) {
-    return CONF_MID
+    return WARNING
   }
-  return CONF_LOW
+  return DANGER
 }
 
 @Component

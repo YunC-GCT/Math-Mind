@@ -5,11 +5,9 @@
 //  可复用: 任何需要展示优先级的列表/详情场景。
 //  ============================================================================
 
-import { TEXT_3, BORDER, R_SM, F_XS } from "common"
+import { TEXT_3, BORDER, DANGER_BRIGHT, R_SM, F_XS } from "common"
 
 // ---- 优先级色板 (本地常量，未提升到 common 以保持 ColorTokens 精简) ----
-const PRIORITY_HIGH_TEXT: string = "#FFEF4444"
-const PRIORITY_HIGH_BORDER: string = "#44EF4444"
 
 @Component
 export struct PriorityBadge {
@@ -19,9 +17,9 @@ export struct PriorityBadge {
     if (this.priority === 1) {
       Text("高")
         .fontSize(F_XS)
-        .fontColor(PRIORITY_HIGH_TEXT)
+        .fontColor(DANGER_BRIGHT)
         .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-        .border({ width: 1, color: PRIORITY_HIGH_BORDER, radius: R_SM })
+        .border({ width: 1, color: "#44EF4444", radius: R_SM })
     } else if (this.priority === 3) {
       Text("低")
         .fontSize(F_XS)

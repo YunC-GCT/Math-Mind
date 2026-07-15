@@ -28,7 +28,7 @@ import {
 } from "common"
 import { StudyPlanItem } from "common"
 import { StudyPlanViewModel } from "../viewmodels/StudyPlanViewModel"
-import { PlanItemRow } from "../components/PlanItemRow"
+import { PlanItemRow } from "../molecules/PlanItemRow"
 import { promptAction } from "@kit.ArkUI"
 
 @Entry
