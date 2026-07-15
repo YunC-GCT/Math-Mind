@@ -133,31 +133,28 @@ export struct AgentFloatWindow {
       .onClick((): void => this.sendQuick(prompt))
   }
 
-  // V6.1: ai-toolbar — 3 个 toggle(授权/思考/模型)
+  // V6.1 简化: 授权+思考(左) | 模型(右)
   @Builder Toolbar() {
     Row() {
-      // 授权
-      Text(this.aiAuth ? "🛡 完全授权" : "🛡 仅问答")
-        .fontSize(F_XS).fontColor(this.aiAuth ? MINT : TEXT_3)
-        .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
-        .borderRadius(R_FULL).backgroundColor(this.aiAuth ? MINT_LIGHT : GLASS_10)
-        .margin({ right: S_2 })
+      Text(this.aiAuth ? "🛡" : "🔓")
+        .fontSize(F_SM).fontColor(this.aiAuth ? MINT : TEXT_3)
+        .width(36).height(36).borderRadius(18).textAlign(TextAlign.Center)
+        .backgroundColor(this.aiAuth ? MINT_LIGHT : GLASS_10)
+        .margin({ right: S_1 })
         .onClick((): void => { this.aiAuth = !this.aiAuth })
-      // 思考
-      Text(this.deepThink ? "🧠 思考 ON" : "🧠 思考")
-        .fontSize(F_XS).fontColor(this.deepThink ? MINT : TEXT_3)
-        .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
-        .borderRadius(R_FULL).backgroundColor(this.deepThink ? MINT_LIGHT : GLASS_10)
-        .margin({ right: S_2 })
+      Text(this.deepThink ? "💡" : "◉")
+        .fontSize(F_SM).fontColor(this.deepThink ? MINT : TEXT_3)
+        .width(36).height(36).borderRadius(18).textAlign(TextAlign.Center)
+        .backgroundColor(this.deepThink ? MINT_LIGHT : GLASS_10)
         .onClick((): void => { this.deepThink = !this.deepThink })
-      // 模型
-      Text("DeepSeek-V3 ⌄").fontSize(F_XS).fontColor(TEXT_3)
-        .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
-        .borderRadius(R_FULL).backgroundColor(GLASS_10)
-        .onClick((): void => { promptAction.showToast({ message: "当前模型: DeepSeek-V3", duration: 1500 }) })
       Blank()
-    }.width("100%").padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
+      Text("V3").fontSize(F_XS).fontColor(TEXT_3)
+        .padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 })
+        .borderRadius(R_FULL).backgroundColor(GLASS_10)
+        .onClick((): void => { promptAction.showToast({ message: "DeepSeek-V3", duration: 1500 }) })
+    }.width("100%").padding({ left: S_4, right: S_4, top: S_1, bottom: S_1 })
   }
+
 
   // 聊天气泡
   @Builder UserBubble(msg: ChatMsg) {
@@ -190,8 +187,10 @@ export struct AgentFloatWindow {
     }.width("100%").padding({ top: S_6, bottom: S_6 }).alignItems(HorizontalAlign.Center)
   }
 
+  // V6.1 重设计: 图标嵌入输入框 + 左上思考/右上模型
   @Builder InputBar() {
     Column() {
+      // 图片预览
       if (this.imagePreview.length > 0) {
         Row() {
           Image(this.imagePreview).width(44).height(44).borderRadius(R_SM).objectFit(ImageFit.Cover)
@@ -200,33 +199,49 @@ export struct AgentFloatWindow {
             .backgroundColor(GLASS_10).onClick((): void => { this.imagePreview = "" })
         }.width("100%").padding({ left: S_4, right: S_4, bottom: S_1 })
       }
+      // 输入行: 附件 + [相机|输入|喇叭] + 发送
       Row() {
-        // 🎤 语音按钮(V6.1)
-        Text("🎤").fontSize(F_BASE).width(40).height(40).borderRadius(20).backgroundColor(GLASS_10)
-          .textAlign(TextAlign.Center)
-          .onClick((): void => { promptAction.showToast({ message: "语音功能开发中", duration: 1500 }) })
-        // 输入框
-        TextInput({ text: this.inputText, placeholder: "输入数学问题..." })
-          .layoutWeight(1).height(44).fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_3)
-          .backgroundColor(GLASS_10).borderRadius(22).padding({ left: S_4, right: S_2 })
-          .onChange((value: string): void => { this.inputText = value })
-          .onSubmit((): void => { this.send() })
-        // 📎 附件(V6.1) — 拍照
-        Text("📎").fontSize(F_BASE).width(40).height(40).borderRadius(20).backgroundColor(GLASS_10)
-          .textAlign(TextAlign.Center)
-          .margin({ left: S_1 })
-          .onClick((): void => { this.onGoCamera() })
-        // 发送 ↑
+        // 📎 附件(拍照) — 输入框左侧
+        Stack() {
+          Image($r("app.media.ic_camera")).width(18).height(18).fillColor(TEXT_3)
+        }
+        .width(40).height(40).borderRadius(20).backgroundColor(GLASS_10)
+        .alignContent(Alignment.Center).margin({ right: S_2 })
+        .onClick((): void => { this.onGoCamera() })
+
+        // 输入框 + 内嵌图标
+        Stack({ alignContent: Alignment.Start }) {
+          TextInput({ text: this.inputText, placeholder: "输入数学问题..." })
+            .width("100%").height(44)
+            .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_3)
+            .backgroundColor(GLASS_10).borderRadius(22)
+            .padding({ left: 42, right: 42 })
+            .onChange((value: string): void => { this.inputText = value })
+            .onSubmit((): void => { this.send() })
+
+          // 🔊 喇叭(语音) — 输入框内右侧
+          Text("🔊").fontSize(F_BASE).width(32).height(44)
+            .textAlign(TextAlign.Center)
+            .position({ x: "100%", y: 0 }).markAnchor({ x: 1, y: 0 }).translate({ x: -8 })
+            .onClick((): void => { promptAction.showToast({ message: "语音功能开发中", duration: 1500 }) })
+
+          // 📷 相机 — 输入框内左侧
+          Text("📷").fontSize(F_BASE).width(32).height(44)
+            .textAlign(TextAlign.Center)
+            .position({ x: 0, y: 0 }).translate({ x: 8 })
+            .onClick((): void => { this.onGoCamera() })
+        }.layoutWeight(1)
+
+        // ↑ 发送 — 输入框右侧
         Text("↑").fontSize(F_MD).fontWeight(W_BOLD).width(40).height(40).borderRadius(20)
           .textAlign(TextAlign.Center)
           .fontColor(this.inputText.trim().length > 0 && !this.busy ? BG_DARK : TEXT_3)
           .backgroundColor(this.inputText.trim().length > 0 && !this.busy ? MINT : GLASS_10)
-          .margin({ left: S_1 })
+          .margin({ left: S_2 })
           .onClick((): void => { this.send() })
       }.width("100%").padding({ left: S_4, right: S_4 })
     }.width("100%").padding({ top: S_2, bottom: S_4 })
   }
-
   build() {
     Stack() {
       if (this.show) {
