@@ -256,7 +256,7 @@ export struct AgentFloatWindow {
           this.QuickWords()
           this.InputBar()
         }
-        .width("100%").height("44%")
+        .width("100%").height("40%")
         .borderRadius({ topLeft: R_XL, topRight: R_XL }).backgroundColor(BG_DARK)
         .width('100%').padding({ left: S_3, right: S_3 }).position({ x: 0, y: '100%' }).markAnchor({ x: 0, y: '100%' }).translate({ y: -(74 + this.keyboardHeight) })
         .translate({ y: -this.keyboardHeight })
