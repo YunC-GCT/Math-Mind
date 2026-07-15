@@ -1,17 +1,17 @@
-/**
- * MathMind 笔记详情浮层 — 第 3 批
+﻿/**
+ * MathMind 绗旇璇︽儏娴眰 鈥?绗?3 鎵?
  *
- * 触发: HomePage / NotesPage 点笔记卡片
- * 流程: 显示笔记详情(学科条 / 标题 / meta / 标签 / 正文 / AI 卡)
+ * 瑙﹀彂: HomePage / NotesPage 鐐圭瑪璁板崱鐗?
+ * 娴佺▼: 鏄剧ず绗旇璇︽儏(瀛︾鏉?/ 鏍囬 / meta / 鏍囩 / 姝ｆ枃 / AI 鍗?
  *
- * MVP 阶段:
- *   - 正文章节按 ## 切分渲染(不解析 LaTeX,直接显示纯文本)
- *   - AI 卡按钮 toast 提示"W1 接真 AI"
- *   - 底部"编辑"按钮 toast 提示(后续再做)
+ * MVP 闃舵:
+ *   - 姝ｆ枃绔犺妭鎸?## 鍒囧垎娓叉煋(涓嶈В鏋?LaTeX,鐩存帴鏄剧ず绾枃鏈?
+ *   - AI 鍗℃寜閽?toast 鎻愮ず"W1 鎺ョ湡 AI"
+ *   - 搴曢儴"缂栬緫"鎸夐挳 toast 鎻愮ず(鍚庣画鍐嶅仛)
  *
- * 依赖:
- *   - common.NoteItem (class, 9 字段)
- *   - common.typeColor / subjectColor (工具函数)
+ * 渚濊禆:
+ *   - common.NoteItem (class, 9 瀛楁)
+ *   - common.typeColor / subjectColor (宸ュ叿鍑芥暟)
  */
 
 import {
@@ -24,8 +24,9 @@ import {
   NoteItem, typeColor, subjectColor, recentDate, stripMD,
 } from 'common';
 import { promptAction } from '@kit.ArkUI';
+import { AlertDialog } from '@kit.ArkUI';
 
-// 顶层工具(ArkTS 禁 struct 内普通方法)
+// 椤跺眰宸ュ叿(ArkTS 绂?struct 鍐呮櫘閫氭柟娉?
 function confColor(c: number): string {
   if (c >= 0.85) {
     return MINT;
@@ -38,15 +39,15 @@ function confColor(c: number): string {
 
 function confLabel(c: number): string {
   if (c >= 0.85) {
-    return '已掌握';
+    return '宸叉帉鎻?;
   }
   if (c >= 0.6) {
-    return '一般';
+    return '涓€鑸?;
   }
-  return '待巩固';
+  return '寰呭珐鍥?;
 }
 
-// 解析 body 成章节
+// 瑙ｆ瀽 body 鎴愮珷鑺?
 interface Section {
   title: string;
   content: string;
@@ -58,12 +59,12 @@ function parseSections(body: string): Section[] {
   }
   const lines: string[] = body.split('\n');
   const sections: Section[] = [];
-  let curTitle = '内容';
+  let curTitle = '鍐呭';
   let curLines: string[] = [];
 
   for (const line of lines) {
     if (line.indexOf('## ') === 0) {
-      // 切到新章节
+      // 鍒囧埌鏂扮珷鑺?
       if (curLines.length > 0) {
         sections.push({ title: curTitle, content: curLines.join('\n').trim() });
       }
@@ -73,7 +74,7 @@ function parseSections(body: string): Section[] {
       curLines.push(line);
     }
   }
-  // 推最后一段
+  // 鎺ㄦ渶鍚庝竴娈?
   if (curLines.length > 0 || sections.length === 0) {
     sections.push({ title: curTitle, content: curLines.join('\n').trim() });
   }
@@ -91,13 +92,13 @@ export struct NoteDetailOverlay {
 
   build() {
     Stack() {
-      // ===== 半透明遮罩 =====
+      // ===== 鍗婇€忔槑閬僵 =====
       Column()
         .width('100%').height('100%')
         .backgroundColor('#CC000000')
         .onClick(() => this.onClose());
 
-      // ===== 浮层主体 =====
+      // ===== 娴眰涓讳綋 =====
       Column() {
         // drag bar
         Row() {
@@ -111,15 +112,15 @@ export struct NoteDetailOverlay {
         .margin({ top: 8 })
         .justifyContent(FlexAlign.Center);
 
-        // 顶栏
+        // 椤舵爮
         Row() {
-          // 学科 · 类型条
+          // 瀛︾ 路 绫诲瀷鏉?
           Row() {
             Text(this.note.subject)
               .fontSize(F_XS)
               .fontColor(subjectColor(this.note.subject))
               .fontWeight(700);
-            Text(' · ')
+            Text(' 路 ')
               .fontSize(F_XS)
               .fontColor(TEXT_4);
             Text(this.note.type)
@@ -134,16 +135,16 @@ export struct NoteDetailOverlay {
 
           Blank();
 
-          // 关闭
+          // 鍏抽棴
           this.CloseBtn();
         }
         .width('100%')
         .padding({ left: 20, right: 16, top: 4, bottom: 8 });
 
-        // ===== 内容 Scroll 区 =====
+        // ===== 鍐呭 Scroll 鍖?=====
         Scroll() {
           Column() {
-            // 标题
+            // 鏍囬
             Text(this.note.title)
               .fontSize(F_2XL)
               .fontWeight(700)
@@ -152,31 +153,31 @@ export struct NoteDetailOverlay {
               .width('100%')
               .padding({ left: 20, right: 20, top: 8, bottom: 4 });
 
-            // meta 行(章节 + 日期 + 置信度)
+            // meta 琛?绔犺妭 + 鏃ユ湡 + 缃俊搴?
             Row() {
-              // 章节
+              // 绔犺妭
               if (this.note.chapter && this.note.chapter.length > 0) {
-                Text(`📖 ${this.note.chapter}`)
+                Text(`馃摉 ${this.note.chapter}`)
                   .fontSize(F_XS)
                   .fontColor(TEXT_2);
-                Text('  ·  ')
+                Text('  路  ')
                   .fontSize(F_XS)
                   .fontColor(TEXT_4);
               }
-              // 日期
+              // 鏃ユ湡
               Text(recentDate(this.note.date))
                 .fontSize(F_XS)
                 .fontColor(TEXT_3);
 
               Blank();
 
-              // 置信度条
+              // 缃俊搴︽潯
               this.ConfBadge();
             }
             .width('100%')
             .padding({ left: 20, right: 20, top: 4, bottom: 12 });
 
-            // 标签 chips
+            // 鏍囩 chips
             if (this.note.tags && this.note.tags.length > 0) {
               Row() {
                 ForEach(this.note.tags, (tag: string) => {
@@ -187,14 +188,14 @@ export struct NoteDetailOverlay {
               .padding({ left: 20, right: 20, bottom: 16 });
             }
 
-            // 分隔线
+            // 鍒嗛殧绾?
             Row()
               .width('100%')
               .height(1)
               .backgroundColor(BORDER)
               .margin({ left: 20, right: 20, bottom: 12 });
 
-            // 正文(按章节渲染)
+            // 姝ｆ枃(鎸夌珷鑺傛覆鏌?
             Column() {
               ForEach(parseSections(this.note.body), (sec: Section) => {
                 this.SectionView(sec);
@@ -203,10 +204,10 @@ export struct NoteDetailOverlay {
             .width('100%')
             .padding({ left: 20, right: 20, bottom: 16 });
 
-            // AI 卡
+            // AI 鍗?
             this.AiCard();
 
-            // 底部留白
+            // 搴曢儴鐣欑櫧
             Blank().height(80);
           }
           .width('100%');
@@ -216,16 +217,16 @@ export struct NoteDetailOverlay {
         .scrollBar(BarState.Off)
         .edgeEffect(EdgeEffect.Spring);
 
-        // ===== 底部操作栏 =====
+        // ===== 搴曢儴鎿嶄綔鏍?=====
         Row() {
-          // 删除
-          this.ActionBtn('🗑', '删除', '#FF6B6B', () => this.confirmDelete());
+          // 鍒犻櫎
+          this.ActionBtn('馃棏', '鍒犻櫎', '#FF6B6B', () => this.confirmDelete());
           Blank().width(8);
-          // 编辑
-          this.ActionBtn('✎', '编辑', TEXT_2, () => this.mockEdit());
+          // 缂栬緫
+          this.ActionBtn('鉁?, '缂栬緫', TEXT_2, () => this.mockEdit());
           Blank().width(8);
-          // 分享
-          this.ActionBtn('↗', '分享', TEXT_2, () => this.mockShare());
+          // 鍒嗕韩
+          this.ActionBtn('鈫?, '鍒嗕韩', TEXT_2, () => this.mockShare());
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 8, bottom: 28 })
@@ -239,11 +240,11 @@ export struct NoteDetailOverlay {
     .width('100%').height('100%');
   }
 
-  // ========== 章节渲染 ==========
+  // ========== 绔犺妭娓叉煋 ==========
   @Builder
   SectionView(sec: Section) {
     Column() {
-      // 章节标题
+      // 绔犺妭鏍囬
       Text(sec.title)
         .fontSize(F_SM)
         .fontWeight(700)
@@ -252,8 +253,8 @@ export struct NoteDetailOverlay {
         .width('100%')
         .margin({ top: 12, bottom: 6 });
 
-      // 章节内容
-      Text(sec.content && sec.content.length > 0 ? sec.content : '—')
+      // 绔犺妭鍐呭
+      Text(sec.content && sec.content.length > 0 ? sec.content : '鈥?)
         .fontSize(F_BASE)
         .fontColor(TEXT_2)
         .lineHeight(22)
@@ -263,11 +264,11 @@ export struct NoteDetailOverlay {
     .alignItems(HorizontalAlign.Start);
   }
 
-  // ========== 置信度徽章 ==========
+  // ========== 缃俊搴﹀窘绔?==========
   @Builder
   ConfBadge() {
     Row() {
-      // 圆点
+      // 鍦嗙偣
       Column()
         .width(6).height(6)
         .borderRadius(3)
@@ -282,7 +283,7 @@ export struct NoteDetailOverlay {
     .alignItems(VerticalAlign.Center);
   }
 
-  // ========== 标签 chip ==========
+  // ========== 鏍囩 chip ==========
   @Builder
   TagChip(tag: string) {
     Text(`#${tag}`)
@@ -294,14 +295,14 @@ export struct NoteDetailOverlay {
       .margin({ right: 6, bottom: 6 });
   }
 
-  // ========== AI 卡 ==========
+  // ========== AI 鍗?==========
   @Builder
   AiCard() {
     Column() {
       Row() {
-        // AI 图标
+        // AI 鍥炬爣
         Stack() {
-          Text('✦')
+          Text('鉁?)
             .fontSize(14)
             .fontWeight(700)
             .fontColor(BG_DARK);
@@ -313,11 +314,11 @@ export struct NoteDetailOverlay {
         .margin({ right: 10 });
 
         Column() {
-          Text('AI 解答')
+          Text('AI 瑙ｇ瓟')
             .fontSize(F_BASE)
             .fontWeight(700)
             .fontColor(TEXT);
-          Text('让 MathMind AI 解释这道题')
+          Text('璁?MathMind AI 瑙ｉ噴杩欓亾棰?)
             .fontSize(F_XS)
             .fontColor(TEXT_3)
             .margin({ top: 2 });
@@ -325,7 +326,7 @@ export struct NoteDetailOverlay {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1);
 
-        Text('›')
+        Text('鈥?)
           .fontSize(20)
           .fontColor(MINT)
           .fontWeight(500);
@@ -345,11 +346,11 @@ export struct NoteDetailOverlay {
     .onClick(() => this.handleAskAi());
   }
 
-  // ========== 顶栏按钮 ==========
+  // ========== 椤舵爮鎸夐挳 ==========
   @Builder
   CloseBtn() {
     Stack() {
-      Text('✕')
+      Text('鉁?)
         .fontSize(16)
         .fontWeight(500)
         .fontColor(TEXT_2);
@@ -361,7 +362,7 @@ export struct NoteDetailOverlay {
     .onClick(() => this.onClose());
   }
 
-  // ========== 底部操作按钮 ==========
+  // ========== 搴曢儴鎿嶄綔鎸夐挳 ==========
   @Builder
   ActionBtn(icon: string, label: string, color: string, action: () => void) {
     Column() {
@@ -382,23 +383,23 @@ export struct NoteDetailOverlay {
     .onClick(() => action());
   }
 
-  // ========== 行为(箭头函数) ==========
+  // ========== 琛屼负(绠ご鍑芥暟) ==========
   private handleAskAi = (): void => {
-    promptAction.showToast({ message: '正在呼叫 AI...', duration: 1500 });
+    promptAction.showToast({ message: '姝ｅ湪鍛煎彨 AI...', duration: 1500 });
     this.onAskAi(this.note);
   };
 
   private mockEdit = (): void => {
-    promptAction.showToast({ message: '编辑功能 W2 上线', duration: 1500 });
+    promptAction.showToast({ message: '缂栬緫鍔熻兘 W2 涓婄嚎', duration: 1500 });
     this.onEdit(this.note.id);
   };
 
   private mockShare = (): void => {
-    promptAction.showToast({ message: '已复制笔记到剪贴板', duration: 1500 });
+    promptAction.showToast({ message: '宸插鍒剁瑪璁板埌鍓创鏉?, duration: 1500 });
   };
 
   private confirmDelete = (): void => {
-    promptAction.showToast({ message: '删除功能 W2 上线', duration: 1500 });
+    promptAction.showToast({ message: '鍒犻櫎鍔熻兘 W2 涓婄嚎', duration: 1500 });
     this.onDelete(this.note.id);
   };
 }
