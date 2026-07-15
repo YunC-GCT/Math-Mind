@@ -250,7 +250,7 @@ export struct AgentFloatWindow {
       .fontSize(F_XS)
       .fontColor(PURPLE)
       .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
-      .borderRadius(R_MD)
+      .borderRadius(R_MD + 4)
       .backgroundColor(PURPLE_LIGHT)
       .onClick(() => this.sendQuick(prompt));
   }
@@ -265,7 +265,7 @@ export struct AgentFloatWindow {
         .fontColor(MINT)
         .lineHeight(18)
         .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
-        .borderRadius(R_MD)
+        .borderRadius(R_MD + 4)
         .backgroundColor(MINT_LIGHT)  // MINT_LIGHT
         .constraintSize({ maxWidth: '78%' })
         .textAlign(TextAlign.Start);
@@ -283,7 +283,7 @@ export struct AgentFloatWindow {
         .fontColor(TEXT_2)
         .lineHeight(18)
         .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
-        .borderRadius(R_MD)
+        .borderRadius(R_MD + 4)
         .backgroundColor(PURPLE_LIGHT)
         .constraintSize({ maxWidth: '85%' })
         .textAlign(TextAlign.Start);
@@ -307,7 +307,7 @@ export struct AgentFloatWindow {
           .margin({ left: S_1 });
       }
       .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
-      .borderRadius(R_MD)
+      .borderRadius(R_MD + 4)
       .backgroundColor(PURPLE_LIGHT);
       Blank();
     }
@@ -350,6 +350,11 @@ export struct AgentFloatWindow {
         // ===== 浮窗主体 �?紧凑设计 =====
         Column() {
           // 顶栏 (32vp)
+          // 拖拽条
+          Row() {
+            Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4)
+          }
+          .width("100%").height(S_6).justifyContent(FlexAlign.Center)
           this.Header();
 
           // 分隔�?
