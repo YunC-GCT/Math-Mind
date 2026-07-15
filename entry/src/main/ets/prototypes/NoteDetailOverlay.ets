@@ -20,6 +20,7 @@ import {
   S_1, S_2, S_3, S_4, S_5,
   R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL, F_2XL,
+  W_SEMIBOLD, W_BOLD,
   NoteItem, typeColor, subjectColor, recentDate, stripMD,
 } from "common"
 import { promptAction } from "@kit.ArkUI"
@@ -80,8 +81,8 @@ export struct NoteDetailOverlay {
         Row() {
           Row().width(40).height(4).borderRadius(2).backgroundColor(TEXT_4)
         }
-        .width("100%").height(24)
-        .margin({ top: 8 })
+        .width("100%").height(S_6)
+        .margin({ top: S_2 })
         .justifyContent(FlexAlign.Center)
 
         // 顶栏
@@ -90,14 +91,14 @@ export struct NoteDetailOverlay {
             Text(this.note.subject)
               .fontSize(F_XS)
               .fontColor(subjectColor(this.note.subject))
-              .fontWeight(700)
+              .fontWeight(W_BOLD)
             Text(" · ")
               .fontSize(F_XS)
               .fontColor(TEXT_4)
             Text(this.note.type)
               .fontSize(F_XS)
               .fontColor(typeColor(this.note.type))
-              .fontWeight(600)
+              .fontWeight(W_SEMIBOLD)
           }
           .padding({ left: 10, right: 10, top: 4, bottom: 4 })
           .borderRadius(R_FULL)
@@ -117,11 +118,11 @@ export struct NoteDetailOverlay {
             // 标题
             Text(this.note.title)
               .fontSize(F_2XL)
-              .fontWeight(700)
+              .fontWeight(W_BOLD)
               .fontColor(TEXT)
               .lineHeight(30)
               .width("100%")
-              .padding({ left: 20, right: 20, top: 8, bottom: 4 })
+              .padding({ left: S_5, right: S_5, top: S_2, bottom: S_1 })
 
             // meta 行
             Row() {
@@ -197,7 +198,7 @@ export struct NoteDetailOverlay {
           this.ActionBtn("↗", "分享", TEXT_2, (): void => this.mockShare())
         }
         .width("100%")
-        .padding({ left: 16, right: 16, top: 8, bottom: 28 })
+        .padding({ left: S_4, right: S_4, top: S_2, bottom: S_6 })
         .backgroundColor(BG_DARK)
         .border({ width: { top: 1 }, color: BORDER })
       }
@@ -212,10 +213,10 @@ export struct NoteDetailOverlay {
   SectionView(sec: Section) {
     Column() {
       Text(sec.title)
-        .fontSize(F_SM).fontWeight(700)
+        .fontSize(F_SM).fontWeight(W_BOLD)
         .fontColor(MINT).letterSpacing(0.5)
         .width("100%")
-        .margin({ top: 12, bottom: 6 })
+        .margin({ top: S_3, bottom: S_2 })
 
       Text(sec.content && sec.content.length > 0 ? sec.content : "—")
         .fontSize(F_BASE)
@@ -236,7 +237,7 @@ export struct NoteDetailOverlay {
       .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       .borderRadius(R_FULL)
       .backgroundColor(MINT_GLOW)
-      .margin({ right: 6, bottom: 6 })
+      .margin({ right: S_2, bottom: S_2 })
   }
 
   // ========== AI 卡 ==========
@@ -246,7 +247,7 @@ export struct NoteDetailOverlay {
       Row() {
         Stack() {
           Text("✦")
-            .fontSize(14).fontWeight(700)
+            .fontSize(14).fontWeight(W_BOLD)
             .fontColor(BG_DARK)
         }
         .width(28).height(28)
@@ -257,7 +258,7 @@ export struct NoteDetailOverlay {
 
         Column() {
           Text("AI 解答")
-            .fontSize(F_BASE).fontWeight(700)
+            .fontSize(F_BASE).fontWeight(W_BOLD)
             .fontColor(TEXT)
           Text("让 MathMind AI 解释这道题")
             .fontSize(F_XS)
@@ -274,7 +275,7 @@ export struct NoteDetailOverlay {
       .alignItems(VerticalAlign.Center)
     }
     .width("100%")
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .padding({ left: S_4, right: S_4, top: S_4, bottom: S_4 })
     .borderRadius(R_LG)
     .backgroundColor("#0DFFFFFF")
     .border({ width: 1, color: MINT_BORDER })
@@ -293,7 +294,7 @@ export struct NoteDetailOverlay {
         .fontSize(16).fontWeight(500)
         .fontColor(TEXT_2)
     }
-    .width(32).height(32)
+    .width(S_4 * 2).height(S_4 * 2)
     .borderRadius(16)
     .backgroundColor(GLASS_10)
     .alignContent(Alignment.Center)
