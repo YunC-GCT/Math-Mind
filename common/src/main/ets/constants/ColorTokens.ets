@@ -134,19 +134,28 @@ export const LH_HEADING: number = 30
 // ========================================================================
 //  阴影 (Shadow) — 预设
 // ========================================================================
-export const SHADOW_FAB = {
+interface ShadowPreset {
+  radius: number
+  color: string
+  offsetX: number
+  offsetY: number
+}
+
+export const SHADOW_FAB: ShadowPreset = {
   radius: 28,
   color: "#595BE3B0",
   offsetX: 0,
   offsetY: 8,
-} as const
+}
 
-export const SHADOW_GLOW_MINT = (alpha: number) => ({
-  radius: 32,
-  color: "rgba(91, 227, 176, " + alpha.toFixed(2) + ")",
-  offsetX: 0,
-  offsetY: 0,
-})
+export function SHADOW_GLOW_MINT(alpha: number): ShadowPreset {
+  return {
+    radius: 32,
+    color: "rgba(91, 227, 176, " + alpha.toFixed(2) + ")",
+    offsetX: 0,
+    offsetY: 0,
+  }
+}
 
 // ========================================================================
 //  动画时长 (ms)
