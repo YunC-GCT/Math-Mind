@@ -1,0 +1,11 @@
+{
+  "name": "skill",
+  "version": "1.0.0",
+  "description": "MathMind xiaoyi skill",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "common": "file:../common",
+    "agents": "file:../agents"
+  }
+}

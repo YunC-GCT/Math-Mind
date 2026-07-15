@@ -1,0 +1,14 @@
+{
+  "module": {
+    "name": "agents",
+    "type": "shared",
+    "description": "MathMind shared agents — main + 5 sub Agents",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false
+  }
+}

@@ -1,7 +1,55 @@
-node_modules/
-.env
-*.log
-dist/
+# ===== HarmonyOS build =====
+oh_modules/
+.hvigor/
 build/
+*.har
+
+# Per-module build outputs
+**/build/
+**/oh_modules/
+
+# ===== IDE / Editor =====
+.idea/
+.deveco/
+*.iml
+.vscode/
+
+# ===== Local config (machine-specific) =====
+local.properties
+.env
+
+# ===== Compiler =====
+.cxx/
+.clangd
+.clang-format
+.clang-tidy
+.appanalyzer
+
+# ===== Test runtime outputs =====
+**/.test
+test-results.xml
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== OS =====
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ===== Build outputs of one-shot =====
+*.app
+*.apk
+*.hap
+*.ipa
+
+# ===== Node (DevEco CLI use npm/yarn) =====
+node_modules/
+package-lock.json
+
+# ===== Resource caches =====
+**/.cache/
+
+# ===== Agent metadata =====
+.reasonix/

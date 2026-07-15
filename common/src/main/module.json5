@@ -1,0 +1,19 @@
+{
+  "module": {
+    "name": "common",
+    "type": "shared",
+    "description": "MathMind shared common — components, API, constants",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET"
+      }
+    ]
+  }
+}

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>MathMind</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="phone-wrapper"><div class="phone"><div class="screen" id="appScreen">
+
+<!-- 状态栏 -->
+<div class="statusbar">
+  <span id="sbTime">09:45</span>
+  <span class="right">
+    <span class="signal"><i></i><i></i><i></i><i></i></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 9l2 2 4-4"/><path d="M17 9l2 2 4-4"/><rect x="3" y="13" width="18" height="8" rx="2"/></svg>
+    <span class="battery"><i></i></span>
+  </span>
+</div>
+
+<!-- 顶栏 -->
+<div class="header">
+  <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,8 22,20 12,26 2,20 2,8"/><path d="M7 17 L7 7 L10 11 L12 7 L14 11 L17 7 L17 17" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <h2 id="headerTitle">MathMind</h2>
+</div>
+
+<!-- ===== 首页 ===== -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-row">
+      <div class="hero-info">
+        <div class="hero-greet"><span class="dot"></span><span id="heroGreet">晚上好, <b>Mini</b></span></div>
+        <div class="hero-date" id="heroDate">加载中...</div>
+      </div>
+    </div>
+    <div class="progress-ring" onclick="toast('更多统计功能开发中')">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5BE3B0"/><stop offset="100%" stop-color="#9775FA"/></linearGradient></defs>
+        <circle class="ring-bg" cx="60" cy="60" r="52"/>
+        <circle class="ring-fg" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="80" id="progressCircle"/>
+      </svg>
+      <div class="progress-text num" id="progressText">75%</div>
+      <div class="progress-sub">已掌握 <span id="progressDetail">—</span><span class="arrow">›</span></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="mn" id="statNotes">—</div><div class="ml">笔记</div></div>
+      <div class="stat-box"><div class="mn" id="statMastered">—</div><div class="ml">掌握率</div></div>
+      <div class="stat-box"><div class="mn" id="statToday">—</div><div class="ml">今日新增</div></div>
+    </div>
+  </div>
+  <div class="home-reminder show" id="homeReminder">👋 欢迎使用 MathMind！试试 AI 对话或拍照，帮你整理知识笔记 ›</div>
+  <div class="scroll">
+    <div style="padding:4px 20px;font-size:14px;font-weight:600;color:var(--text);margin:4px 0">最近笔记</div>
+    <div class="note-list" id="homeNotes"></div>
+  </div>
+</div>
+
+<!-- ===== 笔记页 ===== -->
+<div class="page" id="page-notes">
+  <div class="scroll">
+    <div class="note-list" id="allNotes"></div>
+  </div>
+</div>
+
+<!-- ===== 复习页 ===== -->
+<div class="page" id="page-review">
+  <div class="scroll">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:12px">
+      <div style="font-size:48px">📋</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text)">复习计划</div>
+      <div style="font-size:13px;color:var(--text-3);text-align:center;line-height:1.6">通过 AI 对话分析笔记后<br>自动生成个性化复习计划</div>
+      <button class="btn-primary" style="padding:10px 24px;margin-top:8px" onclick="openAIOverlay()">去 AI 对话</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 我的页 ===== -->
+<div class="page" id="page-me">
+  <div class="scroll">
+    <div class="me-wrap">
+      <div class="me-avatar" id="meAvatar" onclick="toast('头像设置开发中')">M</div>
+      <div class="me-name" id="meName">Mini</div>
+      <div class="me-email" id="meEmail">已登录 · 模拟账号</div>
+      <div class="me-tagline">Where math clicks. <b>·</b> 思维的长程记忆</div>
+      <div class="me-stats">
+        <div class="ms"><div class="mn" id="statNotes2">—</div><div class="ml">笔记</div></div>
+        <div class="ms"><div class="mn" id="statMastered2">—</div><div class="ml">掌握率</div></div>
+        <div class="ms"><div class="mn" id="statToday2">—</div><div class="ml">今日新增</div></div>
+      </div>
+      <div class="me-menu">
+        <div class="mm" onclick="toast('复习计划开发中')"><span class="mmi">📋</span><span class="mma">我的复习计划</span><span class="mmr">›</span></div>
+        <div class="mm" onclick="toast('错题本开发中')"><span class="mmi">📕</span><span class="mma">错题本</span><span class="mmr">›</span></div>
+        <div class="mm" onclick="toast('收藏功能开发中')"><span class="mmi">⭐</span><span class="mma">我的收藏</span><span class="mmr">›</span></div>
+        <div class="mm" onclick="toast('设置开发中')"><span class="mmi">⚙️</span><span class="mma">设置</span><span class="mmr">›</span></div>
+        <div class="mm" id="meLoginRow" onclick="openLogin()"><span class="mmi">🚪</span><span class="mma" id="meLoginLabel">切换账号</span><span class="mmr">›</span></div>
+      </div>
+      <button class="me-logout-btn" id="meLogoutBtn" onclick="confirmLogout()">退出登录</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 登录 ===== -->
+<div class="fullpage" id="loginPage">
+  <div class="fp-topbar">
+    <button class="fp-back" onclick="closeLogin()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="fp-title">登录</div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="fp-body" style="text-align:center">
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:50px 0 12px">
+      <svg class="brand-mark" style="width:48px;height:48px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,8 22,20 12,26 2,20 2,8"/><path d="M7 17 L7 7 L10 11 L12 7 L14 11 L17 7 L17 17" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="font-size:38px;font-weight:800;background:linear-gradient(135deg,var(--mint),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-1.5px;line-height:1">MathMind</div>
+    </div>
+    <div style="font-size:13px;color:var(--mint);letter-spacing:.5px;font-style:italic;margin-bottom:8px">Where math clicks.</div>
+    <div style="font-size:14px;color:var(--text-3);margin-bottom:40px">登录后可同步学习数据</div>
+    <button class="btn-primary" style="width:100%;margin-bottom:12px;padding:14px" onclick="doLogin()">🔑 华为账号一键登录</button>
+    <button class="btn-outline" style="width:100%;padding:14px" onclick="doLogin()">验证码登录</button>
+  </div>
+</div>
+
+<!-- ===== AI 浮层 ===== -->
+<div class="ai-overlay" id="aiOverlay">
+  <div class="ai-head">
+    <span class="ach-title">✦ MathMind AI</span>
+    <button class="ai-close" id="aiClose">✕</button>
+  </div>
+  <div class="ai-sug" id="aiSug">
+    <button class="as" data-q="帮我分析这道题">分析题目</button>
+    <button class="as" data-q="总结知识点">总结知识</button>
+    <button class="as" data-q="出几道练习题">出练习题</button>
+    <button class="as" data-q="推荐学习路径">学习路径</button>
+  </div>
+  <div class="ai-body" id="aiBody">
+    <div class="ai-msg ai">你好！拍照或输入数学问题，我会帮你分析知识点并生成笔记 👇</div>
+  </div>
+  <div class="ai-foot">
+    <input type="text" id="aiInput" placeholder="输入问题...">
+    <button class="ai-ic" id="aiPhotoBtn" title="拍照">📷</button>
+    <button class="ai-send" id="aiSend">↑</button>
+  </div>
+</div>
+
+<!-- ===== 相机 ===== -->
+<div class="cam-overlay" id="camOverlay">
+  <div class="cam-top">
+    <button class="cam-btn" onclick="closeCamera()">✕</button>
+    <button class="cam-btn" onclick="switchCamera()">🔄</button>
+  </div>
+  <div class="cam-vf">
+    <video id="camVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"></video>
+    <canvas id="camCanvas" style="display:none;"></canvas>
+    <div class="cam-frame" id="camFrame">
+      <span class="cam-hint" id="camHint">将题目对准框内<br>点击快门拍摄</span>
+    </div>
+  </div>
+  <div class="cam-bottom">
+    <button class="cam-act" id="camRetake" onclick="retakePhoto()">重拍</button>
+    <button class="cam-shutter" id="camShutter" onclick="takePhoto()"></button>
+    <button class="cam-act confirm" id="camConfirm" onclick="confirmPhoto()">✓ 使用</button>
+  </div>
+</div>
+
+<!-- ===== 笔记详情 overlay ===== -->
+<div class="overlay" id="detailOverlay">
+  <div class="overlay-head">
+    <button class="icon-btn" id="detailBack" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div style="flex:1;text-align:center"><h2>笔记详情</h2></div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="detail-scroll" id="detailBody"></div>
+</div>
+
+<!-- ===== 底部 Tab ===== -->
+<div class="tabbar">
+  <button class="tab active" data-page="home" onclick="navigateTo('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1V9.5z"/></svg>
+    <span class="label">首页</span>
+  </button>
+  <button class="tab" data-page="notes" onclick="navigateTo('notes')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+    <span class="label">笔记</span>
+  </button>
+  <button class="tab tab-ai" onclick="openAIOverlay()"><div class="tab-ai-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L14 10L22 12L14 14L12 22L10 14L2 12L10 10Z"/></svg></div></button>
+  <button class="tab" data-page="review" onclick="navigateTo('review')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    <span class="label">复习</span>
+  </button>
+  <button class="tab" data-page="me" onclick="navigateTo('me')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+    <span class="label">我的</span>
+  </button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+</div></div></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "module": {
+    "name": "skill",
+    "type": "feature",
+    "description": "MathMind xiaoyi skill (7 Intent)",
+    "mainElement": "SkillAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "abilities": [
+      {
+        "name": "SkillAbility",
+        "srcEntry": "./ets/skillability/SkillAbility.ets",
+        "description": "MathMind xiaoyi skill",
+        "icon": "$media:layered_image",
+        "label": "$string:app_name",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "skills": [
+          {
+            "entities": ["entity.system.intent"],
+            "actions": [
+              "ohos.intent.action.CaptureNote",
+              "ohos.intent.action.VoiceReview",
+              "ohos.intent.action.SearchNote",
+              "ohos.intent.action.RecommendReview",
+              "ohos.intent.action.KGRelated",
+              "ohos.intent.action.KGCrossTime",
+              "ohos.intent.action.SetPreferences"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

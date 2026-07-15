@@ -1,0 +1,10 @@
+{
+  "name": "agents",
+  "version": "1.0.0",
+  "description": "MathMind shared agents",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "common": "file:../common"
+  }
+}

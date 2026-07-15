@@ -1,0 +1,15 @@
+{
+  "module": {
+    "name": "cardservice",
+    "type": "feature",
+    "description": "MathMind atomic service card",
+    "mainElement": "FormAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": true
+  }
+}

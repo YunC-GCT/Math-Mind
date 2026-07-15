@@ -1,0 +1,2 @@
+# Obfuscation rules for entry module
+# Add your obfuscation rules here
