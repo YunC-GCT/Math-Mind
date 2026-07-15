@@ -5,7 +5,7 @@
 //  来源: 从 MePage.ets MenuItem @Builder 抽取。
 //  ============================================================================
 
-import { TEXT_2, TEXT_4, BORDER, F_SM, F_MD } from "common"
+import { TEXT_2, TEXT_4, BORDER, S_4, F_SM, F_MD } from "common"
 
 @Component
 export struct MenuItemRow {
