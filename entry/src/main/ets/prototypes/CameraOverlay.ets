@@ -34,6 +34,7 @@ import {
   S_1, S_2, S_3, S_4, S_5,
   R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG,
+  GLASS_10,
 } from 'common';
 import { cameraPicker } from '@kit.CameraKit';
 import { camera } from '@kit.CameraKit';
