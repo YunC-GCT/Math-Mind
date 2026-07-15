@@ -27,11 +27,13 @@ import { router } from "@kit.ArkUI";
 
 @Component
 export struct ReviewPage {
+  @StorageProp('statusBarHeight') sbh: number = 0
   // 父组件传入的回调（保留兼容）
   onGoAI: () => void = (): void => {};
 
   build() {
     Scroll() {
+      Row().width('100%').height(this.sbh).backgroundColor(BG_DARK)
       Column() {
         Blank();
 

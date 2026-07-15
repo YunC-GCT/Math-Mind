@@ -16,6 +16,7 @@ import { NoteCard } from "../molecules/NoteCard"
 
 @Component
 export struct NotesPage {
+  @StorageProp('statusBarHeight') sbh: number = 0
   @State selectedNote: NoteItem | null = null
   private notes: NoteItem[] = NOTES
 
@@ -25,6 +26,7 @@ export struct NotesPage {
   build() {
     Stack() {
       Column() {
+        Row().width('100%').height(this.sbh).backgroundColor(BG_DARK)
         // ---- 标题栏 ----
         Row() {
           Text("全部笔记")

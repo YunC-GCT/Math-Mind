@@ -35,6 +35,7 @@ import { promptAction } from "@kit.ArkUI"
 @Entry
 @Component
 export struct StudyPlanPage {
+  @StorageProp('statusBarHeight') sbh: number = 0
   @State vm: StudyPlanViewModel = new StudyPlanViewModel()
 
   aboutToAppear(): void {
@@ -47,6 +48,7 @@ export struct StudyPlanPage {
 
   build() {
     Column() {
+      Row().width('100%').height(this.sbh).backgroundColor(BG_DARK)
       this.HeaderBar()
       this.StatsBar()
       this.PlanList()
