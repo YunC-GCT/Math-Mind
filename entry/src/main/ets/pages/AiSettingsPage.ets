@@ -3,7 +3,7 @@
 
 import {
   MINT, MINT_DARK, PURPLE, PURPLE_LIGHT,
-  BG_DARK, BG_CARD, TEXT, TEXT_2, TEXT_4, BORDER,
+  BG_DARK, BG_CARD, TEXT_3, TEXT, TEXT_2, TEXT_4, BORDER,
   S_2, R_MD, R_LG, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, W_SEMIBOLD, GLASS_8,
 } from "common"
@@ -12,7 +12,9 @@ import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
 import { router } from "@kit.ArkUI"
 import { StatusCard } from "../molecules/StatusCard"
 import { SectionHeader } from "../atoms/SectionHeader"
-import { ParamRow } from "../atoms/ParamRow"`nimport { SettingsActionBar } from "../atoms/SettingsActionBar"`nimport { KeyInput } from "../molecules/KeyInput"
+import { ParamRow } from "../atoms/ParamRow"
+import { SettingsActionBar } from "../atoms/SettingsActionBar"
+import { KeyInput } from "../molecules/KeyInput"
 
 const EP_PRESETS: string[] = [
   "https://api.siliconflow.cn/v1/chat/completions",
@@ -117,13 +119,13 @@ struct ApiKeyRow {
 
   build() {
     Row() {
-      Text(this.showKey ? "🙈" : "👁").fontSize(18).width(36).textAlign(TextAlign.Center)
-        .onClick((): void => { this.showKey = !this.showKey })
-      TextInput({ text: this.apiKey, placeholder: "sk-..." })
-        .type(this.showKey ? InputType.Normal : InputType.Password)
+      Text( ? "🙈" : "👁").fontSize(18).width(36).textAlign(TextAlign.Center)
+        .onClick((): void => {  = ! })
+      TextInput({ text: , placeholder: "sk-..." })
+        .type( ? InputType.Normal : InputType.Password)
         .layoutWeight(1).height(42).fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
         .backgroundColor("transparent")
-        .onChange((v: string): void => { this.apiKey = v })
+        .onChange((v: string): void => {  = v })
       Button(this.testing ? "..." : "测试").fontSize(F_XS).fontColor(BG_DARK)
         .height(44).borderRadius(R_MD).backgroundColor(MINT).enabled(!this.testing).margin({ left: 8 })
         .onClick((): void => { if (this.onTest) { this.onTest() } })
@@ -166,21 +168,21 @@ struct AiSettingsPage {
   async loadConfig(): Promise<void> {
     const c = LlmConfig.getInstance()
     const key = await c.getApiKey()
-    if (key !== null && key.length > 0) { this.apiKey = key; this.configured = true; this.statusText = "已配置" }
+    if (key !== null && key.length > 0) {  = key; this.configured = true; this.statusText = "已配置" }
     const ep = c.getEndpoint(); const m = c.getModel()
     let epMatch = -1
     for (let i = 0; i < EP_PRESETS.length; i++) { if (ep === EP_PRESETS[i]) { epMatch = i; break } }
-    if (epMatch >= 0) { this.endpointIdx = epMatch; this.useCustomEP = false; this.onEndpointChange() } else { this.endpointCustom = ep; this.useCustomEP = true }
+    if (epMatch >= 0) { this.endpointIdx = epMatch; this.useCustomEP = false; this.onEndpointChange() } else {  = ep; this.useCustomEP = true }
     let mMatch = -1
     for (let i = 0; i < this.currentPresets.length; i++) { if (m === this.currentPresets[i].value) { mMatch = i; break } }
-    if (mMatch >= 0) { this.modelIdx = mMatch; this.useCustomMD = false } else { this.modelCustom = m; this.useCustomMD = true }
+    if (mMatch >= 0) { this.modelIdx = mMatch; this.useCustomMD = false } else {  = m; this.useCustomMD = true }
     this.temperature = c.getTemperature(); this.maxTokens = c.getMaxTokens(); this.timeoutMs = c.getTimeoutMs()
     this.tempText = this.temperature.toString(); this.maxTokensText = this.maxTokens.toString(); this.timeoutText = this.timeoutMs.toString()
   }
 
-  private getEP(): string { return this.useCustomEP ? this.endpointCustom : EP_PRESETS[this.endpointIdx] }
+  private getEP(): string { return this.useCustomEP ?  : EP_PRESETS[this.endpointIdx] }
   private getPresets(): ModelPreset[] { return this.useCustomEP || this.endpointIdx !== 1 ? SF_MODELS : DS_MODELS }
-  private getModel(): string { return this.useCustomMD ? this.modelCustom : this.currentPresets[this.modelIdx].value }
+  private getModel(): string { return this.useCustomMD ?  : this.currentPresets[this.modelIdx].value }
 
   async handleSave(): Promise<void> {
     try {
@@ -188,21 +190,21 @@ struct AiSettingsPage {
       if (isNaN(tp) || isNaN(mt) || isNaN(to)) { promptAction.showToast({ message: "参数必须为数字", duration: 2000 }); return }
       const c = LlmConfig.getInstance()
       await c.saveAll(this.getEP(), this.getModel(), tp, mt, to)
-      if (this.apiKey.trim().length > 0) { await c.setApiKey(this.apiKey.trim()); this.configured = true; this.statusText = "已保存" }
+      if (.trim().length > 0) { await c.setApiKey(.trim()); this.configured = true; this.statusText = "已保存" }
       promptAction.showToast({ message: "配置已保存", duration: 1500 }); await this.loadConfig()
     } catch (e) { promptAction.showToast({ message: "保存失败", duration: 2000 }) }
   }
   async handleReset(): Promise<void> {
     try {
       await LlmConfig.getInstance().resetDefaults(); await LlmConfig.getInstance().clearApiKey()
-      this.apiKey = ""; this.endpointIdx = 0; this.useCustomEP = false; this.endpointCustom = ""
-      this.modelIdx = 0; this.useCustomMD = false; this.modelCustom = ""
+       = ""; this.endpointIdx = 0; this.useCustomEP = false;  = ""
+      this.modelIdx = 0; this.useCustomMD = false;  = ""
       this.configured = false; this.statusText = "已恢复默认"
       promptAction.showToast({ message: "已恢复默认", duration: 1500 })
     } catch (e) { promptAction.showToast({ message: "恢复失败", duration: 1500 }) }
   }
   async handleTest(): Promise<void> {
-    const key = this.apiKey.trim()
+    const key = .trim()
     if (key.length === 0) { promptAction.showToast({ message: "请先输入 API Key", duration: 1500 }); return }
     const c = LlmConfig.getInstance(); await c.setApiKey(key)
     await c.saveAll(this.getEP(), this.getModel(), this.temperature, this.maxTokens, this.timeoutMs)
@@ -234,20 +236,20 @@ struct AiSettingsPage {
 
           SectionHeader({ title: "服务端点", desc: "选择预设或输入自定义地址" })
           EndpointPicker({
-            epIdx: this.endpointIdx, useCustom: this.useCustomEP, customText: $this.endpointCustom,
+            epIdx: this.endpointIdx, useCustom: this.useCustomEP, customText: $,
             onSelect: (i: number): void => { this.useCustomEP = false; this.endpointIdx = i },
             onCustom: (): void => { this.useCustomEP = true },
           })
 
           SectionHeader({ title: "模型", desc: "选择 DeepSeek 模型或自定义" })
           ModelPicker({
-            presets: this.currentPresets, mdlIdx: this.modelIdx, useCustom: this.useCustomMD, customText: $this.modelCustom,
+            presets: this.currentPresets, mdlIdx: this.modelIdx, useCustom: this.useCustomMD, customText: $,
             onSelect: (i: number): void => { this.useCustomMD = false; this.modelIdx = i },
             onCustom: (): void => { this.useCustomMD = true },
           })
 
           SectionHeader({ title: "API Key", desc: "从模型服务商获取的密钥" })
-          ApiKeyRow({ apiKey: $this.apiKey, showKey: $this.showKey, testing: this.testing, onTest: (): void => { this.handleTest() } })
+          ApiKeyRow({ apiKey: $, showKey: $, testing: this.testing, onTest: (): void => { this.handleTest() } })
 
           SectionHeader({ title: "请求参数", desc: "" })
           Column() {

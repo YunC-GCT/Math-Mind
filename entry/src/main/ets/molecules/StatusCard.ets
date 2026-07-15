@@ -9,7 +9,7 @@ import { MINT, BG_CARD, TEXT, TEXT_3, TEXT_4, F_XS, F_BASE, W_SEMIBOLD, R_LG } f
 export struct StatusCard {
   @Prop configured: boolean = false
   @Prop statusText: string = "未配置"
-  @Prop padding: number = 16
+  @Prop cardPadding: number = 16
 
   build() {
     Row() {
@@ -21,6 +21,6 @@ export struct StatusCard {
       Blank()
       Circle({ width: 10, height: 10 }).fill(this.configured ? MINT : TEXT_4)
     }
-    .width("100%").padding(this.padding).borderRadius(R_LG).backgroundColor(BG_CARD)
+    .width("100%").padding(this.cardPadding).borderRadius(R_LG).backgroundColor(BG_CARD)
   }
 }
