@@ -124,6 +124,7 @@ export struct StudyPlanPage {
     .padding({ left: S_5, right: S_5, top: 8, bottom: 8 })
   }
 
+
   @Builder
   PlanList() {
     List() {
@@ -140,12 +141,7 @@ export struct StudyPlanPage {
               onDelete: (): void => { this.vm.deleteItem(item) },
             })
           }
-          .swipeAction({ end: false }) {
-            Button("删除")
-              .backgroundColor("#FFEF4444")
-              .fontColor("#FFFFFFFF")
-              .onClick((): void => { this.vm.deleteItem(item) })
-          }
+
         },
         (item: StudyPlanItem): string => item.id
       )
