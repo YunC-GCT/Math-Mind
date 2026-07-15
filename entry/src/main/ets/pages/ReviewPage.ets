@@ -21,6 +21,7 @@ import {
   F_MD,
   F_XL,
   F_2XL,
+  W_SEMIBOLD,
 } from "common";
 import { router } from "@kit.ArkUI";
 
