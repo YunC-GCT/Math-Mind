@@ -503,11 +503,11 @@ export struct AgentFloatWindow {
           .markAnchor({ x: 0, y: '100%' })  // 元素 (0, 100%) 作为锚点 = 元素�?
           .translate({ y: -(74 + this.keyboardHeight) })  // W1.3: translate 替代 offset，配�?position 动态上�?
           .backgroundColor(BG_DARK)      // 95% alpha (微半�?
-        .borderRadius(R_XL)
-        .border({ width: 1, color: PURPLE_LIGHT })
+        .borderRadius({ topLeft: R_XL, topRight: R_XL })
+        .border({ width: { top: 0.5 }, color: BORDER })
         .shadow({
           radius: 20,
-          color: '#CC000000',
+          color: OVERLAY_MASK_SOLID,
           offsetX: 0,
           offsetY: -4,
         })
