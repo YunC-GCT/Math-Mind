@@ -32,7 +32,7 @@ export struct MenuItemRow {
         .fontColor(TEXT_4)
     }
     .width("100%")
-    .padding({ left: 16, right: 16, top: 13, bottom: 13 })
+    .padding({ left: 16, right: 16, top: S_4, bottom: S_4 })
     .border({ width: { bottom: 1 }, color: BORDER })
     .onClick((): void => {
       if (this.onTap) {

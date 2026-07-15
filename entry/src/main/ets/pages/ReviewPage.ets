@@ -63,7 +63,7 @@ export struct ReviewPage {
             .fontWeight(W_SEMIBOLD)
             .fontColor("#FF0A0C10")
             .width(140)
-            .height(40)
+            .height(44)
             .borderRadius(R_FULL)
             .linearGradient({
               angle: 135,

@@ -156,16 +156,16 @@ export struct AgentFloatWindow {
       Text(this.deepThink ? "🧠 深度" : "🧠")
         .fontSize(F_XS)
         .fontColor(this.deepThink ? MINT : TEXT_3)
-        .padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 })
+        .padding({ left: S_3, right: S_3, top: S_3, bottom: S_3 })
         .borderRadius(R_FULL)
         .backgroundColor(this.deepThink ? MINT_LIGHT : GLASS_10)
         .margin({ right: S_2 })
         .onClick((): void => { this.deepThink = !this.deepThink })
       // 关闭
       Stack() {
-        Text("✕").fontSize(14).fontColor(TEXT_3)
+        Text("✕").fontSize(F_MD).fontColor(TEXT_3)
       }
-      .width(24).height(24).borderRadius(12)
+      .width(36).height(44).borderRadius(22)
       .alignContent(Alignment.Center)
       .onClick((): void => this.onClose())
     }
@@ -188,7 +188,7 @@ export struct AgentFloatWindow {
   SugBtn(label: string, prompt: string) {
     Text(label)
       .fontSize(F_XS).fontColor(PURPLE)
-      .padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 })
+      .padding({ left: S_3, right: S_3, top: S_3, bottom: S_3 })
       .borderRadius(R_SM)
       .backgroundColor(PURPLE_LIGHT)
       .margin({ right: S_2 })
@@ -258,7 +258,7 @@ export struct AgentFloatWindow {
           Image(this.imagePreview).width(44).height(44).borderRadius(R_SM).objectFit(ImageFit.Cover)
           Text("已选图片").fontSize(F_XS).fontColor(TEXT_3).margin({ left: S_2 }).layoutWeight(1)
           Text("✕").fontSize(F_XS).fontColor(TEXT_3)
-            .width(24).height(24).borderRadius(12).textAlign(TextAlign.Center)
+            .width(36).height(44).borderRadius(22).textAlign(TextAlign.Center)
             .backgroundColor(GLASS_10)
             .onClick((): void => { this.imagePreview = "" })
         }
@@ -267,9 +267,9 @@ export struct AgentFloatWindow {
       // 输入行
       Row() {
         TextInput({ text: this.inputText, placeholder: "输入问题..." })
-          .layoutWeight(1).height(36)
+          .layoutWeight(1).height(44)
           .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_3)
-          .backgroundColor(GLASS_10).borderRadius(18)
+          .backgroundColor(GLASS_10).borderRadius(22)
           .padding({ left: S_4, right: S_2 })
           .onChange((value: string): void => { this.inputText = value })
           .onSubmit((): void => { this.send() })
@@ -278,7 +278,7 @@ export struct AgentFloatWindow {
         Stack() {
           Image($r("app.media.ic_camera")).width(16).height(16).fillColor(TEXT_3)
         }
-        .width(32).height(32).borderRadius(16)
+        .width(40).height(40).borderRadius(20)
         .backgroundColor(GLASS_10)
         .alignContent(Alignment.Center)
         .margin({ left: S_2 })
@@ -289,7 +289,7 @@ export struct AgentFloatWindow {
           Text("➤").fontSize(16).fontWeight(W_BOLD)
             .fontColor(this.inputText.trim().length > 0 && !this.busy ? BG_DARK : TEXT_3)
         }
-        .width(32).height(32).borderRadius(16)
+        .width(40).height(40).borderRadius(20)
         .backgroundColor(this.inputText.trim().length > 0 && !this.busy ? MINT : GLASS_10)
         .alignContent(Alignment.Center)
         .margin({ left: S_1 })

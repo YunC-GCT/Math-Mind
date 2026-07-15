@@ -259,7 +259,7 @@ struct AiSettingsPage {
                 .onChange((v: boolean) => { if (v) { this.useCustomEndpoint = true; } });
               Text('自定义').fontSize(F_SM).fontColor(TEXT_3).margin({ left: 8 }).width(50);
               TextInput({ text: this.endpointCustom, placeholder: 'https://...' })
-                .layoutWeight(1).height(34).fontSize(F_XS)
+                .layoutWeight(1).height(44).fontSize(F_XS)
                 .fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor(GLASS_8)
                 .borderRadius(R_MD)
                 .onChange((v: string) => { this.endpointCustom = v; });
@@ -290,7 +290,7 @@ struct AiSettingsPage {
                 .onChange((v: boolean) => { if (v) { this.useCustomModel = true; } });
               Text('自定义').fontSize(F_SM).fontColor(TEXT_3).margin({ left: 8 }).width(50);
               TextInput({ text: this.modelCustom, placeholder: 'model-id' })
-                .layoutWeight(1).height(34).fontSize(F_XS)
+                .layoutWeight(1).height(44).fontSize(F_XS)
                 .fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor(GLASS_8)
                 .borderRadius(R_MD)
                 .onChange((v: string) => { this.modelCustom = v; });
@@ -317,7 +317,7 @@ struct AiSettingsPage {
 
             Button(this.testing ? '...' : '测试')
               .fontSize(F_XS).fontColor(BG_DARK)
-              .height(34).borderRadius(R_MD).backgroundColor(MINT)
+              .height(44).borderRadius(R_MD).backgroundColor(MINT)
               .enabled(!this.testing).margin({ left: 8 })
               .onClick(() => { this.handleTest(); });
           }
@@ -379,7 +379,7 @@ struct AiSettingsPage {
       }.alignItems(HorizontalAlign.Start);
       Blank();
       TextInput({ text: value, placeholder: hint })
-        .type(InputType.Number).width(90).height(34)
+        .type(InputType.Number).width(90).height(44)
         .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
         .backgroundColor(GLASS_8).borderRadius(R_MD).textAlign(TextAlign.Center)
         .onChange(onChange);

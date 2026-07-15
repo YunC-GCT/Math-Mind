@@ -234,7 +234,7 @@ export struct NoteDetailOverlay {
     Text("#" + tag)
       .fontSize(F_XS)
       .fontColor(MINT)
-      .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
       .borderRadius(R_FULL)
       .backgroundColor(MINT_GLOW)
       .margin({ right: S_2, bottom: S_2 })
@@ -295,7 +295,7 @@ export struct NoteDetailOverlay {
         .fontColor(TEXT_2)
     }
     .width(S_4 * 2).height(S_4 * 2)
-    .borderRadius(16)
+    .borderRadius(22)
     .backgroundColor(GLASS_10)
     .alignContent(Alignment.Center)
     .onClick((): void => this.onClose())

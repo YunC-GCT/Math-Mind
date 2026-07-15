@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MathMind 相机浮层 — iOS Web MVP 风格重制 (2026-07-14)
  *
  * 触发: HomePage FAB [+] / AI 浮层 → 拍照
@@ -227,7 +227,7 @@ export struct CameraOverlay {
         .fontWeight(500)
         .fontColor('rgba(255,255,255,0.8)');
     }
-    .width(40).height(40)
+    .width(44).height(44)
     .borderRadius(20)
     .backgroundColor('rgba(255,255,255,0.08)')
     .border({ width: 1, color: 'rgba(255,255,255,0.1)' })
@@ -244,7 +244,7 @@ export struct CameraOverlay {
         .fontWeight(500)
         .fontColor('rgba(255,255,255,0.6)');
     }
-    .width(40).height(40)
+    .width(44).height(44)
     .borderRadius(20)
     .backgroundColor('rgba(255,255,255,0.05)')
     .alignContent(Alignment.Center);
@@ -350,7 +350,7 @@ export struct CameraOverlay {
         .fontWeight(500)
         .fontColor(TEXT_2);
     }
-    .width(36).height(36)
+    .width(44).height(44)
     .borderRadius(18)
     .alignContent(Alignment.Center)
     .onClick(() => {
