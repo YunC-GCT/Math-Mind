@@ -57,6 +57,8 @@ export struct AgentFloatWindow {
   @State inputText: string = '';
   // AI �?
   @State busy: boolean = false;
+  // 深度思考模式
+  @State deepThink: boolean = false;
   // 待发送图片预�?(W1.2: 拍照后存这里, 不立即发�? 让用户先补充文字)
   @State imagePreview: string = '';
   // 键盘高度 (W1.3: 浮窗 .translate 自己上移避免键盘遮挡, 配合 keyboardHeightChange 监听 + px2vp 转换)
@@ -185,7 +187,7 @@ export struct AgentFloatWindow {
 
       const client = new LlmClient();
       const reply: string = await client.call([
-        { role: 'system', content: '你是 MathMind AI 助手，专门帮助用户解决数学问题。请用简洁清晰的中文回答，适当使用 LaTeX 公式。' },
+        { role: 'system', content: this.deepThink ? '你是 MathMind AI 深度思考助手。请逐步推理、深入分析，展示完整的思考过程。使用 LaTeX 公式。' : '你是 MathMind AI 助手，专门帮助用户解决数学问题。请用简洁清晰的中文回答，适当使用 LaTeX 公式。' },
         { role: 'user', content: userContent },
       ]);
 
@@ -372,6 +374,21 @@ export struct AgentFloatWindow {
           .width('100%')
           .padding({ left: 10, right: 10, top: 6, bottom: 6 });
 
+          // 深度思考切换
+          Row() {
+            Text(this.deepThink ? "🧠 深度思考 ON" : "🧠 深度思考")
+              .fontSize(F_XS)
+              .fontColor(this.deepThink ? MINT : TEXT_3)
+              .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
+              .borderRadius(R_FULL)
+              .backgroundColor(this.deepThink ? MINT_LIGHT : GLASS_10)
+              .border({ width: 1, color: this.deepThink ? MINT : BORDER })
+              .onClick((): void => { this.deepThink = !this.deepThink })
+          }
+          .width("100%")
+          .padding({ left: S_3, right: S_3, bottom: S_2 })
+          .justifyContent(FlexAlign.Center)
+
           // 分隔�?
           Row()
             .width('100%').height(0.5)
@@ -399,7 +416,7 @@ export struct AgentFloatWindow {
               Blank().height(4);
             }
             .width('100%')
-            .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 });
+            .padding({ left: S_3, right: S_3, top: S_2, bottom: S_1 });
           }
           .layoutWeight(1)
           .width('100%')
