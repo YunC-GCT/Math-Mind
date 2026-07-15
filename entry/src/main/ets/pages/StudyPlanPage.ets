@@ -143,7 +143,7 @@ export struct StudyPlanPage {
           (item: StudyPlanItem): string => item.id
         })
     }
-    .listStyle(ListStyle.None)
+    
     .layoutWeight(1)
     .divider({ strokeWidth: 0.5, color: BORDER })
   }

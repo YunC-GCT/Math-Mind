@@ -190,7 +190,7 @@ export struct HomePage {
                 NoteCard({
                   note: note,
                   isLast: i === this.notes.length - 1,
-                  onClick: (): void => { this.selectedNote = note },
+                  onTap: (): void => { this.selectedNote = note },
                 })
               },
               (note: NoteItem): string => note.id.toString()

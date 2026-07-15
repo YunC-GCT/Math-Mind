@@ -51,17 +51,17 @@ export struct NotesPage {
                 NoteCard({
                   note: note,
                   isLast: idx === this.notes.length - 1,
-                  onClick: (): void => { this.selectedNote = note },
+                  onTap: (): void => { this.selectedNote = note },
                 })
-              },
-              (note: NoteItem): string => note.id.toString()
-            }
+              }
+            },
+            (note: NoteItem): string => note.id.toString()
           );          // FAB 留白
           ListItem() {
-            Blank().height(80);
+            Column() { Blank().height(80) }
           }
         }
-        .listStyle(ListStyle.None)
+        
         .layoutWeight(1)
         .scrollBar(BarState.Off);
       }

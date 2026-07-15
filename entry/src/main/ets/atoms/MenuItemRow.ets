@@ -11,7 +11,7 @@ import { TEXT_2, TEXT_4, BORDER, F_SM, F_MD } from "common"
 export struct MenuItemRow {
   @Prop icon: string = ""
   @Prop label: string = ""
-  onClick?: () => void
+  onTap?: () => void
 
   build() {
     Row() {
@@ -35,8 +35,8 @@ export struct MenuItemRow {
     .padding({ left: 16, right: 16, top: 13, bottom: 13 })
     .border({ width: { bottom: 1 }, color: BORDER })
     .onClick((): void => {
-      if (this.onClick) {
-        this.onClick()
+      if (this.onTap) {
+        this.onTap()
       }
     })
   }

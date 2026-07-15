@@ -12,7 +12,7 @@ import { PriorityBadge } from "../atoms/PriorityBadge"
 
 @Component
 export struct PlanItemRow {
-  @Prop id: string = ""
+  @Prop planId: string = ""
   @Prop title: string = ""
   @Prop isDone: boolean = false
   @Prop priority: number = 2
@@ -58,15 +58,6 @@ export struct PlanItemRow {
     }
     .width("100%")
     .padding({ top: 14, bottom: 14, left: S_5, right: S_5 })
-    .swipeAction({ end: false }) {
-      Button("删除")
-        .backgroundColor(DANGER_BRIGHT)
-        .fontColor(TEXT)
-        .onClick((): void => {
-          if (this.onDelete) {
-            this.onDelete()
-          }
-        })
-    }
+
   }
 }

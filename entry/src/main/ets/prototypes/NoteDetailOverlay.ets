@@ -148,10 +148,10 @@ export struct NoteDetailOverlay {
             if (this.note.tags && this.note.tags.length > 0) {
               Row() {
                 ForEach(this.note.tags,
-                  (tag: string): string => tag,
-                  (tag: string): void => {
+                  (tag: string, _idx: number): void => {
                     this.TagChip(tag)
-                  }
+                  },
+                  (tag: string): string => tag
                 )
               }
               .width("100%")
@@ -167,10 +167,10 @@ export struct NoteDetailOverlay {
             // 正文按章节
             Column() {
               ForEach(parseSections(this.note.body),
-                (sec: Section): string => sec.title + "_" + sec.content.length.toString(),
-                (sec: Section): void => {
+                (sec: Section, _idx: number): void => {
                   this.SectionView(sec)
-                }
+                },
+                (sec: Section): string => sec.title + "_" + sec.content.length.toString()
               )
             }
             .width("100%")
@@ -331,7 +331,7 @@ export struct NoteDetailOverlay {
   }
 
   private confirmDelete = (): void => {
-    AlertDialog.show({
+    promptAction.showDialog({
       title: "确认删除",
       message: '删除笔记"' + this.note.title + '"后无法恢复',
       autoCancel: true,

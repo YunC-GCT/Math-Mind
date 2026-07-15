@@ -18,7 +18,7 @@ import {
   S_1,
   S_2,
   S_3,
-  S_4,
+  S_4, S_6,
   R_MD,
   R_LG,
   R_FULL,
@@ -103,27 +103,27 @@ export struct MePage {
           MenuItemRow({
             icon: "📋",
             label: "我的复习计划",
-            onClick: (): void => this.toast("复习计划开发中"),
+            onTap: (): void => this.toast("复习计划开发中"),
           })
           MenuItemRow({
             icon: "📕",
             label: "错题本",
-            onClick: (): void => this.toast("错题本开发中"),
+            onTap: (): void => this.toast("错题本开发中"),
           })
           MenuItemRow({
             icon: "⭐",
             label: "我的收藏",
-            onClick: (): void => this.toast("收藏功能开发中"),
+            onTap: (): void => this.toast("收藏功能开发中"),
           })
           MenuItemRow({
             icon: "🤖",
             label: "模型",
-            onClick: (): void => { router.pushUrl({ url: "pages/AiSettingsPage" }) },
+            onTap: (): void => { router.pushUrl({ url: "pages/AiSettingsPage" }) },
           })
           MenuItemRow({
             icon: "🚪",
             label: "切换账号",
-            onClick: (): void => this.toast("切换账号开发中"),
+            onTap: (): void => this.toast("切换账号开发中"),
           })
         }
         .width("100%")

@@ -43,7 +43,7 @@ function confColor(c: number): string {
 export struct NoteCard {
   @Prop note: NoteItem = new NoteItem(0, "", "", "", "", 0, "", [], "")
   @Prop isLast: boolean = false
-  onClick?: () => void
+  onTap?: () => void
 
   build() {
     Row() {
@@ -130,8 +130,8 @@ export struct NoteCard {
       color: BORDER,
     })
     .onClick((): void => {
-      if (this.onClick) {
-        this.onClick()
+      if (this.onTap) {
+        this.onTap()
       }
     })
   }
