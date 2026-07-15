@@ -331,20 +331,7 @@ export struct NoteDetailOverlay {
   }
 
   private confirmDelete = (): void => {
-    promptAction.showDialog({
-      title: "确认删除",
-      message: '删除笔记"' + this.note.title + '"后无法恢复',
-      autoCancel: true,
-      alignment: DialogAlignment.Center,
-      primaryButton: { value: "取消", action: (): void => {} },
-      secondaryButton: {
-        value: "删除",
-        fontColor: DANGER,
-        action: (): void => {
-          this.onDelete(this.note.id)
-          this.onClose()
-        }
-      }
-    })
+    this.onDelete(this.note.id)
+    this.onClose()
   }
 }

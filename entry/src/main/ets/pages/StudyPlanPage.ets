@@ -128,10 +128,10 @@ export struct StudyPlanPage {
   PlanList() {
     List() {
       ForEach(this.vm.items,
-        (item: StudyPlanItem): void => {
+        (item: StudyPlanItem, _idx: number): void => {
           ListItem() {
             PlanItemRow({
-              id: item.id,
+              planId: item.id,
               title: item.title,
               isDone: item.isDone,
               priority: item.priority,
@@ -139,11 +139,17 @@ export struct StudyPlanPage {
               onToggle: (): void => { this.vm.toggleItem(item) },
               onDelete: (): void => { this.vm.deleteItem(item) },
             })
-          },
-          (item: StudyPlanItem): string => item.id
-        })
+          }
+          .swipeAction({ end: false }) {
+            Button("删除")
+              .backgroundColor("#FFEF4444")
+              .fontColor("#FFFFFFFF")
+              .onClick((): void => { this.vm.deleteItem(item) })
+          }
+        },
+        (item: StudyPlanItem): string => item.id
+      )
     }
-    
     .layoutWeight(1)
     .divider({ strokeWidth: 0.5, color: BORDER })
   }

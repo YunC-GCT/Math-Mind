@@ -30,7 +30,7 @@ import {
   F_XL,
   F_2XL,
   W_BOLD,
-  GLASS_8,
+  GLASS_8, GLASS_10,
   DANGER,
 } from "common"
 import { promptAction } from "@kit.ArkUI"
