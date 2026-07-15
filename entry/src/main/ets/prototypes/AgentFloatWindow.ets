@@ -113,11 +113,14 @@ export struct AgentFloatWindow {
       // 在线状态绿点 + 模型名
       Circle({ width: 6, height: 6 }).fill(MINT).margin({ right: S_2 })
       Text("DeepSeek-V3").fontSize(F_XS).fontColor(TEXT_2).fontWeight(W_MEDIUM)
-      // 思考开关
-      Text(this.deepThink ? "💡" : "◉").fontSize(F_BASE)
-        .fontColor(this.deepThink ? MINT : TEXT_3)
-        .width(32).height(44).textAlign(TextAlign.Center).margin({ left: S_4 })
-        .onClick((): void => { this.deepThink = !this.deepThink })
+      // 花瓣形思考开关: ◌·◌
+      Row() {
+        Circle({ width: 10, height: 14 }).fill(this.deepThink ? MINT : '#00000000').stroke(this.deepThink ? MINT : TEXT_4).strokeWidth(1.5)
+        Circle({ width: 5, height: 5 }).fill(this.deepThink ? MINT_DARK : TEXT_4).margin({ left: 2, right: 2 })
+        Circle({ width: 10, height: 14 }).fill(this.deepThink ? MINT : '#00000000').stroke(this.deepThink ? MINT : TEXT_4).strokeWidth(1.5)
+      }
+      .width(52).height(44).justifyContent(FlexAlign.Center).alignItems(VerticalAlign.Center).margin({ left: S_4 })
+      .onClick((): void => { this.deepThink = !this.deepThink })
       Blank()
       Stack() { Text("✕").fontSize(F_BASE).fontColor(TEXT_3) }
         .width(32).height(44).alignContent(Alignment.Center)
