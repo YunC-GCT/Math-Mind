@@ -18,6 +18,8 @@ export {
   OVERLAY_MASK, OVERLAY_MASK_SOLID,
   W_NORMAL, W_MEDIUM, W_SEMIBOLD, W_BOLD,
   LH_TIGHT, LH_BASE, LH_COMFORT, LH_LOOSE, LH_HEADING,
+  SHADOW_FAB, SHADOW_GLOW_MINT,
+  DUR_FAST, DUR_NORMAL, DUR_SLOW, DUR_BREATH,
 } from './constants/ColorTokens';
 
 // ========== Mock 绗旇鏁版嵁 (UI 寮€鍙戞湡) ==========
