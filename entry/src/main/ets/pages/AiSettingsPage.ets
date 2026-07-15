@@ -137,9 +137,9 @@ struct AiSettingsPage {
   @StorageProp("statusBarHeight") statusBarH: number = 0
   @State apiKey: string = ""
   @State endpoints: string[] = EP_PRESETS
-  @State endpointIdx: number = 0
+  @State @Watch('onEndpointChange') endpointIdx: number = 0
   @State endpointCustom: string = ""
-  @State useCustomEP: boolean = false
+  @State @Watch('onEndpointChange') useCustomEP: boolean = false
   @State modelIdx: number = 0
   @State modelCustom: string = ""
   @State useCustomMD: boolean = false
@@ -153,6 +153,11 @@ struct AiSettingsPage {
   @State tempText: string = "0.1"
   @State maxTokensText: string = "256"
   @State timeoutText: string = "5000"
+  @State currentPresets: ModelPreset[] = SF_MODELS
+
+  onEndpointChange(): void {
+    this.currentPresets = (this.useCustomEP || this.endpointIdx !== 1) ? SF_MODELS : DS_MODELS
+  }
 
   aboutToAppear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET) } catch (e) {}; this.loadConfig() }
   aboutToDisappear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE) } catch (e) {} }
@@ -164,9 +169,9 @@ struct AiSettingsPage {
     const ep = c.getEndpoint(); const m = c.getModel()
     let epMatch = -1
     for (let i = 0; i < EP_PRESETS.length; i++) { if (ep === EP_PRESETS[i]) { epMatch = i; break } }
-    if (epMatch >= 0) { this.endpointIdx = epMatch; this.useCustomEP = false } else { this.endpointCustom = ep; this.useCustomEP = true }
+    if (epMatch >= 0) { this.endpointIdx = epMatch; this.useCustomEP = false; this.onEndpointChange() } else { this.endpointCustom = ep; this.useCustomEP = true }
     let mMatch = -1
-    for (let i = 0; i < this.getPresets().length; i++) { if (m === this.getPresets()[i].value) { mMatch = i; break } }
+    for (let i = 0; i < this.currentPresets.length; i++) { if (m === this.currentPresets[i].value) { mMatch = i; break } }
     if (mMatch >= 0) { this.modelIdx = mMatch; this.useCustomMD = false } else { this.modelCustom = m; this.useCustomMD = true }
     this.temperature = c.getTemperature(); this.maxTokens = c.getMaxTokens(); this.timeoutMs = c.getTimeoutMs()
     this.tempText = this.temperature.toString(); this.maxTokensText = this.maxTokens.toString(); this.timeoutText = this.timeoutMs.toString()
@@ -174,7 +179,7 @@ struct AiSettingsPage {
 
   private getEP(): string { return this.useCustomEP ? this.endpointCustom : EP_PRESETS[this.endpointIdx] }
   private getPresets(): ModelPreset[] { return this.useCustomEP || this.endpointIdx !== 1 ? SF_MODELS : DS_MODELS }
-  private getModel(): string { return this.useCustomMD ? this.modelCustom : this.getPresets()[this.modelIdx].value }
+  private getModel(): string { return this.useCustomMD ? this.modelCustom : this.currentPresets[this.modelIdx].value }
 
   async handleSave(): Promise<void> {
     try {
@@ -235,7 +240,7 @@ struct AiSettingsPage {
 
           SectionHeader({ title: "模型", desc: "选择 DeepSeek 模型或自定义" })
           ModelPicker({
-            presets: this.getPresets(), mdlIdx: this.modelIdx, useCustom: this.useCustomMD, customText: $this.modelCustom,
+            presets: this.currentPresets, mdlIdx: this.modelIdx, useCustom: this.useCustomMD, customText: $this.modelCustom,
             onSelect: (i: number): void => { this.useCustomMD = false; this.modelIdx = i },
             onCustom: (): void => { this.useCustomMD = true },
           })
