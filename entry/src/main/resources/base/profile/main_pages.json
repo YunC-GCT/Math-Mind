@@ -1,6 +1,7 @@
-{
+﻿{
   "src": [
     "pages/Index",
-    "pages/AiSettingsPage"
+    "pages/AiSettingsPage",
+    "pages/StudyPlanPage"
   ]
 }
