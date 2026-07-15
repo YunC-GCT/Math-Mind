@@ -7,7 +7,7 @@
 //  ArkTS 1.1 strict: @Prop 仅接收原始类型（string/boolean/number），避免 class 浅拷贝导致 UI 不更新。
 //  ============================================================================
 
-import { MINT, TEXT, TEXT_3, DANGER_BRIGHT, S_5, F_MD, F_XS } from "common"
+import { MINT, TEXT, TEXT_3, DANGER_BRIGHT, S_5, F_MD, F_XS, W_MEDIUM, W_SEMIBOLD } from "common"
 import { PriorityBadge } from "../atoms/PriorityBadge"
 
 @Component

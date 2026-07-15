@@ -54,8 +54,8 @@ export struct GradientRing {
   build() {
     Stack() {
       Circle({ width: 104, height: 104 })
-        .fill("#00000000")
-        .stroke("#0FFFFFFF")
+        .fill("#00FFFFFF")
+        .stroke("#10FFFFFF")
         .strokeWidth(10)
 
       Canvas(this.ctx)

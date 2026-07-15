@@ -7,7 +7,7 @@
 //  ============================================================================
 
 import {
-  MINT,
+  MINT, BG_DARK,
   S_3,
   BORDER,
   WARNING,
@@ -20,6 +20,8 @@ import {
   F_SM,
   F_BASE,
   F_MD,
+  W_MEDIUM, W_SEMIBOLD, W_BOLD,
+  LH_TIGHT,
   NoteItem,
   stripMD,
   recentDate,
@@ -63,8 +65,8 @@ export struct NoteCard {
 
         Text(typeChar(this.note.type))
           .fontSize(F_MD + 2)
-          .fontWeight(700)
-          .fontColor("#FF0A0C10")
+          .fontWeight(W_BOLD)
+          .fontColor(BG_DARK)
       }
       .width(36).height(36)
       .alignContent(Alignment.Center)
@@ -76,14 +78,14 @@ export struct NoteCard {
           Text(this.note.subject)
             .fontSize(F_XS)
             .fontColor(subjectColor(this.note.subject))
-            .fontWeight(500)
+            .fontWeight(W_MEDIUM)
           Text(" · ")
             .fontSize(F_XS)
             .fontColor(TEXT_4)
           Text(this.note.type)
             .fontSize(F_XS)
             .fontColor(typeColor(this.note.type))
-            .fontWeight(500)
+            .fontWeight(W_MEDIUM)
           Text(" · ")
             .fontSize(F_XS)
             .fontColor(TEXT_4)
@@ -95,7 +97,7 @@ export struct NoteCard {
 
           Text(Math.round(this.note.conf * 100) + "%")
             .fontSize(F_XS)
-            .fontWeight(600)
+            .fontWeight(W_SEMIBOLD)
             .fontColor(confColor(this.note.conf))
         }
         .width("100%")
@@ -103,9 +105,9 @@ export struct NoteCard {
         // 标题
         Text(this.note.title)
           .fontSize(F_SM)
-          .fontWeight(600)
+          .fontWeight(W_SEMIBOLD)
           .fontColor(TEXT)
-          .margin({ top: 4 })
+          .margin({ top: S_1 })
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width("100%")
@@ -117,11 +119,11 @@ export struct NoteCard {
           .margin({ top: 2 })
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .lineHeight(16)
+          .lineHeight(LH_TIGHT)
           .width("100%")
       }
       .layoutWeight(1)
-      .margin({ left: 12 })
+      .margin({ left: S_3 })
     }
     .width("100%")
     .alignItems(VerticalAlign.Top)
