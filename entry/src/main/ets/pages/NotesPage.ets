@@ -4,9 +4,7 @@
  * 对照 CSS .note-list / .note-card 分隔线模式
  *
  * W2 优化 (2026-07-15): Scroll+Column → List+ListItem（scenarios/01 推荐）、ForEach 补 key
- */
-
-import {
+ */import {
   MINT,
   PURPLE,
   BG_DARK,
@@ -28,30 +26,15 @@ import {
   F_BASE,
   F_MD,
   NoteItem,
-  NOTES,
-  stripMD,
-  recentDate,
-  typeChar,
-  typeColor,
-  subjectColor,
-} from "common";
+  NOTES,} from "common";
 import { NoteDetailOverlay } from "../overlays/NoteDetailOverlay";
-
-@Component
+import { NoteCard } from "../components/NoteCard";@Component
 export struct NotesPage {
-  @State selectedNote: NoteItem | null = null;
-
-  private notes: NoteItem[] = NOTES;
-
-  private closeDetail = (): void => {
+  @State selectedNote: NoteItem | null = null;  private notes: NoteItem[] = NOTES;  private closeDetail = (): void => {
     this.selectedNote = null;
-  };
-
-  private askAi = (note: NoteItem): void => {
+  };  private askAi = (note: NoteItem): void => {
     this.selectedNote = null;
-  };
-
-  build() {
+  };  build() {
     Stack() {
       Column() {
         // ===== 标题栏（固定顶部） =====
@@ -60,20 +43,20 @@ export struct NotesPage {
           .fontWeight(600)
           .fontColor(TEXT)
           .width("100%")
-          .padding({ left: 20, right: 20, top: 14, bottom: 10 });
-
-        // ===== 笔记列表（List 替代 Scroll+Column，scenarios/01 推荐） =====
+          .padding({ left: 20, right: 20, top: 14, bottom: 10 });        // ===== 笔记列表（List 替代 Scroll+Column，scenarios/01 推荐） =====
         List() {
           ForEach(this.notes,
             (note: NoteItem): string => note.id.toString(),
             (note: NoteItem, idx: number): void => {
               ListItem() {
-                this.NoteCard(note, idx === this.notes.length - 1);
+                NoteCard({
+                  note: note,
+                  isLast: idx === this.notes.length - 1,
+                  onClick: (): void => { this.selectedNote = note },
+                })
               }
             }
-          );
-
-          // FAB 留白
+          );          // FAB 留白
           ListItem() {
             Blank().height(80);
           }
@@ -84,9 +67,7 @@ export struct NotesPage {
       }
       .width("100%")
       .height("100%")
-      .backgroundColor(BG_DARK);
-
-      // ===== NoteDetailOverlay 浮层 =====
+      .backgroundColor(BG_DARK);      // ===== NoteDetailOverlay 浮层 =====
       if (this.selectedNote !== null) {
         NoteDetailOverlay({
           note: this.selectedNote,
@@ -98,91 +79,4 @@ export struct NotesPage {
     .width("100%")
     .height("100%")
     .backgroundColor(BG_DARK);
-  }
-
-  // ========== 笔记卡片（对照 CSS .note-card 分隔线模式） ==========
-  @Builder
-  NoteCard(note: NoteItem, isLast: boolean) {
-    Row() {
-      Stack() {
-        Stack()
-          .width(36).height(36)
-          .borderRadius(R_MD + 1)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [typeColor(note.type), 0],
-              [subjectColor(note.subject), 1],
-            ],
-          });
-
-        Text(typeChar(note.type))
-          .fontSize(F_MD + 2)
-          .fontWeight(700)
-          .fontColor("#FF0A0C10");
-      }
-      .width(36).height(36)
-      .alignContent(Alignment.Center);
-
-      Column() {
-        Row() {
-          Text(note.subject)
-            .fontSize(F_XS)
-            .fontColor(subjectColor(note.subject))
-            .fontWeight(500);
-          Text(" · ")
-            .fontSize(F_XS)
-            .fontColor(TEXT_4);
-          Text(note.type)
-            .fontSize(F_XS)
-            .fontColor(typeColor(note.type))
-            .fontWeight(500);
-          Text(" · ")
-            .fontSize(F_XS)
-            .fontColor(TEXT_4);
-          Text(recentDate(note.date))
-            .fontSize(F_XS)
-            .fontColor(TEXT_3);
-
-          Blank();
-
-          Text(Math.round(note.conf * 100) + "%")
-            .fontSize(F_XS)
-            .fontColor(note.conf > 0.8 ? MINT : note.conf > 0.5 ? "#FFFBBF24" : "#FFFF6B6B")
-            .fontWeight(600);
-        }
-        .width("100%");
-
-        Text(note.title)
-          .fontSize(F_SM)
-          .fontWeight(600)
-          .fontColor(TEXT)
-          .margin({ top: 4 })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width("100%");
-
-        Text(stripMD(note.body, 80))
-          .fontSize(F_XS)
-          .fontColor(TEXT_3)
-          .margin({ top: 2 })
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .lineHeight(16)
-          .width("100%");
-      }
-      .layoutWeight(1)
-      .margin({ left: 12 });
-    }
-    .width("100%")
-    .alignItems(VerticalAlign.Top)
-    .padding({ left: 20, right: 20, top: 14, bottom: 14 })
-    .border({
-      width: { bottom: isLast ? 0 : 1 },
-      color: BORDER,
-    })
-    .onClick((): void => {
-      this.selectedNote = note;
-    });
-  }
-}
+  }}
