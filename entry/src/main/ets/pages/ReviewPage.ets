@@ -44,7 +44,7 @@ export struct ReviewPage {
           // 标题
           Text("学习计划")
             .fontSize(F_BASE + 1)
-            .fontWeight(600)
+            .fontWeight(W_SEMIBOLD)
             .fontColor(TEXT)
             .margin({ bottom: 8 });
 
@@ -59,7 +59,7 @@ export struct ReviewPage {
           // "打开学习计划" 按钮（mint 渐变）
           Button("打开学习计划")
             .fontSize(F_SM)
-            .fontWeight(600)
+            .fontWeight(W_SEMIBOLD)
             .fontColor("#FF0A0C10")
             .width(140)
             .height(40)

@@ -25,6 +25,7 @@ import {
   F_BASE,
   F_MD,
   F_2XL,
+  W_BOLD, DANGER_BRIGHT, GLASS_8,
 } from "common"
 import { StudyPlanItem } from "common"
 import { StudyPlanViewModel } from "../viewmodels/StudyPlanViewModel"
@@ -65,7 +66,7 @@ export struct StudyPlanPage {
     Row() {
       Text("学习计划")
         .fontSize(F_2XL)
-        .fontWeight(700)
+        .fontWeight(W_BOLD)
         .fontColor(TEXT)
 
       Blank()
@@ -170,7 +171,7 @@ export struct StudyPlanPage {
       Button("＋")
         .fontSize(28)
         .fontColor(MINT)
-        .backgroundColor("#00FFFFFF")
+        .backgroundColor(GLASS_8)
         .onClick((): void => { this.vm.addItem() })
         .enabled(this.vm.newTitle.trim().length > 0)
     }

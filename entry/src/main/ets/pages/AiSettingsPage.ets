@@ -1,4 +1,4 @@
-// MathMind - 模型配置页
+﻿// MathMind - 模型配置页
 // 创建: 2026-07-14 · 更新: endpoint预设 + 模型选择器 + 状态栏适配
 
 import {
@@ -8,6 +8,7 @@ import {
   S_1, S_2, S_3, S_4,
   R_MD, R_LG, R_XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG,
+  W_SEMIBOLD, GLASS_8,
 } from 'common';
 import { LlmConfig, LlmClient } from 'common';
 import { promptAction, KeyboardAvoidMode } from '@kit.ArkUI';
@@ -209,7 +210,7 @@ struct AiSettingsPage {
           .onClick(() => { router.back(); });
         Blank();
         Text('模型配置')
-          .fontSize(F_MD).fontWeight(600).fontColor(TEXT);
+          .fontSize(F_MD).fontWeight(W_SEMIBOLD).fontColor(TEXT);
         Blank();
         Row().width(60);
       }
@@ -224,12 +225,12 @@ struct AiSettingsPage {
           Row() {
             Column() {
               Text('连接状态').fontSize(F_XS).fontColor(TEXT_3).margin({ bottom: 4 });
-              Text(this.statusText).fontSize(F_BASE).fontWeight(600)
+              Text(this.statusText).fontSize(F_BASE).fontWeight(W_SEMIBOLD)
                 .fontColor(this.configured ? MINT : TEXT_4);
             }.alignItems(HorizontalAlign.Start);
             Blank();
             Row().width(10).height(10).borderRadius(5)
-              .backgroundColor(this.configured ? MINT : '#FF666666');
+              .backgroundColor(this.configured ? MINT : TEXT_4);
           }
           .width('100%').padding(16).borderRadius(R_LG)
           .backgroundColor(BG_CARD).margin({ left: S_2, right: S_2, top: 16 });
@@ -259,7 +260,7 @@ struct AiSettingsPage {
               Text('自定义').fontSize(F_SM).fontColor(TEXT_3).margin({ left: 8 }).width(50);
               TextInput({ text: this.endpointCustom, placeholder: 'https://...' })
                 .layoutWeight(1).height(34).fontSize(F_XS)
-                .fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor('#0AFFFFFF')
+                .fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor(GLASS_8)
                 .borderRadius(R_MD)
                 .onChange((v: string) => { this.endpointCustom = v; });
             }
@@ -290,7 +291,7 @@ struct AiSettingsPage {
               Text('自定义').fontSize(F_SM).fontColor(TEXT_3).margin({ left: 8 }).width(50);
               TextInput({ text: this.modelCustom, placeholder: 'model-id' })
                 .layoutWeight(1).height(34).fontSize(F_XS)
-                .fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor('#0AFFFFFF')
+                .fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor(GLASS_8)
                 .borderRadius(R_MD)
                 .onChange((v: string) => { this.modelCustom = v; });
             }
@@ -361,7 +362,7 @@ struct AiSettingsPage {
 
   @Builder SectionHeader(title: string, desc: string) {
     Column() {
-      Text(title).fontSize(F_SM).fontWeight(600).fontColor(TEXT);
+      Text(title).fontSize(F_SM).fontWeight(W_SEMIBOLD).fontColor(TEXT);
       if (desc.length > 0) {
         Text(desc).fontSize(F_XS).fontColor(TEXT_4).margin({ top: 2 });
       }
@@ -380,7 +381,7 @@ struct AiSettingsPage {
       TextInput({ text: value, placeholder: hint })
         .type(InputType.Number).width(90).height(34)
         .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
-        .backgroundColor('#0AFFFFFF').borderRadius(R_MD).textAlign(TextAlign.Center)
+        .backgroundColor(GLASS_8).borderRadius(R_MD).textAlign(TextAlign.Center)
         .onChange(onChange);
     }
     .width('100%').padding({ left: 16, right: 16, top: 10, bottom: 10 });

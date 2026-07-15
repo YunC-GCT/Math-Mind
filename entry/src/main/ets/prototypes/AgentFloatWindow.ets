@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MathMind 智能体浮�?�?紧凑重制�?(2026-07-14)
  *
  * 设计参照: D:\HMgent\MathMind\MathMind-MVP\styles.css .ai-overlay
@@ -21,6 +21,8 @@ import {
   S_1, S_2, S_3, S_4, S_5,
   R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL,
+  W_MEDIUM, W_SEMIBOLD, W_BOLD,
+  GLASS_10, OVERLAY_MASK, OVERLAY_MASK_SOLID,
 } from 'common';
 import { LlmClient, LlmConfig } from 'common';
 import { promptAction } from '@kit.ArkUI';
@@ -216,7 +218,7 @@ export struct AgentFloatWindow {
     Row() {
       Text('🧠 MathMind AI')
         .fontSize(F_SM + 1)
-        .fontWeight(700)
+        .fontWeight(W_BOLD)
         .fontColor(PURPLE);
 
       Blank();
@@ -224,7 +226,7 @@ export struct AgentFloatWindow {
       this.CloseBtn();
     }
     .width('100%')
-    .padding({ left: 14, right: 8, top: 8, bottom: 8 });
+    .padding({ left: S_4, right: S_2, top: S_2, bottom: S_2 });
   }
 
   @Builder
@@ -232,7 +234,7 @@ export struct AgentFloatWindow {
     Stack() {
       Text('✕')
         .fontSize(14)
-        .fontWeight(500)
+        .fontWeight(W_MEDIUM)
         .fontColor(TEXT_3);
     }
     .width(24).height(24)
@@ -247,8 +249,8 @@ export struct AgentFloatWindow {
     Text(label)
       .fontSize(F_XS)
       .fontColor(PURPLE)
-      .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-      .borderRadius(10)
+      .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
+      .borderRadius(R_MD)
       .backgroundColor(PURPLE_LIGHT)
       .onClick(() => this.sendQuick(prompt));
   }
@@ -262,14 +264,14 @@ export struct AgentFloatWindow {
         .fontSize(F_SM)
         .fontColor(MINT)
         .lineHeight(18)
-        .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-        .borderRadius(10)
-        .backgroundColor('#245BE3B0')  // MINT_LIGHT
+        .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
+        .borderRadius(R_MD)
+        .backgroundColor(MINT_LIGHT)  // MINT_LIGHT
         .constraintSize({ maxWidth: '78%' })
         .textAlign(TextAlign.Start);
     }
     .width('100%')
-    .margin({ top: 6 });
+    .margin({ top: S_2 });
   }
 
   // AI 气泡 (紫底 + 紫字 + 左对�?
@@ -280,15 +282,15 @@ export struct AgentFloatWindow {
         .fontSize(F_SM)
         .fontColor(TEXT_2)
         .lineHeight(18)
-        .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-        .borderRadius(10)
+        .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
+        .borderRadius(R_MD)
         .backgroundColor(PURPLE_LIGHT)
         .constraintSize({ maxWidth: '85%' })
         .textAlign(TextAlign.Start);
       Blank();
     }
     .width('100%')
-    .margin({ top: 6 });
+    .margin({ top: S_2 });
   }
 
   // 打字�?
@@ -302,15 +304,15 @@ export struct AgentFloatWindow {
         Text(' AI 思考中...')
           .fontSize(F_XS)
           .fontColor(TEXT_3)
-          .margin({ left: 4 });
+          .margin({ left: S_1 });
       }
-      .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-      .borderRadius(10)
+      .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
+      .borderRadius(R_MD)
       .backgroundColor(PURPLE_LIGHT);
       Blank();
     }
     .width('100%')
-    .margin({ top: 6 });
+    .margin({ top: S_2 });
   }
 
   // 简洁空状�?(W1: messages 被清空时 fallback, 现在用大�?emoji 更明�?
@@ -322,7 +324,7 @@ export struct AgentFloatWindow {
         .margin({ bottom: 8 });
       Text('你好我是 MathMind AI 助手')
         .fontSize(F_BASE)
-        .fontWeight(600)
+        .fontWeight(W_SEMIBOLD)
         .fontColor(TEXT)
         .margin({ bottom: 6 });
       Text('点击上方 4 个快捷按钮开始对话\n或直接在底部输入问题')
@@ -392,7 +394,7 @@ export struct AgentFloatWindow {
               Blank().height(4);
             }
             .width('100%')
-            .padding({ left: 12, right: 12, top: 8, bottom: 8 });
+            .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 });
           }
           .layoutWeight(1)
           .width('100%')
@@ -417,7 +419,7 @@ export struct AgentFloatWindow {
               Text("已选图片，可补充文字后发送")
                 .fontSize(F_XS)
                 .fontColor(TEXT_3)
-                .margin({ left: 10 })
+                .margin({ left: S_3 })
                 .layoutWeight(1);
 
               Text("✕")
@@ -426,7 +428,7 @@ export struct AgentFloatWindow {
                 .width(28).height(28)
                 .borderRadius(14)
                 .textAlign(TextAlign.Center)
-                .backgroundColor("#1AFFFFFF")
+                .backgroundColor(GLASS_10)
                 .onClick(() => { this.imagePreview = ""; });
             }
             .width("100%")
@@ -442,7 +444,7 @@ export struct AgentFloatWindow {
               .fontSize(F_SM)
               .fontColor(TEXT)
               .placeholderColor(TEXT_3)
-              .backgroundColor('#1AFFFFFF')
+              .backgroundColor(GLASS_10)
               .borderRadius(16)
               .padding({ left: 12, right: 6 })
               .onChange((value: string) => {
@@ -461,10 +463,10 @@ export struct AgentFloatWindow {
             }
             .width(28).height(28)
             .borderRadius(14)
-            .backgroundColor('#1AFFFFFF')
+            .backgroundColor(GLASS_10)
             .border({ width: 1, color: BORDER })
             .alignContent(Alignment.Center)
-            .margin({ left: 4 })
+            .margin({ left: S_1 })
             .onClick(() => {
               this.onGoCamera();
             });
@@ -473,20 +475,20 @@ export struct AgentFloatWindow {
             Stack() {
               Text('➤')
                 .fontSize(15)
-                .fontWeight(700)
+                .fontWeight(W_BOLD)
                 .fontColor(this.inputText.trim().length > 0 && !this.busy ? BG_DARK : TEXT_3);
             }
             .width(28).height(28)
             .borderRadius(14)
-            .backgroundColor(this.inputText.trim().length > 0 && !this.busy ? MINT : '#1AFFFFFF')
+            .backgroundColor(this.inputText.trim().length > 0 && !this.busy ? MINT : GLASS_10)
             .alignContent(Alignment.Center)
-            .margin({ left: 4 })
+            .margin({ left: S_1 })
             .onClick(() => {
               this.send();
             });
           }
           .width('100%')
-          .padding({ left: 10, right: 10, top: 6, bottom: 10 })
+          .padding({ left: S_3, right: S_3, top: S_2, bottom: S_3 })
           .alignItems(VerticalAlign.Center);
         }
           .width('100%')
@@ -500,8 +502,8 @@ export struct AgentFloatWindow {
           .position({ x: 0, y: '100%' })     // 元素 (0,0) �?(0, 100%) = Stack 左下�?
           .markAnchor({ x: 0, y: '100%' })  // 元素 (0, 100%) 作为锚点 = 元素�?
           .translate({ y: -(74 + this.keyboardHeight) })  // W1.3: translate 替代 offset，配�?position 动态上�?
-          .backgroundColor('#F20A0C10')      // 95% alpha (微半�?
-        .borderRadius(20)
+          .backgroundColor(BG_DARK)      // 95% alpha (微半�?
+        .borderRadius(R_XL)
         .border({ width: 1, color: PURPLE_LIGHT })
         .shadow({
           radius: 20,
@@ -509,7 +511,7 @@ export struct AgentFloatWindow {
           offsetX: 0,
           offsetY: -4,
         })
-        .margin({ left: 12, right: 12 })    // 去掉 bottom 74 (offset 替代)
+        .margin({ left: S_3, right: S_3 })    // 去掉 bottom 74 (offset 替代)
       }
     }
     .width('100%').height('100%')
