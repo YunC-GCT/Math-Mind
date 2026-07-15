@@ -29,8 +29,8 @@ import { HomePage } from './HomePage';
 import { NotesPage } from './NotesPage';
 import { ReviewPage } from './ReviewPage';
 import { MePage } from './MePage';
-import { AgentFloatWindow } from '../overlays/AgentFloatWindow';
-import { CameraOverlay } from '../overlays/CameraOverlay';
+import { AgentFloatWindow } from '../prototypes/AgentFloatWindow';
+import { CameraOverlay } from '../prototypes/CameraOverlay';
 import { promptAction, KeyboardAvoidMode } from '@kit.ArkUI';
 
 interface TabItem {

@@ -46,7 +46,6 @@ export struct NotesPage {
           .padding({ left: 20, right: 20, top: 14, bottom: 10 });        // ===== 笔记列表（List 替代 Scroll+Column，scenarios/01 推荐） =====
         List() {
           ForEach(this.notes,
-            (note: NoteItem): string => note.id.toString(),
             (note: NoteItem, idx: number): void => {
               ListItem() {
                 NoteCard({
@@ -54,7 +53,8 @@ export struct NotesPage {
                   isLast: idx === this.notes.length - 1,
                   onClick: (): void => { this.selectedNote = note },
                 })
-              }
+              },
+              (note: NoteItem): string => note.id.toString()
             }
           );          // FAB 留白
           ListItem() {

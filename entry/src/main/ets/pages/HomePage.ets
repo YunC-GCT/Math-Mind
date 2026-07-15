@@ -186,14 +186,14 @@ export struct HomePage {
         Scroll() {
           Column() {
             ForEach(this.notes,
-              (note: NoteItem): string => note.id.toString(),
               (note: NoteItem, i: number): void => {
                 NoteCard({
                   note: note,
                   isLast: i === this.notes.length - 1,
                   onClick: (): void => { this.selectedNote = note },
                 })
-              }
+              },
+              (note: NoteItem): string => note.id.toString()
             )
             Blank().height(48)
           }

@@ -128,7 +128,6 @@ export struct StudyPlanPage {
   PlanList() {
     List() {
       ForEach(this.vm.items,
-        (item: StudyPlanItem): string => item.id,
         (item: StudyPlanItem): void => {
           ListItem() {
             PlanItemRow({
@@ -140,7 +139,8 @@ export struct StudyPlanPage {
               onToggle: (): void => { this.vm.toggleItem(item) },
               onDelete: (): void => { this.vm.deleteItem(item) },
             })
-          }
+          },
+          (item: StudyPlanItem): string => item.id
         })
     }
     .listStyle(ListStyle.None)

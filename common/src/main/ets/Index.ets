@@ -13,6 +13,11 @@ export {
   R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL, F_2XL, F_3XL,
   SCREEN_W, SCREEN_H,
+  DANGER, DANGER_BRIGHT, WARNING, SUCCESS,
+  GLASS_8, GLASS_10, GLASS_14,
+  OVERLAY_MASK, OVERLAY_MASK_SOLID,
+  W_NORMAL, W_MEDIUM, W_SEMIBOLD, W_BOLD,
+  LH_TIGHT, LH_BASE, LH_COMFORT, LH_LOOSE, LH_HEADING,
 } from './constants/ColorTokens';
 
 // ========== Mock 绗旇鏁版嵁 (UI 寮€鍙戞湡) ==========
