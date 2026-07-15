@@ -1,542 +1,366 @@
 ﻿/**
- * MathMind 智能体浮�?�?紧凑重制�?(2026-07-14)
- *
- * 设计参照: D:\HMgent\MathMind\MathMind-MVP\styles.css .ai-overlay
- *   - 紧凑�? 高度 44% 视口 (~360vp @ 816vp, �?iOS Web MVP 420 还小)
- *   - 不太透明: 95% alpha (微半�? 内容清晰可读)
- *   - 移除大欢迎语: 改用一行简洁提�?
- *   - �?padding 减半: 顶栏 8+8 / 4 快捷 6+6 / 消息�?8+8 / 输入�?6+10
- *   - 字号普遍小一�?(F_BASE �?F_SM)
- *   - 4 文本快捷 + 紫底紫字 AI 气泡 + mint 浅底 mint �?用户气泡 (沿用)
- *
- * 触发: Index.ets AI 按钮 onClick �?弹出浮窗(不跳转页�?
- * 关闭: 浮窗外点遮罩 �?顶栏 [✕]
- * 接图: @Prop @Watch pendingImageUri
+ * MathMind AI 对话浮窗
+ * W3 重制: 参照 swiftui-to-arkiu Sheet 规范 — 简洁/原生拖拽条/顶部圆角/现代化气泡
  */
 
 import {
-  MINT, MINT_DARK, MINT_LIGHT, PURPLE, PURPLE_LIGHT,
+  MINT, MINT_DARK, MINT_LIGHT,
+  PURPLE, PURPLE_LIGHT,
   BG_DARK, BG_CARD,
   TEXT, TEXT_2, TEXT_3, TEXT_4, BORDER,
   S_1, S_2, S_3, S_4, S_5, S_6,
-  R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
+  R_SM, R_MD, R_LG, R_XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL,
   W_MEDIUM, W_SEMIBOLD, W_BOLD,
-  GLASS_10, OVERLAY_MASK, OVERLAY_MASK_SOLID,
-} from 'common';
-import { LlmClient, LlmConfig } from 'common';
-import { promptAction } from '@kit.ArkUI';
-import window from '@ohos.window';
+  GLASS_10, OVERLAY_MASK,
+} from "common"
+import { LlmClient, LlmConfig } from "common"
+import { promptAction } from "@kit.ArkUI"
+import window from "@ohos.window"
 
-// 消息类型
 interface ChatMsg {
-  id: number;
-  role: 'user' | 'ai';
-  content: string;
-  ts: number;
+  id: number
+  role: "user" | "ai"
+  content: string
+  ts: number
 }
 
 function nowId(): number {
-  return Date.now() * 1000 + Math.floor(Math.random() * 1000);
+  return Date.now() * 1000 + Math.floor(Math.random() * 1000)
 }
 
 @Component
 export struct AgentFloatWindow {
-  // 父组件控制可见�?
-  @Prop show: boolean = false;
-  // 关闭浮窗回调
-  onClose: () => void = () => {};
-  // 打开拍照回调
-  onGoCamera: () => void = () => {};
-  // 可�? 拍照后带图回�?(@Watch 监听变化触发 ingest)
-  @Prop @Watch('onPendingImageChange') pendingImageUri: string = '';
+  @Prop show: boolean = false
+  onClose: () => void = (): void => {}
+  onGoCamera: () => void = (): void => {}
+  @Prop @Watch("onPendingImageChange") pendingImageUri: string = ""
 
-  // 消息列表
-  @State messages: ChatMsg[] = [];
-  // 输入文本
-  @State inputText: string = '';
-  // AI �?
-  @State busy: boolean = false;
-  // 深度思考模式
-  @State deepThink: boolean = false;
-  // 待发送图片预�?(W1.2: 拍照后存这里, 不立即发�? 让用户先补充文字)
-  @State imagePreview: string = '';
-  // 键盘高度 (W1.3: 浮窗 .translate 自己上移避免键盘遮挡, 配合 keyboardHeightChange 监听 + px2vp 转换)
-  @State keyboardHeight: number = 0;
-  // 窗口实例引用, 用于取消键盘监听
-  private mainWindow: window.Window | null = null;
+  @State messages: ChatMsg[] = []
+  @State inputText: string = ""
+  @State busy: boolean = false
+  @State deepThink: boolean = false
+  @State imagePreview: string = ""
+  @State keyboardHeight: number = 0
+  private mainWindow: window.Window | null = null
 
   aboutToAppear(): void {
-    // 持久化开场白 (W1.1: �?AppStorage 标记, 整个 App 生命周期只显示一�?
-    if (AppStorage.get<boolean>('shownGreeting') !== true) {
-      this.messages = [
-        {
-          id: 1,
-          role: 'ai',
-          content: '👋 你好我是 MathMind AI 助手\n\n点击上方 4 个快捷按钮（分析题目/总结知识/出练习题/学习路径）开始对话，或直接在底部输入问题',
-          ts: Date.now(),
-        },
-      ];
-      AppStorage.setOrCreate<boolean>('shownGreeting', true);
+    if (AppStorage.get<boolean>("shownGreeting") !== true) {
+      this.messages = [{
+        id: 1, role: "ai",
+        content: "👋 你好，我是 MathMind AI 助手\n\n点击快捷按钮开始，或直接输入问题",
+        ts: Date.now(),
+      }]
+      AppStorage.setOrCreate<boolean>("shownGreeting", true)
     }
-    // 注册键盘高度变化监听 (W1.3: getUIContext + px2vp 单位转换, 防御�?try-catch)
     try {
-      const ctx = this.getUIContext().getHostContext();
+      const ctx = this.getUIContext().getHostContext()
       if (ctx) {
-        window.getLastWindow(ctx).then((win: window.Window) => {
-          this.mainWindow = win;
-          win.on('keyboardHeightChange', (data: number) => {
-            try {
-              this.keyboardHeight = this.getUIContext().px2vp(data);
-            } catch (e) {
-              // 防御�? px2vp 失败, 浮窗不响应键�?
-            }
-          });
-        }).catch((err: Error) => {
-          // 防御�? getLastWindow 失败, 浮窗不响应键�?
-        });
+        window.getLastWindow(ctx).then((win: window.Window): void => {
+          this.mainWindow = win
+          win.on("keyboardHeightChange", (data: number): void => {
+            try { this.keyboardHeight = this.getUIContext().px2vp(data) } catch (e) {}
+          })
+        }).catch((_err: Error): void => {})
       }
-    } catch (e) {
-      // 防御�? 监听注册失败, 浮窗不响应键�?
-    }
+    } catch (e) {}
   }
 
   aboutToDisappear(): void {
-    // 注销键盘高度变化监听
-    if (this.mainWindow) {
-      this.mainWindow.off('keyboardHeightChange');
-    }
+    if (this.mainWindow) { this.mainWindow.off("keyboardHeightChange") }
   }
 
-  // @Watch 回调: pendingImageUri 变化时存�?imagePreview (W1.2: 不立即发�?
   onPendingImageChange(): void {
-    if (this.pendingImageUri && this.pendingImageUri.length > 0) {
-      // 存为待发送图片预�? 不调 ingestImage
-      this.imagePreview = this.pendingImageUri;
-    }
+    if (this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri }
   }
 
-  // 发送消息 (W1.2: 支持文字 + 图片一起发)
+  // ========== 逻辑 ==========
+
   private send = (): void => {
-    const text: string = this.inputText.trim();
-    const hasImage: boolean = this.imagePreview.length > 0;
-    const hasText: boolean = text.length > 0;
-
-    if (!hasText && !hasImage) {
-      return;
-    }
+    const text = this.inputText.trim()
+    if (!text && !this.imagePreview) { return }
     if (this.busy) {
-      promptAction.openToast({ message: 'AI 正在回复中...', duration: 1200 });
-      return;
+      promptAction.showToast({ message: "AI 正在回复中...", duration: 1200 })
+      return
     }
+    const content = text || "分享了一张照片"
+    this.messages = [...this.messages, { id: nowId(), role: "user", content, ts: Date.now() }]
+    this.inputText = ""
+    this.imagePreview = ""
+    this.realReply(content)
+  }
 
-    // 构�?user message content (文字 + 图片)
-    // user message content
-    const content: string = hasImage
-      ? (hasText ? text : '分享了一张照片')
-      : text;
-
-    this.messages = [
-      ...this.messages,
-      { id: nowId(), role: 'user', content, ts: Date.now() },
-    ];
-    this.inputText = '';
-    this.imagePreview = '';
-
-    this.realReply(content);
-  };
-
-  // 快捷 prompt 发�?(W1.2: 支持 SugBtn 文字 + inputText 补充 + imagePreview 一起发)
   private sendQuick = (prompt: string): void => {
     if (this.busy) {
-      promptAction.openToast({ message: 'AI 正在回复中...', duration: 1200 });
-      return;
+      promptAction.showToast({ message: "AI 正在回复中...", duration: 1200 })
+      return
     }
-    const text: string = this.inputText.trim();
-    const hasImage: boolean = this.imagePreview.length > 0;
-    const hasText: boolean = text.length > 0;
+    let content = prompt
+    if (this.inputText.trim()) { content += "\n" + this.inputText.trim() }
+    if (this.imagePreview) { content += "\n[图片]" }
+    this.messages = [...this.messages, { id: nowId(), role: "user", content, ts: Date.now() }]
+    this.inputText = ""
+    this.imagePreview = ""
+    this.realReply(content)
+  }
 
-    let content: string = prompt;
-    if (hasText) {
-      content += '\n' + text;
-    }
-    if (hasImage) {
-      content += '\n分享了一张照片';
-    }
-
-    this.messages = [
-      ...this.messages,
-      { id: nowId(), role: 'user', content, ts: Date.now() },
-    ];
-    this.inputText = '';
-    this.imagePreview = '';
-
-    this.realReply(content);
-  };
-
-  // 真实 AI 回复 (调用 LlmClient → DeepSeek)
   private realReply = async (userContent: string): Promise<void> => {
-    this.busy = true;
+    this.busy = true
     try {
-      const configured: boolean = await LlmConfig.getInstance().isConfigured();
+      const configured = await LlmConfig.getInstance().isConfigured()
       if (!configured) {
-        this.addAiMsg('⚠️ 请先在「我的 → 设置」中配置 API Key');
-        this.busy = false;
-        return;
+        this.addAiMsg("⚠️ 请先在「我的 → 模型」中配置 API Key")
+        this.busy = false
+        return
       }
-
-      const client = new LlmClient();
-      const reply: string = await client.call([
-        { role: 'system', content: this.deepThink ? '你是 MathMind AI 深度思考助手。请逐步推理、深入分析，展示完整的思考过程。使用 LaTeX 公式。' : '你是 MathMind AI 助手，专门帮助用户解决数学问题。请用简洁清晰的中文回答，适当使用 LaTeX 公式。' },
-        { role: 'user', content: userContent },
-      ]);
-
-      this.addAiMsg(reply);
+      const client = new LlmClient()
+      const systemPrompt = this.deepThink
+        ? "你是 MathMind AI 深度思考助手。请逐步推理、深入分析，展示完整思考过程，使用 LaTeX 公式。"
+        : "你是 MathMind AI 助手，用简洁清晰的中文回答，适当使用 LaTeX 公式。"
+      const reply = await client.call([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ])
+      this.addAiMsg(reply)
     } catch (e) {
-      const errMsg: string = (e as Error).message ?? String(e);
-      if (errMsg.indexOf('NO_API_KEY') >= 0) {
-        this.addAiMsg('⚠️ 请先在「我的 → 设置」中配置 API Key');
-      } else if (errMsg.indexOf('NETWORK_ERROR') >= 0) {
-        this.addAiMsg('⚠️ 网络连接失败，请检查网络后重试');
+      const err = (e as Error).message ?? ""
+      if (err.indexOf("NO_API_KEY") >= 0) {
+        this.addAiMsg("⚠️ 请先配置 API Key")
+      } else if (err.indexOf("NETWORK_ERROR") >= 0) {
+        this.addAiMsg("⚠️ 网络连接失败，请检查网络后重试")
       } else {
-        this.addAiMsg('⚠️ AI 回复异常: ' + errMsg.substring(0, 100));
+        this.addAiMsg("⚠️ AI 回复异常")
       }
     } finally {
-      this.busy = false;
+      this.busy = false
     }
-  };
+  }
 
-  // 添加 AI 消息到列表
   private addAiMsg = (content: string): void => {
-    this.messages = [
-      ...this.messages,
-      { id: nowId(), role: 'ai', content: content, ts: Date.now() },
-    ];
-  };
-  // ========== UI Builders ==========
+    this.messages = [...this.messages, { id: nowId(), role: "ai", content, ts: Date.now() }]
+  }
+
+  // ========== UI ==========
+
+  @Builder
+  DragBar() {
+    Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4)
+  }
 
   @Builder
   Header() {
     Row() {
-      Text('🧠 MathMind AI')
-        .fontSize(F_SM + 1)
-        .fontWeight(W_BOLD)
-        .fontColor(PURPLE);
-
-      Blank();
-
-      this.CloseBtn();
+      Text("MathMind AI").fontSize(F_BASE).fontWeight(W_SEMIBOLD).fontColor(TEXT)
+      Blank()
+      // 深度思考开关
+      Text(this.deepThink ? "🧠 深度" : "🧠")
+        .fontSize(F_XS)
+        .fontColor(this.deepThink ? MINT : TEXT_3)
+        .padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 })
+        .borderRadius(R_FULL)
+        .backgroundColor(this.deepThink ? MINT_LIGHT : GLASS_10)
+        .margin({ right: S_2 })
+        .onClick((): void => { this.deepThink = !this.deepThink })
+      // 关闭
+      Stack() {
+        Text("✕").fontSize(14).fontColor(TEXT_3)
+      }
+      .width(24).height(24).borderRadius(12)
+      .alignContent(Alignment.Center)
+      .onClick((): void => this.onClose())
     }
-    .width('100%')
-    .padding({ left: S_4, right: S_2, top: S_2, bottom: S_2 });
+    .width("100%").padding({ left: S_4, right: S_3, top: S_2, bottom: S_2 })
   }
 
   @Builder
-  CloseBtn() {
-    Stack() {
-      Text('✕')
-        .fontSize(14)
-        .fontWeight(W_MEDIUM)
-        .fontColor(TEXT_3);
+  QuickBar() {
+    Row() {
+      this.SugBtn("分析题目", "帮我分析这道题")
+      this.SugBtn("总结知识", "总结这个知识点")
+      this.SugBtn("出练习题", "出几道练习题")
+      this.SugBtn("学习路径", "推荐学习路径")
     }
-    .width(24).height(24)
-    .borderRadius(12)
-    .alignContent(Alignment.Center)
-    .onClick(() => this.onClose());
+    .width("100%")
+    .padding({ left: S_3, right: S_3, top: S_1, bottom: S_2 })
   }
 
-  // 4 快捷 (一行紧�?
   @Builder
   SugBtn(label: string, prompt: string) {
     Text(label)
-      .fontSize(F_XS)
-      .fontColor(PURPLE)
-      .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
-      .borderRadius(R_MD + 4)
+      .fontSize(F_XS).fontColor(PURPLE)
+      .padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 })
+      .borderRadius(R_SM)
       .backgroundColor(PURPLE_LIGHT)
-      .onClick(() => this.sendQuick(prompt));
+      .margin({ right: S_2 })
+      .onClick((): void => this.sendQuick(prompt))
   }
 
-  // 用户气泡 (mint 浅底 + mint �?+ 右对�?
   @Builder
   UserBubble(msg: ChatMsg) {
     Row() {
-      Blank();
+      Blank()
       Text(msg.content)
-        .fontSize(F_SM)
-        .fontColor(MINT)
-        .lineHeight(18)
+        .fontSize(F_SM).fontColor(MINT).lineHeight(20)
         .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
         .borderRadius(R_MD + 4)
-        .backgroundColor(MINT_LIGHT)  // MINT_LIGHT
-        .constraintSize({ maxWidth: '78%' })
-        .textAlign(TextAlign.Start);
+        .backgroundColor(MINT_LIGHT)
+        .constraintSize({ maxWidth: "78%" })
     }
-    .width('100%')
-    .margin({ top: S_2 });
+    .width("100%").margin({ top: S_2 })
   }
 
-  // AI 气泡 (紫底 + 紫字 + 左对�?
   @Builder
   AiBubble(msg: ChatMsg) {
     Row() {
       Text(msg.content)
-        .fontSize(F_SM)
-        .fontColor(TEXT_2)
-        .lineHeight(18)
+        .fontSize(F_SM).fontColor(TEXT_2).lineHeight(20)
         .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
         .borderRadius(R_MD + 4)
         .backgroundColor(PURPLE_LIGHT)
-        .constraintSize({ maxWidth: '85%' })
-        .textAlign(TextAlign.Start);
-      Blank();
+        .constraintSize({ maxWidth: "85%" })
+      Blank()
     }
-    .width('100%')
-    .margin({ top: S_2 });
+    .width("100%").margin({ top: S_2 })
   }
 
-  // 打字�?
   @Builder
   TypingBubble() {
     Row() {
       Row() {
-        LoadingProgress()
-          .width(12).height(12)
-          .color(PURPLE);
-        Text(' AI 思考中...')
-          .fontSize(F_XS)
-          .fontColor(TEXT_3)
-          .margin({ left: S_1 });
+        LoadingProgress().width(12).height(12).color(PURPLE)
+        Text(" 思考中...").fontSize(F_XS).fontColor(TEXT_3)
       }
       .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
       .borderRadius(R_MD + 4)
-      .backgroundColor(PURPLE_LIGHT);
-      Blank();
+      .backgroundColor(PURPLE_LIGHT)
+      Blank()
     }
-    .width('100%')
-    .margin({ top: S_2 });
+    .width("100%").margin({ top: S_2 })
   }
 
-  // 简洁空状�?(W1: messages 被清空时 fallback, 现在用大�?emoji 更明�?
   @Builder
   EmptyHint() {
     Column() {
-      Text('👋')
-        .fontSize(36)
-        .margin({ bottom: 8 });
-      Text('你好我是 MathMind AI 助手')
-        .fontSize(F_BASE)
-        .fontWeight(W_SEMIBOLD)
-        .fontColor(TEXT)
-        .margin({ bottom: 6 });
-      Text('点击上方 4 个快捷按钮开始对话\n或直接在底部输入问题')
-        .fontSize(F_XS)
-        .fontColor(TEXT_3)
-        .textAlign(TextAlign.Center)
-        .lineHeight(18);
+      Text("👋").fontSize(36).margin({ bottom: S_2 })
+      Text("MathMind AI").fontSize(F_BASE).fontWeight(W_SEMIBOLD).fontColor(TEXT)
+      Text("点击快捷按钮或输入问题开始对话").fontSize(F_XS).fontColor(TEXT_3).margin({ top: S_1 })
     }
-    .width('100%')
-    .padding({ left: 20, right: 20, top: 24, bottom: 24 })
-    .alignItems(HorizontalAlign.Center);
+    .width("100%").padding({ top: S_6, bottom: S_6 })
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  InputBar() {
+    Column() {
+      // 图片预览
+      if (this.imagePreview.length > 0) {
+        Row() {
+          Image(this.imagePreview).width(44).height(44).borderRadius(R_SM).objectFit(ImageFit.Cover)
+          Text("已选图片").fontSize(F_XS).fontColor(TEXT_3).margin({ left: S_2 }).layoutWeight(1)
+          Text("✕").fontSize(F_XS).fontColor(TEXT_3)
+            .width(24).height(24).borderRadius(12).textAlign(TextAlign.Center)
+            .backgroundColor(GLASS_10)
+            .onClick((): void => { this.imagePreview = "" })
+        }
+        .width("100%").padding({ left: S_4, right: S_4, bottom: S_1 })
+      }
+      // 输入行
+      Row() {
+        TextInput({ text: this.inputText, placeholder: "输入问题..." })
+          .layoutWeight(1).height(36)
+          .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_3)
+          .backgroundColor(GLASS_10).borderRadius(18)
+          .padding({ left: S_4, right: S_2 })
+          .onChange((value: string): void => { this.inputText = value })
+          .onSubmit((): void => { this.send() })
+
+        // 拍照
+        Stack() {
+          Image($r("app.media.ic_camera")).width(16).height(16).fillColor(TEXT_3)
+        }
+        .width(32).height(32).borderRadius(16)
+        .backgroundColor(GLASS_10)
+        .alignContent(Alignment.Center)
+        .margin({ left: S_2 })
+        .onClick((): void => { this.onGoCamera() })
+
+        // 发送
+        Stack() {
+          Text("➤").fontSize(16).fontWeight(W_BOLD)
+            .fontColor(this.inputText.trim().length > 0 && !this.busy ? BG_DARK : TEXT_3)
+        }
+        .width(32).height(32).borderRadius(16)
+        .backgroundColor(this.inputText.trim().length > 0 && !this.busy ? MINT : GLASS_10)
+        .alignContent(Alignment.Center)
+        .margin({ left: S_1 })
+        .onClick((): void => { this.send() })
+      }
+      .width("100%").padding({ left: S_4, right: S_4 })
+    }
+    .width("100%").padding({ top: S_2, bottom: S_4 })
   }
 
   build() {
     Stack() {
       if (this.show) {
-        // ===== 半透明遮罩 =====
+        // 遮罩
         Column()
-          .width('100%').height('100%')
-          .backgroundColor('#80000000')
-          .onClick(() => this.onClose());
+          .width("100%").height("100%")
+          .backgroundColor(OVERLAY_MASK)
+          .onClick((): void => this.onClose())
 
-        // ===== 浮窗主体 �?紧凑设计 =====
+        // 浮窗主体
         Column() {
-          // 顶栏 (32vp)
           // 拖拽条
           Row() {
-            Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4)
+            this.DragBar()
           }
           .width("100%").height(S_6).justifyContent(FlexAlign.Center)
-          this.Header();
 
-          // 分隔�?
-          Row()
-            .width('100%').height(0.5)
-            .backgroundColor(BORDER);
+          // Header
+          this.Header()
 
-          // ===== 4 快捷 (40vp 紧凑一�? =====
-          Row() {
-            this.SugBtn('分析题目', '帮我分析这道题');
-            this.SugBtn('总结知识', '总结知识点');
-            this.SugBtn('出练习题', '出几道练习题');
-            this.SugBtn('学习路径', '推荐学习路径');
-          }
-          .width('100%')
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 });
+          // 快捷按钮
+          this.QuickBar()
 
-          // 深度思考切换
-          Row() {
-            Text(this.deepThink ? "🧠 深度思考 ON" : "🧠 深度思考")
-              .fontSize(F_XS)
-              .fontColor(this.deepThink ? MINT : TEXT_3)
-              .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
-              .borderRadius(R_FULL)
-              .backgroundColor(this.deepThink ? MINT_LIGHT : GLASS_10)
-              .border({ width: 1, color: this.deepThink ? MINT : BORDER })
-              .onClick((): void => { this.deepThink = !this.deepThink })
-          }
-          .width("100%")
-          .padding({ left: S_3, right: S_3, bottom: S_2 })
-          .justifyContent(FlexAlign.Center)
+          // 分隔
+          Row().width("100%").height(0.5).backgroundColor(BORDER)
 
-          // 分隔�?
-          Row()
-            .width('100%').height(0.5)
-            .backgroundColor(BORDER);
-
-          // ===== 消息�?=====
+          // 消息区
           Scroll() {
             Column() {
-              if (this.messages.length === 0 && !this.busy) {
-                this.EmptyHint();
-              }
-
-              ForEach(this.messages, (msg: ChatMsg) => {
-                if (msg.role === 'user') {
-                  this.UserBubble(msg);
-                } else {
-                  this.AiBubble(msg);
-                }
-              }, (msg: ChatMsg) => msg.id.toString());
-
-              if (this.busy) {
-                this.TypingBubble();
-              }
-
-              Blank().height(4);
+              if (this.messages.length === 0 && !this.busy) { this.EmptyHint() }
+              ForEach(this.messages,
+                (msg: ChatMsg): void => {
+                  if (msg.role === "user") { this.UserBubble(msg) }
+                  else { this.AiBubble(msg) }
+                },
+                (msg: ChatMsg): string => msg.id.toString()
+              )
+              if (this.busy) { this.TypingBubble() }
+              Blank().height(S_2)
             }
-            .width('100%')
-            .padding({ left: S_3, right: S_3, top: S_2, bottom: S_1 });
+            .width("100%").padding({ left: S_4, right: S_4, top: S_2 })
           }
-          .layoutWeight(1)
-          .width('100%')
-          .scrollBar(BarState.Off)
-          .edgeEffect(EdgeEffect.Spring);
+          .layoutWeight(1).width("100%")
+          .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
 
-          // 分隔�?
-          Row()
-            .width('100%').height(0.5)
-            .backgroundColor(BORDER);
+          // 分隔
+          Row().width("100%").height(0.5).backgroundColor(BORDER)
 
-          // ===== 底部输入�?(52vp 紧凑) =====
-          // ===== 图片预览 (输入区上方独立一行) =====
-          if (this.imagePreview.length > 0) {
-            Row() {
-              Image(this.imagePreview)
-                .width(48).height(48)
-                .borderRadius(8)
-                .objectFit(ImageFit.Cover)
-                .border({ width: 1, color: BORDER });
-
-              Text("已选图片，可补充文字后发送")
-                .fontSize(F_XS)
-                .fontColor(TEXT_3)
-                .margin({ left: S_3 })
-                .layoutWeight(1);
-
-              Text("✕")
-                .fontSize(F_BASE)
-                .fontColor(TEXT_3)
-                .width(28).height(28)
-                .borderRadius(14)
-                .textAlign(TextAlign.Center)
-                .backgroundColor(GLASS_10)
-                .onClick(() => { this.imagePreview = ""; });
-            }
-            .width("100%")
-            .padding({ left: 10, right: 10, top: 6, bottom: 4 });
-          }
-
-          // ===== 底部输入区 (52vp compact) =====
-          Row() {
-            // 输入框
-            TextInput({ text: this.inputText, placeholder: '输入问题...' })
-              .layoutWeight(1)
-              .height(32)
-              .fontSize(F_SM)
-              .fontColor(TEXT)
-              .placeholderColor(TEXT_3)
-              .backgroundColor(GLASS_10)
-              .borderRadius(16)
-              .padding({ left: 12, right: 6 })
-              .onChange((value: string) => {
-                this.inputText = value;
-              })
-              .onSubmit(() => {
-                this.send();
-              });
-
-            // 拍照按钮 (28×28) - SVG ic_camera 替换 emoji
-            Stack() {
-              Image($r('app.media.ic_camera'))
-                .width(16)
-                .height(16)
-                .fillColor(TEXT_3);
-            }
-            .width(28).height(28)
-            .borderRadius(14)
-            .backgroundColor(GLASS_10)
-            .border({ width: 1, color: BORDER })
-            .alignContent(Alignment.Center)
-            .margin({ left: S_1 })
-            .onClick(() => {
-              this.onGoCamera();
-            });
-
-            // 发送按�?(28×28)
-            Stack() {
-              Text('➤')
-                .fontSize(15)
-                .fontWeight(W_BOLD)
-                .fontColor(this.inputText.trim().length > 0 && !this.busy ? BG_DARK : TEXT_3);
-            }
-            .width(28).height(28)
-            .borderRadius(14)
-            .backgroundColor(this.inputText.trim().length > 0 && !this.busy ? MINT : GLASS_10)
-            .alignContent(Alignment.Center)
-            .margin({ left: S_1 })
-            .onClick(() => {
-              this.send();
-            });
-          }
-          .width('100%')
-          .padding({ left: S_3, right: S_3, top: S_2, bottom: S_3 })
-          .alignItems(VerticalAlign.Center);
+          // 输入栏
+          this.InputBar()
         }
-          .width('100%')
-          .height('40%')                     // 40% 视口�?(~325vp @ 816vp, 更紧�?
-          // Stack 默认 alignContent TopStart, 子元素顶�?Stack �?
-          // 强制底对�?Stack �?(�?position + markAnchor).
-          // margin �?Stack 子元素不生效, 改用 .offset 强制上移.
-          // offset y = -(74 + keyboardHeight):
-          //   74vp = Tab 栏高 (浮窗底贴菜单栏顶)
-          //   keyboardHeight = 软键盘高�?(W1.3: 浮窗自己上移避免键盘遮挡, 整个页面不动)
-          .position({ x: 0, y: '100%' })     // 元素 (0,0) �?(0, 100%) = Stack 左下�?
-          .markAnchor({ x: 0, y: '100%' })  // 元素 (0, 100%) 作为锚点 = 元素�?
-          .translate({ y: -(74 + this.keyboardHeight) })  // W1.3: translate 替代 offset，配�?position 动态上�?
-          .backgroundColor(BG_DARK)      // 95% alpha (微半�?
+        .width("100%").height("42%")
         .borderRadius({ topLeft: R_XL, topRight: R_XL })
-        .border({ width: { top: 0.5 }, color: BORDER })
-        .shadow({
-          radius: 20,
-          color: OVERLAY_MASK_SOLID,
-          offsetX: 0,
-          offsetY: -4,
-        })
-        .margin({ left: S_3, right: S_3 })    // 去掉 bottom 74 (offset 替代)
+        .backgroundColor(BG_DARK)
+        .position({ x: 0, y: "100%" })
+        .markAnchor({ x: 0, y: "100%" })
+        .translate({ y: -(74 + this.keyboardHeight) })
+        .margin({ left: S_3, right: S_3 })
       }
     }
-    .width('100%').height('100%')
+    .width("100%").height("100%")
     .hitTestBehavior(this.show ? HitTestMode.Default : HitTestMode.None)
   }
 }
