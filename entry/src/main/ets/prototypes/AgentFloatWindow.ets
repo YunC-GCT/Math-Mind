@@ -5,19 +5,17 @@
 //  (完整文档见代码头部注释)
 // ============================================================================
 
-import { BG_DARK, TEXT_4, BORDER, S_2, S_3, S_4, S_6, R_XL, OVERLAY_MASK, SCREEN_H } from "common"
+import { BG_DARK, TEXT_4, BORDER, S_3, S_6, R_XL, OVERLAY_MASK, SCREEN_H } from "common"
 import { LlmClient, LlmConfig } from "common"
 import { promptAction } from "@kit.ArkUI"
 import window from "@ohos.window"
 import { ChatHeader } from "./chat/ChatHeader"
-import { ChatBubble } from "./chat/ChatBubble"
-import { TypingIndicator } from "./chat/TypingIndicator"
-import { EmptyStateHint } from "./chat/EmptyStateHint"
 import { QuickSuggestions } from "./chat/QuickSuggestions"
 import { MessageInput } from "./chat/MessageInput"
 import { ChatSessionManager, sid } from "./chat/ChatSession"
 import { SessionBar } from "./chat/SessionBar"
 import { ChatMsg, ChatSession } from "./chat/ChatModels"
+import { AgentMessageList } from "./agent/AgentMessageList"
 
 function nowId(): number { return Date.now() * 1000 + Math.floor(Math.random() * 1000) }
 
@@ -83,6 +81,16 @@ export struct AgentFloatWindow {
   private newSession(): void { this.sync(); const s: ChatSession = { id: sid(), name: "会话 " + (this.sessions.length + 1).toString(), messages: [] }; this.sessions = [...this.sessions, s]; this.activeSid = s.id; this.messages = []; this.sm.save(this.sessions) }
   private deleteSession(sid: string): void { if (this.sessions.length <= 1) return; const f = this.sessions.filter((s: ChatSession): boolean => s.id !== sid); this.sessions = f; if (sid === this.activeSid) { this.activeSid = f[0].id; this.messages = f[0].messages }; this.sm.save(this.sessions) }
 
+  private retryFromAiMessage(msg: ChatMsg): void {
+    if (msg.role !== "ai") {
+      return
+    }
+    const idx: number = this.messages.findIndex((item: ChatMsg): boolean => item.id === msg.id)
+    if (idx > 0 && this.messages[idx - 1].role === "user") {
+      this.send(this.messages[idx - 1].content)
+    }
+  }
+
   private send = (text?: string): void => {
     const msg = (text ?? this.inputText).trim()
     if (!msg && !this.imagePreview) { return }
@@ -136,14 +144,7 @@ export struct AgentFloatWindow {
           ChatHeader({ deepThink: this.deepThink, onToggleThink: (): void => { this.deepThink = !this.deepThink }, onNewChat: (): void => { this.newSession() }, onClose: this.onClose })
           Row().width("100%").height(0.5).backgroundColor(BORDER)
           SessionBar({ sessions: this.sessions, activeSid: this.activeSid, onSwitch: (sid: string): void => { this.switchSession(sid) }, onDelete: (sid: string): void => { this.deleteSession(sid) }, onNew: (): void => { this.newSession() } })
-          Scroll(this.scroller) {
-            Column() {
-              if (this.messages.length === 0 && !this.busy) { EmptyStateHint() }
-              ForEach(this.messages, (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (_text: string): void => {}, onFeedback: (_msg: ChatMsg): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) }, (msg: ChatMsg): string => msg.id.toString())
-              if (this.busy && this.messages.length > 0 && this.messages[this.messages.length - 1].content === "思考中...") { TypingIndicator() }
-              Blank().height(S_2)
-            }.width("100%").padding({ left: S_4, right: S_4, top: S_2 })
-          }.layoutWeight(1).width("100%").scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
+          AgentMessageList({ messages: this.messages, busy: this.busy, scroller: this.scroller, onRetry: (msg: ChatMsg): void => { this.retryFromAiMessage(msg) } })
           Row().width("100%").height(0.5).backgroundColor(BORDER)
           QuickSuggestions({ onSelect: (p: string): void => { this.send(p) } })
           MessageInput({ inputText: this.inputText, imagePreview: this.imagePreview, busy: this.busy, onTextChange: (v: string): void => { this.inputText = v }, onSend: (): void => { this.send() }, onCamera: (): void => { this.onGoCamera() }, onClearImage: (): void => { this.imagePreview = "" } })
