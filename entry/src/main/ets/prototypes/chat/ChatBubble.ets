@@ -36,7 +36,7 @@ export struct ChatBubble {
       if (this.msg.role === "user") {
         Row() { Blank()
           Column() {
-            Text(display).fontSize(F_SM).fontColor(MINT_DARK).lineHeight(20)
+            Text(cleanMarkdown(this.msg.content)).fontSize(F_SM).fontColor(MINT_DARK).lineHeight(20)
               .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
               .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: R_MD + 4, bottomRight: S_1 })
               .backgroundColor(MINT_LIGHT).constraintSize({ maxWidth: "78%" })
@@ -46,7 +46,7 @@ export struct ChatBubble {
         Row() {
           Column() {
             Text("AI").fontSize(9).fontColor(TEXT_4).fontWeight(W_SEMIBOLD).margin({ bottom: S_1, left: S_1 })
-            Text(display).fontSize(F_SM).fontColor(TEXT_2).lineHeight(20)
+            Text(cleanMarkdown(this.msg.content)).fontSize(F_SM).fontColor(TEXT_2).lineHeight(20)
               .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
               .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: S_1, bottomRight: R_MD + 4 })
               .backgroundColor(PURPLE_LIGHT).constraintSize({ maxWidth: "85%" })
