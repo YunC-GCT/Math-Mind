@@ -67,8 +67,20 @@ export struct AgentFloatWindow {
     this.messages = [{ id: 1, role: "ai", content: "你好，我是 MathMind AI。可以帮你分析错题、讲解知识点、生成练习题。试试问我吧 👉", ts: Date.now() }]
   }
 
-  private sync(): void { for (let i = 0; i < this.sessions.length; i++) { if (this.sessions[i].id === this.activeSid) { this.sessions[i].messages = this.messages; return } } }
-  private switchSession(sid: string): void { this.sync(); for (let i = 0; i < this.sessions.length; i++) { if (this.sessions[i].id === sid) { this.activeSid = sid; this.messages = this.sessions[i].messages; return } } }
+  private sync(): void {
+    const session = this.sessions.find((item: Session): boolean => item.id === this.activeSid)
+    if (session !== undefined) {
+      session.messages = this.messages
+    }
+  }
+  private switchSession(sid: string): void {
+    this.sync()
+    const session = this.sessions.find((item: Session): boolean => item.id === sid)
+    if (session !== undefined) {
+      this.activeSid = sid
+      this.messages = session.messages
+    }
+  }
   private newSession(): void { this.sync(); const s: Session = { id: sid(), name: "会话 " + (this.sessions.length + 1).toString(), messages: [] }; this.sessions = [...this.sessions, s]; this.activeSid = s.id; this.messages = []; this.sm.save(this.sessions) }
   private deleteSession(sid: string): void { if (this.sessions.length <= 1) return; const f = this.sessions.filter((s: Session): boolean => s.id !== sid); this.sessions = f; if (sid === this.activeSid) { this.activeSid = f[0].id; this.messages = f[0].messages }; this.sm.save(this.sessions) }
 

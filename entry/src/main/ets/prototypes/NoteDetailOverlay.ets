@@ -40,8 +40,7 @@ function parseSections(body: string): Section[] {
   let curTitle: string = "内容"
   let curLines: string[] = []
 
-  for (let i: number = 0; i < lines.length; i++) {
-    const line: string = lines[i]
+  for (const line of lines) {
     if (line.indexOf("## ") === 0) {
       if (curLines.length > 0) {
         sections.push({ title: curTitle, content: curLines.join("\n").trim() })

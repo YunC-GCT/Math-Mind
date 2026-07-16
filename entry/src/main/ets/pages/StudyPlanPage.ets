@@ -83,10 +83,7 @@ export struct StudyPlanPage {
           if (this.vm.isLoading) {
             return
           }
-          const knownTitles: string[] = []
-          for (let i: number = 0; i < this.vm.items.length; i++) {
-            knownTitles.push(this.vm.items[i].title)
-          }
+          const knownTitles: string[] = this.vm.items.map((item: StudyPlanItem): string => item.title)
           this.vm.generatePlan(knownTitles)
         })
     }

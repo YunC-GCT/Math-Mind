@@ -17,10 +17,6 @@ import { CameraPreview } from "../molecules/CameraPreview"
 
 type CameraState = "camera" | "preview"
 
-function mockCaptureUri(src: "camera" | "album"): string {
-  return "mock_" + src + "_" + Date.now() + ".jpg"
-}
-
 @Component
 export struct CameraOverlay {
   @State state: CameraState = "camera"
@@ -77,9 +73,11 @@ export struct CameraOverlay {
       if (result !== undefined && result.resultUri.length > 0) {
         this.capturedUri = result.resultUri; this.capturedSrc = "camera"; this.state = "preview"; return
       }
-    } catch (e) { try { promptAction.showToast({ message: "模拟器不支持相机，已使用模拟图片", duration: 2000 }) } catch (_e) {} }
+      try { promptAction.showToast({ message: "未获取到照片", duration: 1500 }) } catch (_e) {}
+    } catch (e) {
+      try { promptAction.showToast({ message: "相机不可用，请从相册选择", duration: 2000 }) } catch (_e) {}
+    }
     finally { this.busy = false }
-    this.capturedUri = mockCaptureUri("camera"); this.capturedSrc = "camera"; this.state = "preview"
   }
 
   private pickAlbum = async (): Promise<void> => {
@@ -91,7 +89,7 @@ export struct CameraOverlay {
       if (result.photoUris.length > 0) {
         this.capturedUri = result.photoUris[0]; this.capturedSrc = "album"; this.state = "preview"; return
       }
-    } catch (e) { /* 用户取消 */ } finally { this.busy = false }
-    this.capturedUri = mockCaptureUri("album"); this.capturedSrc = "album"; this.state = "preview"
+      try { promptAction.showToast({ message: "未选择图片", duration: 1500 }) } catch (_e) {}
+    } catch (e) { /* 用户取消或权限拒绝 */ } finally { this.busy = false }
   }
 }

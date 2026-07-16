@@ -42,8 +42,8 @@ export class StudyPlanViewModel {
   // ---- 计算属性 ----
   get completedCount(): number {
     let count: number = 0
-    for (let i: number = 0; i < this.items.length; i++) {
-      if (this.items[i].isDone) {
+    for (const item of this.items) {
+      if (item.isDone) {
         count++
       }
     }
@@ -95,9 +95,9 @@ export class StudyPlanViewModel {
   // ---- 删除 ----
   async deleteItem(item: StudyPlanItem): Promise<void> {
     const newItems: StudyPlanItem[] = []
-    for (let i: number = 0; i < this.items.length; i++) {
-      if (this.items[i].id !== item.id) {
-        newItems.push(this.items[i])
+    for (const candidate of this.items) {
+      if (candidate.id !== item.id) {
+        newItems.push(candidate)
       }
     }
     this.items = newItems
@@ -133,8 +133,8 @@ export class StudyPlanViewModel {
       const reply: string = await this.llm.call(messages)
       const titles: string[] = this.parsePlanTitles(reply)
 
-      for (let i: number = 0; i < titles.length; i++) {
-        const item: StudyPlanItem = new StudyPlanItem(titles[i])
+      for (const title of titles) {
+        const item: StudyPlanItem = new StudyPlanItem(title)
         if (this.dao !== null) {
           try {
             await this.dao.insert(item)
@@ -163,8 +163,7 @@ export class StudyPlanViewModel {
     try {
       const parsed: string[] = JSON.parse(json) as string[]
       const result: string[] = []
-      for (let i: number = 0; i < parsed.length; i++) {
-        const item: string = parsed[i]
+      for (const item of parsed) {
         if (typeof item === "string" && item.trim().length > 0) {
           result.push(item.trim())
         }

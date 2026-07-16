@@ -215,8 +215,7 @@ export struct AgentFloatWindowMVP {
         displayText += '分类: ' + unit.type + '\n';
       }
       if (unit.fields && unit.fields.length > 0) {
-        for (let i: number = 0; i < unit.fields.length; i++) {
-          const field = unit.fields[i];
+        for (const field of unit.fields) {
           displayText += '\n**' + field.label + '**:\n' + field.value + '\n';
         }
       }

@@ -9,19 +9,37 @@ import {
   R_MD, R_LG,
   F_XS, F_SM, F_BASE, F_MD,
   W_MEDIUM, W_SEMIBOLD,
-  NoteItem, NOTES,
+  NoteItem, KnowledgeUnit, DatabaseHelper,
 } from "common"
+import { promptAction } from "@kit.ArkUI"
 import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
 import { NoteCard } from "../molecules/NoteCard"
+import { NoteDao } from "../database/NoteDao"
+import { unitsToNoteItems } from "../utils/NoteItemMapper"
 
 @Component
 export struct NotesPage {
   @StorageProp('statusBarHeight') sbh: number = 0
   @State selectedNote: NoteItem | null = null
-  private notes: NoteItem[] = NOTES
+  @State notes: NoteItem[] = []
 
   private closeDetail = (): void => { this.selectedNote = null }
   private askAi = (_note: NoteItem): void => { this.selectedNote = null }
+
+  aboutToAppear(): void {
+    this.loadNotes()
+  }
+
+  private loadNotes = async (): Promise<void> => {
+    try {
+      const store = await DatabaseHelper.init(getContext(this))
+      const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
+      this.notes = unitsToNoteItems(units)
+    } catch (e) {
+      this.notes = []
+      try { promptAction.showToast({ message: "笔记加载失败", duration: 1500 }) } catch (_e) {}
+    }
+  }
 
   build() {
     Stack() {

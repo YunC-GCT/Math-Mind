@@ -49,12 +49,10 @@ export class StudyPlanDao {
           return
         }
         const items: StudyPlanItem[] = []
-        if (rs.rowCount > 0) {
-          rs.goToFirstRow()
-          for (let i: number = 0; i < rs.rowCount; i++) {
+        if (rs.goToFirstRow()) {
+          do {
             items.push(StudyPlanDao.rowToItem(rs))
-            rs.goToNextRow()
-          }
+          } while (rs.goToNextRow())
         }
         rs.close()
         resolve(items)

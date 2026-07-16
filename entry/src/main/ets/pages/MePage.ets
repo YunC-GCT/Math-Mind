@@ -15,26 +15,71 @@ import {
   F_SM,
   GLASS_8,
   DANGER,
+  KnowledgeUnit,
+  ReviewStatus,
+  DatabaseHelper,
 } from "common"
 import { promptAction, router } from "@kit.ArkUI"
 import { ProfileHeader } from "../molecules/ProfileHeader"
 import { StatsBox } from "../atoms/StatsBox"
 import { MenuItemRow } from "../atoms/MenuItemRow"
+import { NoteDao } from "../database/NoteDao"
 
 @Component
 export struct MePage {
   @StorageProp("statusBarHeight") sbh: number = 0
-  @State notes: number = 12
-  @State avg: number = 78
+  @State notes: number = 0
+  @State avg: number = 0
+  @State today: number = 0
 
   aboutToAppear(): void {
-    // TODO: 从 RDB 加载真实统计数据
+    this.loadStats()
   }
-
-  private todayNew(): number { return 3 }
 
   private toast(msg: string): void {
     try { promptAction.showToast({ message: msg, duration: 2000, bottom: "50%" }) } catch (e) {}
+  }
+
+  private loadStats = async (): Promise<void> => {
+    try {
+      const store = await DatabaseHelper.init(getContext(this))
+      const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
+      this.notes = units.length
+      this.today = this.countToday(units)
+      this.avg = this.calcAvg(units)
+    } catch (e) {
+      this.notes = 0
+      this.avg = 0
+      this.today = 0
+      this.toast("统计加载失败")
+    }
+  }
+
+  private countToday(units: KnowledgeUnit[]): number {
+    const now: Date = new Date()
+    const start: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const startMs: number = start.getTime()
+    const endMs: number = startMs + 86400000
+    let count: number = 0
+    for (const unit of units) {
+      if (unit.createdAt >= startMs && unit.createdAt < endMs) {
+        count++
+      }
+    }
+    return count
+  }
+
+  private calcAvg(units: KnowledgeUnit[]): number {
+    if (units.length === 0) { return 0 }
+    let total: number = 0
+    for (const unit of units) {
+      if (unit.reviewStatus === ReviewStatus.GRADUATED) { total += 95 }
+      else if (unit.reviewStatus === ReviewStatus.REVIEW) { total += 86 }
+      else if (unit.reviewStatus === ReviewStatus.LEARNING) { total += 72 }
+      else if (unit.reviewStatus === ReviewStatus.LAPSED) { total += 45 }
+      else { total += 64 }
+    }
+    return Math.round(total / units.length)
   }
 
   build() {
@@ -50,7 +95,7 @@ export struct MePage {
         Row() {
           StatsBox({ value: this.notes + "", label: "笔记" })
           StatsBox({ value: this.avg + "%", label: "掌握率" })
-          StatsBox({ value: this.todayNew() + "", label: "今日新增" })
+          StatsBox({ value: this.today + "", label: "今日新增" })
         }
         .width("100%")
         .padding({ left: S_4, right: S_4, bottom: S_4 })

@@ -15,7 +15,7 @@ import {
   F_XS, F_BASE, F_MD,
   W_MEDIUM, W_SEMIBOLD,
   HEADER_H,
-  NoteItem, NOTES,
+  NoteItem, KnowledgeUnit, DatabaseHelper,
 } from "common"
 import { promptAction } from "@kit.ArkUI"
 import { HexLogo } from "../atoms/HexLogo"
@@ -24,6 +24,8 @@ import { HeroBanner } from "../molecules/HeroBanner"
 import { ReminderBanner } from "../molecules/ReminderBanner"
 import { NoteCard } from "../molecules/NoteCard"
 import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
+import { NoteDao } from "../database/NoteDao"
+import { unitsToNoteItems } from "../utils/NoteItemMapper"
 
 // ---- 纯工具函数 ----
 
@@ -45,10 +47,10 @@ function dateStr(): string {
 @Component
 export struct HomePage {
   @StorageProp("statusBarHeight") sbh: number = 0
-  @State notes: NoteItem[] = NOTES
+  @State notes: NoteItem[] = []
   @State greeting: string = ""
   @State dateText: string = ""
-  @State avg: number = 75
+  @State avg: number = 0
   @State today: number = 0
   @State selectedNote: NoteItem | null = null
 
@@ -58,9 +60,26 @@ export struct HomePage {
   aboutToAppear(): void {
     this.greeting = greet()
     this.dateText = dateStr()
+    this.loadNotes()
+  }
+
+  private loadNotes = async (): Promise<void> => {
+    try {
+      const store = await DatabaseHelper.init(getContext(this))
+      const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
+      this.notes = unitsToNoteItems(units)
+      this.refreshStats()
+    } catch (e) {
+      try { promptAction.showToast({ message: "笔记加载失败", duration: 1500 }) } catch (_e) {}
+      this.notes = []
+      this.refreshStats()
+    }
+  }
+
+  private refreshStats(): void {
     this.avg = this.notes.length > 0
       ? Math.round(this.notes.reduce((a: number, n: NoteItem): number => a + n.conf, 0) / this.notes.length * 100)
-      : 75
+      : 0
     const now: Date = new Date()
     const ts: string = now.getFullYear() + "-" +
       String(now.getMonth() + 1).padStart(2, "0") + "-" +

@@ -45,6 +45,13 @@ CREATE TABLE IF NOT EXISTS study_plan (
   due_date INTEGER NOT NULL DEFAULT 0
 )`;
 
+const SQL_INDEX_KNOWLEDGE_CREATED: string =
+  "CREATE INDEX IF NOT EXISTS idx_knowledge_unit_created_at ON knowledge_unit(created_at)";
+const SQL_INDEX_KNOWLEDGE_REVIEW: string =
+  "CREATE INDEX IF NOT EXISTS idx_knowledge_unit_review_status ON knowledge_unit(review_status)";
+const SQL_INDEX_STUDY_PLAN_DONE: string =
+  "CREATE INDEX IF NOT EXISTS idx_study_plan_is_done ON study_plan(is_done)";
+
 export class DatabaseHelper {
   private static store: relationalStore.RdbStore | null = null;
 
@@ -61,8 +68,14 @@ export class DatabaseHelper {
         // 串行建表：先 knowledge_unit，再 study_plan
         store.executeSql(SQL_CREATE_KNOWLEDGE, [], () => {
           store.executeSql(SQL_CREATE_STUDY_PLAN, [], () => {
-            DatabaseHelper.store = store;
-            resolve(store);
+            store.executeSql(SQL_INDEX_KNOWLEDGE_CREATED, [], () => {
+              store.executeSql(SQL_INDEX_KNOWLEDGE_REVIEW, [], () => {
+                store.executeSql(SQL_INDEX_STUDY_PLAN_DONE, [], () => {
+                  DatabaseHelper.store = store;
+                  resolve(store);
+                });
+              });
+            });
           });
         });
       });

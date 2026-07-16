@@ -126,8 +126,7 @@ struct AiTestPage {
         '\n--- 结构化字段 ---\n';
 
       let fieldsStr: string = '';
-      for (let i: number = 0; i < result.fields.length; i++) {
-        const f = result.fields[i];
+      for (const f of result.fields) {
         fieldsStr = fieldsStr + '[' + f.label + ']\n' + f.value + '\n\n';
       }
 

@@ -118,8 +118,7 @@ struct AiTestPageMVP {
         '\n--- \u7ED3\u6784\u5316\u5B57\u6BB5 ---\n';
 
       let fieldsStr: string = '';
-      for (let i: number = 0; i < result.fields.length; i++) {
-        const f = result.fields[i];
+      for (const f of result.fields) {
         fieldsStr = fieldsStr + '[' + f.label + ']\n' + f.value + '\n\n';
       }
 

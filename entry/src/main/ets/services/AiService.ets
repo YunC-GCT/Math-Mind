@@ -92,6 +92,7 @@ export class AiService {
       }
     } catch (e) {
       log.error('NoteDao.insert failed: ' + JSON.stringify(e));
+      throw new Error('保存笔记失败: ' + JSON.stringify(e));
     }
   }
 }

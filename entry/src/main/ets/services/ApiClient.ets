@@ -45,7 +45,7 @@ export class ApiClient {
     if (opts?.headers) {
       const custom: Record<string, string> = opts.headers;
       const keys: string[] = Object.keys(custom);
-      for (let i = 0; i < keys.length; i++) { headers[keys[i]] = custom[keys[i]]; }
+      for (const key of keys) { headers[key] = custom[key]; }
     }
 
     // 首次请求
@@ -115,8 +115,8 @@ export class ApiClient {
       const refresh: string = await store.get(KEY_REFRESH, '') as string;
       if (refresh.length === 0) { return false; }
       // MVP: refresh token 未实现 HTTP 调用 AuthService
-      // 此处作为占位，待实际调用刷新端点
-      return true;
+      // 未实现前不能返回 true，否则调用方会误判 token 已刷新成功。
+      return false;
     } catch (e) { return false; }
   }
 
