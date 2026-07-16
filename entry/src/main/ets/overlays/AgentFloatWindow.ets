@@ -187,7 +187,7 @@ export struct AgentFloatWindow {
         { role: 'user', content: userContent },
       ]);
 
-      this.addAiMsg(reply.length > 0 ? reply : 'AI 返回了空内容，请重试');
+      this.addAiMsg(reply);
     } catch (e) {
       const errMsg: string = (e as Error).message ?? String(e);
       if (errMsg.indexOf('NO_API_KEY') >= 0) {
