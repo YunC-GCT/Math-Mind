@@ -1,24 +1,23 @@
-﻿/**
- * MathMind 首页
- * W3 UI 优化 (2026-07-15): Hero 视觉层次提升、全量令牌化、间距统一
+/**
+ * MathMind 首页 — 装配层
+ * W3 UI 优化: 六层架构，组件编排，零内联 UI
  */
-
 import {
-  MINT, MINT_DARK, MINT_LIGHT, PURPLE, PURPLE_LIGHT, PINK,
-  BG_DARK, BORDER, TEXT, TEXT_2, TEXT_3,
-  S_1, S_2, S_3, S_4, S_5, S_6,
-  R_MD, R_2XL,
-  F_XS, F_SM, F_BASE, F_MD, F_XL, F_2XL,
-  W_MEDIUM, W_SEMIBOLD, W_BOLD,
-  SHADOW_FAB,
+  MINT, MINT_LIGHT, PURPLE_LIGHT, PINK_LIGHT,
+  BG_DARK, TEXT, TEXT_3,
+  S_2, S_3, S_4, S_5,
+  F_XS, F_BASE, F_MD,
+  W_MEDIUM, W_SEMIBOLD,
+  HEADER_H,
+  NoteItem, NOTES,
 } from "common"
 import { promptAction } from "@kit.ArkUI"
-import { NoteItem, NOTES } from "common"
-import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
-import { NoteCard } from "../molecules/NoteCard"
-import { GradientRing } from "../atoms/GradientRing"
-import { StatsBox } from "../atoms/StatsBox"
 import { HexLogo } from "../atoms/HexLogo"
+import { FloatingButton } from "../atoms/FloatingButton"
+import { HeroBanner } from "../molecules/HeroBanner"
+import { ReminderBanner } from "../molecules/ReminderBanner"
+import { NoteCard } from "../molecules/NoteCard"
+import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
 
 function greet(): string {
   const h: number = new Date().getHours()
@@ -39,19 +38,18 @@ function dateStr(): string {
 export struct HomePage {
   @StorageProp("statusBarHeight") sbh: number = 0
   @State notes: NoteItem[] = NOTES
-  @State g: string = ""
-  @State d: string = ""
+  @State greeting: string = ""
+  @State dateText: string = ""
   @State avg: number = 75
   @State today: number = 0
   @State selectedNote: NoteItem | null = null
 
-  closeDetail = (): void => { this.selectedNote = null }
   onGoCamera: () => void = (): void => {}
   onGoReview: () => void = (): void => {}
 
   aboutToAppear(): void {
-    this.g = greet()
-    this.d = dateStr()
+    this.greeting = greet()
+    this.dateText = dateStr()
     this.avg = this.notes.length > 0
       ? Math.round(this.notes.reduce((a: number, n: NoteItem): number => a + n.conf, 0) / this.notes.length * 100)
       : 75
@@ -65,102 +63,38 @@ export struct HomePage {
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
-        // ---- 状态栏 ----
+        // 状态栏
         Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
 
-        // ---- Header ----
+        // Header
         Row() {
           HexLogo()
           Text("MathMind")
             .fontFamily("HarmonyOS Sans Condensed")
-            .fontSize(F_MD + 2)
-            .fontWeight(W_MEDIUM)
-            .fontColor(TEXT)
+            .fontSize(F_MD + 2).fontWeight(W_MEDIUM).fontColor(TEXT)
             .margin({ left: S_2 })
         }
-        .width("100%").height(60)
+        .width("100%").height(HEADER_H)
         .padding({ left: S_4, right: S_4 })
         .alignItems(VerticalAlign.Center)
         .backgroundColor(BG_DARK)
 
-        // ---- Hero 区 ----
-        Column() {
-          // 问候行：绿点 + 更大字号 + 更粗字重
-          Row() {
-            Circle({ width: 8, height: 8 }).fill(MINT)
-            Text(this.g + ", Mini")
-              .fontSize(F_2XL).fontWeight(W_BOLD)
-              .fontColor(TEXT)
-              .margin({ left: S_2 })
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .width("100%")
-          .alignItems(VerticalAlign.Center)
-
-          // 日期：稍大字号
-          Text(this.d)
-            .fontSize(F_BASE).fontColor(TEXT_3)
-            .width("100%")
-            .margin({ top: S_2 })
-
-          // 进度环：居中 + 更大圈
-          Stack() {
-            GradientRing({ pct: this.avg })
-            Column() {
-              Text(this.avg + "%")
-                .fontSize(F_2XL).fontWeight(W_BOLD).fontColor(TEXT)
-              Text("去复习 >")
-                .fontSize(F_SM).fontColor(MINT).fontWeight(W_SEMIBOLD)
-                .margin({ top: S_1 })
-            }.alignItems(HorizontalAlign.Center)
-          }
-          .width(120).height(120)
-          .alignSelf(ItemAlign.Center)
-          .margin({ top: S_6 })
-          .onClick((): void => this.onGoReview())
-
-          // 统计方块：间距加大
-          Row() {
-            StatsBox({ value: this.notes.length + "", label: "笔记" })
-            StatsBox({ value: this.avg + "%", label: "掌握率" })
-            StatsBox({ value: this.today + "", label: "今日新增" })
-          }
-          .width("100%").justifyContent(FlexAlign.SpaceEvenly).margin({ top: S_5 })
-        }
-        .width("100%")
-        .padding({ left: S_5, right: S_5, top: S_5, bottom: S_6 })
-        .borderRadius({ bottomLeft: R_2XL, bottomRight: R_2XL })
-        // 令牌化渐变：MINT_LIGHT→PURPLE_LIGHT→PINK 透明度阶梯
-        .linearGradient({
-          angle: 180,
-          colors: [
-            [MINT_LIGHT, 0],
-            [PURPLE_LIGHT, 0.5],
-            ["#1AFF6B9D", 1],
-          ],
+        // Hero
+        HeroBanner({
+          greeting: this.greeting,
+          dateText: this.dateText,
+          avg: this.avg,
+          notesCount: this.notes.length,
+          todayCount: this.today,
+          onGoReview: (): void => { this.onGoReview() },
         })
 
-        // ---- 提醒横幅 ----
+        // 提醒横幅
         if (this.notes.length < 3) {
-          Row() {
-            Text(this.notes.length === 0
-              ? "👋 欢迎使用 MathMind！试试 AI 对话或拍照，帮你整理知识笔记 >"
-              : "⏰ 已有 " + this.notes.length + " 条笔记，继续用 AI 充实知识库 >")
-              .fontSize(F_SM).fontColor(MINT).lineHeight(18)
-          }
-          .width("100%")
-          .padding({ left: S_4, right: S_4, top: S_3, bottom: S_3 })
-          .margin({ left: S_4, right: S_4, top: S_2 })
-          .borderRadius(R_MD)
-          .linearGradient({
-            angle: 135,
-            colors: [[MINT_LIGHT, 0], [PURPLE_LIGHT, 1]],
-          })
-          .border({ width: 1, color: MINT_LIGHT })
+          ReminderBanner({ notesCount: this.notes.length })
         }
 
-        // ---- 最近笔记标题 ----
+        // 笔记标题
         Row() {
           Text("最近笔记")
             .fontSize(F_BASE).fontWeight(W_SEMIBOLD).fontColor(TEXT)
@@ -171,7 +105,7 @@ export struct HomePage {
         .width("100%")
         .padding({ left: S_5, right: S_5, top: S_4, bottom: S_2 })
 
-        // ---- 笔记列表 ----
+        // 笔记列表
         Scroll() {
           Column() {
             ForEach(this.notes,
@@ -196,23 +130,14 @@ export struct HomePage {
       .width("100%").height("100%")
       .backgroundColor(BG_DARK)
 
-      // ---- FAB (使用 SHADOW_FAB 预设) ----
-      Stack() {
-        Text("+")
-          .fontSize(22)
-          .fontColor(BG_DARK)
-          .fontWeight(FontWeight.Bold)
-      }
-      .width(54).height(54)
-      .borderRadius(27)
-      .linearGradient({ angle: 180, colors: [[MINT, 0], [MINT_DARK, 1]] })
-      .shadow(SHADOW_FAB)
-      .margin({ right: S_5, bottom: S_4 })
-      .onClick((): void => {
-        promptAction.showToast({ message: "用户自定义笔记开发中", duration: 1500 })
+      // FAB
+      FloatingButton({
+        onTap: (): void => {
+          promptAction.showToast({ message: "用户自定义笔记开发中", duration: 1500 })
+        },
       })
 
-      // ---- NoteDetailOverlay ----
+      // NoteDetailOverlay
       if (this.selectedNote !== null) {
         NoteDetailOverlay({
           note: this.selectedNote!,

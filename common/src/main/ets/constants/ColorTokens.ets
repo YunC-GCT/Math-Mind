@@ -20,6 +20,7 @@ export const PURPLE: string       = "#FF9775FA"
 export const PURPLE_DARK: string  = "#FF7C5CE0"
 export const PURPLE_LIGHT: string = "#249775FA"
 export const PINK: string         = "#FFFF6B9D"
+export const PINK_LIGHT: string  = "#1AFF6B9D"   // PINK 10% (Hero 梯度收尾)
 export const AMBER: string        = "#FFF0C674"
 export const BG_DARK: string      = "#FF0A0C10"
 
@@ -170,3 +171,12 @@ export const DUR_BREATH: number  = 3000   // 光晕呼吸周期
 // ========================================================================
 export const SCREEN_W: number = 377
 export const SCREEN_H: number = 816
+
+// ========================================================================
+//  组件尺寸 (vp)
+// ========================================================================
+export const HEADER_H: number       = 60
+export const FAB_SIZE: number       = 54
+export const HERO_RING_SIZE: number = 120
+export const NOTE_ICON_SIZE: number = 36
+export const DOT_SIZE: number       = 8
