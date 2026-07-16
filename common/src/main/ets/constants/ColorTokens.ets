@@ -195,6 +195,18 @@ export const AI_ICON_SIZE: number   = 20
 // ========================================================================
 //  TabBar 阴影
 // ========================================================================
+
+// ========================================================================
+//  相机组件 (vp)
+// ========================================================================
+export const CAM_SHUTTER_OUTER: number = 68
+export const CAM_SHUTTER_INNER: number = 54
+export const CAM_BTN_SIZE: number      = 44
+export const CAM_ALBUM_SIZE: number    = 52
+export const CAM_CONFIRM_H: number     = 48
+export const CAM_OVERLAY_BG: string    = "#FF0E1014"
+export const CAM_PREVIEW_BG: string    = "#FF1A1A1A"
+export const CAM_MASK: string          = "#CC000000"
 export const SHADOW_AI_BTN: ShadowPreset = {
   radius: 20,
   color: "#735BE3B0",   // MINT 45%
