@@ -20,7 +20,7 @@ import { MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, TEXT_4, F_XS, F_SM, R_MD, GLASS_8
 
 @Component
 export struct KeyInput {
-  @Prop apiKey: [redacted] = ''
+  @Prop apiKey: string = ''
   @Prop testing: boolean = false
   onChange?: (v: string) => void
   onTest?: () => void
