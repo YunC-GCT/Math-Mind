@@ -180,3 +180,22 @@ export const FAB_SIZE: number       = 54
 export const HERO_RING_SIZE: number = 120
 export const NOTE_ICON_SIZE: number = 36
 export const DOT_SIZE: number       = 8
+
+// ========================================================================
+//  TabBar 组件尺寸 (vp)
+// ========================================================================
+export const TAB_BAR_HEIGHT: number = 74
+export const TAB_ICON_SIZE: number  = 22
+export const TAB_BTN_RADIUS: number = 14
+export const AI_BTN_SIZE: number    = 44
+export const AI_ICON_SIZE: number   = 20
+
+// ========================================================================
+//  TabBar 阴影
+// ========================================================================
+export const SHADOW_AI_BTN: ShadowPreset = {
+  radius: 20,
+  color: "#735BE3B0",   // MINT 45%
+  offsetX: 0,
+  offsetY: 6,
+}
