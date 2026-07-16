@@ -1,14 +1,14 @@
 // ============================================================================
-//  pages/MePage.ets 鈥?涓汉涓績椤佃閰嶅眰
+//  pages/MePage.ets 閳?娑擃亙姹夋稉顓炵妇妞や絻顥婇柊宥呯湴
 //  ----------------------------------------------------------------------------
-//  鑱岃矗: 缂栨帓 ProfileHeader + StatsBox + MenuItemRow锛岀鐞嗙粺璁℃暟鎹€?//  鏁版嵁娴? @State notes/avg 鈫?StatsBox @Prop锛岃彍鍗曚簨浠?鈫?toast/router銆?//  渚濊禆:
+//  閼卞矁鐭? 缂傛牗甯?ProfileHeader + StatsBox + MenuItemRow閿涘瞼顓搁悶鍡欑埠鐠佲剝鏆熼幑顔衡偓?//  閺佺増宓佸ù? @State notes/avg 閳?StatsBox @Prop閿涘矁褰嶉崡鏇氱皑娴?閳?toast/router閵?//  娓氭繆绂?
 //    molecules: ProfileHeader
 //    atoms:     StatsBox, MenuItemRow
 //  ============================================================================
 
 import {
   BG_DARK, BG_CARD,
-  S_2, S_4, S_6,
+  S_1, S_2, S_4, S_6,
   R_LG, R_FULL,
   F_SM,
   GLASS_8,
@@ -26,7 +26,7 @@ export struct MePage {
   @State avg: number = 78
 
   aboutToAppear(): void {
-    // TODO: 浠?RDB 鍔犺浇鐪熷疄缁熻鏁版嵁
+    // TODO: 娴?RDB 閸旂姾娴囬惇鐔风杽缂佺喕顓搁弫鐗堝祦
   }
 
   private todayNew(): number { return 3 }
@@ -38,41 +38,39 @@ export struct MePage {
   build() {
     Scroll() {
       Column() {
-        // 鐘舵€佹爮
-        Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
+        // 閻樿埖鈧焦鐖?        Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
 
-        // 澶村儚鍖?        ProfileHeader()
+        // 婢舵潙鍎氶崠?        ProfileHeader()
 
-        // 缁熻琛?        Row() {
-          StatsBox({ value: this.notes + "", label: "绗旇" })
-          StatsBox({ value: this.avg + "%", label: "鎺屾彙鐜? })
-          StatsBox({ value: this.todayNew() + "", label: "浠婃棩鏂板" })
+        // 缂佺喕顓哥悰?        Row() {
+          StatsBox({ value: this.notes + "", label: "缁楁棁顔? })
+          StatsBox({ value: this.avg + "%", label: "閹哄本褰欓悳? })
+          StatsBox({ value: this.todayNew() + "", label: "娴犲﹥妫╅弬鏉款杻" })
         }
         .width("100%")
         .padding({ left: S_4, right: S_4, bottom: S_4 })
         .justifyContent(FlexAlign.SpaceEvenly)
 
-        // 鑿滃崟
-        Column() {
-          MenuItemRow({ icon: "馃搵", label: "鎴戠殑澶嶄範璁″垝", onTap: (): void => this.toast("澶嶄範璁″垝寮€鍙戜腑") })
-          MenuItemRow({ icon: "馃摃", label: "閿欓鏈?, onTap: (): void => this.toast("閿欓鏈紑鍙戜腑") })
-          MenuItemRow({ icon: "猸?, label: "鎴戠殑鏀惰棌", onTap: (): void => this.toast("鏀惰棌鍔熻兘寮€鍙戜腑") })
-          MenuItemRow({ icon: "馃", label: "妯″瀷", onTap: (): void => { router.pushUrl({ url: "pages/AiSettings/AiSettingsPage" }) } })
-          MenuItemRow({ icon: "馃毆", label: "鍒囨崲璐﹀彿", onTap: (): void => this.toast("鍒囨崲璐﹀彿寮€鍙戜腑") })
+        // 閼挎粌宕?        Column() {
+          MenuItemRow({ icon: "棣冩惖", label: "閹存垹娈戞径宥勭瘎鐠佲€冲灊", onTap: (): void => this.toast("婢跺秳绡勭拋鈥冲灊瀵偓閸欐垳鑵?) })
+          MenuItemRow({ icon: "棣冩憙", label: "闁挎瑩顣介張?, onTap: (): void => this.toast("闁挎瑩顣介張顒€绱戦崣鎴滆厬") })
+          MenuItemRow({ icon: "鐚?, label: "閹存垹娈戦弨鎯版", onTap: (): void => this.toast("閺€鎯版閸旂喕鍏樺鈧崣鎴滆厬") })
+          MenuItemRow({ icon: "棣冾樆", label: "濡€崇€?, onTap: (): void => { router.pushUrl({ url: "pages/AiSettings/AiSettingsPage" }) } })
+          MenuItemRow({ icon: "棣冩瘑", label: "閸掑洦宕茬拹锕€褰?, onTap: (): void => this.toast("閸掑洦宕茬拹锕€褰垮鈧崣鎴滆厬") })
         }
         .width("100%")
         .backgroundColor(BG_CARD)
         .borderRadius(R_LG)
         .margin({ left: S_4, right: S_4, top: S_2 })
 
-        // 閫€鍑虹櫥褰?        Button("閫€鍑虹櫥褰?)
+        // 闁偓閸戣櫣娅ヨぐ?        Button("闁偓閸戣櫣娅ヨぐ?)
           .fontSize(F_SM)
           .fontColor(DANGER)
           .width("100%").height(S_6 * 2 - S_1)
           .backgroundColor(GLASS_8)
           .borderRadius(R_FULL)
           .margin({ left: S_4, right: S_4, top: S_6, bottom: S_6 * 2 - S_2 })
-          .onClick((): void => this.toast("閫€鍑虹櫥褰曞姛鑳藉紑鍙戜腑"))
+          .onClick((): void => this.toast("闁偓閸戣櫣娅ヨぐ鏇炲閼宠棄绱戦崣鎴滆厬"))
 
         Blank().height(80)
       }

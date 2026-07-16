@@ -1,10 +1,8 @@
 // ============================================================================
-//  molecules/TabBar.ets 鈥?搴曢儴瀵艰埅鏍忓垎瀛愮粍浠?//  ----------------------------------------------------------------------------
-//  鑱岃矗: 娓叉煋 5 涓?Tab 鎸夐挳锛? 鏅€?+ 1 涓ぎ AI锛夛紝鍚笎鍙樿儗鏅拰姣涚幓鐠冩晥鏋溿€?//  鏉ユ簮: 浠?Index.ets 鎻愬彇鍐呰仈 TabBar Row銆?//  鏁版嵁娴? @Prop cur + onTabChange callback 閫氱煡鐖剁粍浠跺垏鎹€?//  鎺ュ彛:
-//    @Prop  cur      鈥?褰撳墠閫変腑 Tab 绱㈠紩
-//    onTabChange      鈥?(index: number) => void
-//    onAiTap           鈥?AI 鎸夐挳鐐瑰嚮鍥炶皟
-//  渚濊禆: TabButton (atoms), AiTabButton (atoms)
+//  molecules/TabBar.ets 閳?鎼存洟鍎寸€佃壈鍩呴弽蹇撳瀻鐎涙劗绮嶆禒?//  ----------------------------------------------------------------------------
+//  閼卞矁鐭? 濞撳弶鐓?5 娑?Tab 閹稿鎸抽敍? 閺咁噣鈧?+ 1 娑擃厼銇?AI閿涘绱濋崥顐ｇ瑤閸欐鍎楅弲顖氭嫲濮ｆ稓骞撻悹鍐╂櫏閺嬫嚎鈧?//  閺夈儲绨? 娴?Index.ets 閹绘劕褰囬崘鍛颁粓 TabBar Row閵?//  閺佺増宓佸ù? @Prop cur + onTabChange callback 闁氨鐓￠悥鍓佺矋娴犺泛鍨忛幑顫偓?//  閹恒儱褰?
+//    @Prop  cur      閳?瑜版挸澧犻柅澶夎厬 Tab 缁便垹绱?//    onTabChange      閳?(index: number) => void
+//    onAiTap           閳?AI 閹稿鎸抽悙鐟板毊閸ョ偠鐨?//  娓氭繆绂? TabButton (atoms), AiTabButton (atoms)
 //  ============================================================================
 
 import {
@@ -22,11 +20,11 @@ interface TabItem {
 }
 
 const TABS: TabItem[] = [
-  { idx: 0, name: "棣栭〉", icon: $r("app.media.ic_home") },
-  { idx: 1, name: "绗旇", icon: $r("app.media.ic_notes") },
+  { idx: 0, name: "妫ｆ牠銆?, icon: $r("app.media.ic_home") },
+  { idx: 1, name: "缁楁棁顔?, icon: $r("app.media.ic_notes") },
   { idx: 2, name: "AI",   icon: $r("app.media.ic_ai") },
-  { idx: 3, name: "澶嶄範", icon: $r("app.media.ic_review") },
-  { idx: 4, name: "鎴戠殑", icon: $r("app.media.ic_me") },
+  { idx: 3, name: "婢跺秳绡?, icon: $r("app.media.ic_review") },
+  { idx: 4, name: "閹存垹娈?, icon: $r("app.media.ic_me") },
 ]
 
 @Component
@@ -57,10 +55,10 @@ export struct TabBar {
     .padding({ left: S_1 + 2, right: S_1 + 2, bottom: S_2 + 2 })
     .linearGradient({
       angle: 180,
-      colors: [["#00000000", 0], [BG_DARK, 1]],
+      colors: [["#00FFFFFF", 0], [BG_DARK, 1]],
     })
-    .backdropBlur(24)
-    .border({ width: { top: 1 }, color: BORDER })
+    .backdropBlur(S_6)
+    .border({ width: { top: S_1 / 4 }, color: BORDER })
     .justifyContent(FlexAlign.SpaceAround)
     .alignItems(VerticalAlign.Center)
   }

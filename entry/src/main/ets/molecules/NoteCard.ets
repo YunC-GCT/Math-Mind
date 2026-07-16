@@ -1,10 +1,7 @@
 // ============================================================================
-//  components/NoteCard.ets — 笔记卡片原子组件
+//  components/NoteCard.ets 鈥?绗旇鍗＄墖鍘熷瓙缁勪欢
 //  ----------------------------------------------------------------------------
-//  职责: 渲染一条笔记摘要（渐变图标 + 学科/类型/日期 meta + 标题 + 摘要）。
-//  消除: HomePage.NCard 与 NotesPage.NoteCard 的重复代码。
-//  来源: 合并自 HomePage + NotesPage，统一设计 Token 字号。
-//  ============================================================================
+//  鑱岃矗: 娓叉煋涓€鏉＄瑪璁版憳瑕侊紙娓愬彉鍥炬爣 + 瀛︾/绫诲瀷/鏃ユ湡 meta + 鏍囬 + 鎽樿锛夈€?//  娑堥櫎: HomePage.NCard 涓?NotesPage.NoteCard 鐨勯噸澶嶄唬鐮併€?//  鏉ユ簮: 鍚堝苟鑷?HomePage + NotesPage锛岀粺涓€璁捐 Token 瀛楀彿銆?//  ============================================================================
 
 import {
   BG_DARK,
@@ -36,10 +33,10 @@ export struct NoteCard {
 
   build() {
     Row() {
-      // ---- 渐变图标 36×36 ----
+      // ---- 娓愬彉鍥炬爣 36脳36 ----
       Stack() {
         Stack()
-          .width(36).height(36)
+          .width(NOTE_ICON_SIZE).height(NOTE_ICON_SIZE)
           .borderRadius(R_MD + 1)
           .linearGradient({
             angle: 135,
@@ -54,25 +51,24 @@ export struct NoteCard {
           .fontWeight(W_BOLD)
           .fontColor(BG_DARK)
       }
-      .width(36).height(36)
+      .width(NOTE_ICON_SIZE).height(NOTE_ICON_SIZE)
       .alignContent(Alignment.Center)
 
-      // ---- 右侧内容 ----
+      // ---- 鍙充晶鍐呭 ----
       Column() {
-        // Meta 行：学科 · 类型 · 日期 · 置信度
-        Row() {
+        // Meta 琛岋細瀛︾ 路 绫诲瀷 路 鏃ユ湡 路 缃俊搴?        Row() {
           Text(this.note.subject)
             .fontSize(F_XS)
             .fontColor(subjectColor(this.note.subject))
             .fontWeight(W_MEDIUM)
-          Text(" · ")
+          Text(" 路 ")
             .fontSize(F_XS)
             .fontColor(TEXT_4)
           Text(this.note.type)
             .fontSize(F_XS)
             .fontColor(typeColor(this.note.type))
             .fontWeight(W_MEDIUM)
-          Text(" · ")
+          Text(" 路 ")
             .fontSize(F_XS)
             .fontColor(TEXT_4)
           Text(recentDate(this.note.date))
@@ -88,7 +84,7 @@ export struct NoteCard {
         }
         .width("100%")
 
-        // 标题
+        // 鏍囬
         Text(this.note.title)
           .fontSize(F_SM)
           .fontWeight(W_SEMIBOLD)
@@ -98,11 +94,11 @@ export struct NoteCard {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width("100%")
 
-        // 摘要（2 行截断）
+        // 鎽樿锛? 琛屾埅鏂級
         Text(stripMD(this.note.body, 80))
           .fontSize(F_XS)
           .fontColor(TEXT_3)
-          .margin({ top: 2 })
+          .margin({ top: S_1 / 2 })
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .lineHeight(LH_TIGHT)

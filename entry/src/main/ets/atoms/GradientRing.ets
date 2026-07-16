@@ -1,12 +1,18 @@
-﻿// ============================================================================
+// ============================================================================
 //  components/GradientRing.ets — 渐变进度环原子组件
 //  ----------------------------------------------------------------------------
 //  职责: Canvas 绘制 MINT→PURPLE 渐变圆弧 + 光晕呼吸动画。
 //  来源: 从 HomePage.ets 抽取。
 //  ============================================================================
 
-import { MINT, PURPLE } from "common"
+import { MINT, PURPLE, HERO_RING_SIZE } from "common"
 
+
+const RING_SIZE: number = HERO_RING_SIZE       // 120
+const RING_STROKE: number = 10
+const RING_CENTER: number = RING_SIZE / 2       // 60
+const RING_BG: number = RING_SIZE - RING_STROKE * 2 + 4  // 104
+const RING_RADIUS: number = RING_BG / 2          // 52
 @Component
 export struct GradientRing {
   @Prop pct: number = 75
@@ -53,22 +59,22 @@ export struct GradientRing {
 
   build() {
     Stack() {
-      Circle({ width: 104, height: 104 })
+      Circle({ width: RING_BG, height: RING_BG })
         .fill("#00FFFFFF")
         .stroke("#10FFFFFF")
-        .strokeWidth(10)
+        .strokeWidth(RING_STROKE)
 
       Canvas(this.ctx)
-        .width(120).height(120)
+        .width(RING_SIZE).height(RING_SIZE)
         .onReady((): void => {
           this.draw()
         })
     }
-    .width(120).height(120)
-    .borderRadius(60)
+    .width(RING_SIZE).height(RING_SIZE)
+    .borderRadius(RING_CENTER)
     .clip(true)
     .shadow({
-      radius: 32,
+      radius: RING_SIZE / 4 + 2, // 32
       color: "rgba(91, 227, 176, " + this.glow.toFixed(2) + ")",
       offsetX: 0,
       offsetY: 0,
@@ -77,14 +83,14 @@ export struct GradientRing {
 
   draw(): void {
     const ctx: CanvasRenderingContext2D = this.ctx
-    const cx: number = 60
-    const cy: number = 60
-    const r: number = 52
-    const lw: number = 10
+    const cx: number = RING_CENTER
+    const cy: number = RING_CENTER
+    const r: number = RING_RADIUS
+    const lw: number = RING_STROKE
 
-    ctx.clearRect(0, 0, 120, 120)
+    ctx.clearRect(0, 0, RING_SIZE, RING_SIZE)
 
-    const grad: CanvasGradient = ctx.createLinearGradient(0, 0, 120, 120)
+    const grad: CanvasGradient = ctx.createLinearGradient(0, 0, RING_SIZE, RING_SIZE)
     grad.addColorStop(0, MINT)
     grad.addColorStop(1, PURPLE)
 
