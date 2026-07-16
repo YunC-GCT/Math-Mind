@@ -2,22 +2,7 @@
 //  prototypes/AgentFloatWindow.ets — AI 对话浮窗装配层
 //  ----------------------------------------------------------------------------
 //  职责: 持有全部 @State + 业务逻辑, build() 仅组装 8 个子组件。
-//  数据流(单向 Parent → Child):
-//    messages/inputText/busy → @Prop → ChatBubble/MessageInput/...
-//    子组件回调 → onChange/onSend 等 → 父更新 @State
-//  子组件(prototypes/chat/):
-//    ChatHeader      — 头部: 模型名 + 深度思考 SVG 胶囊 + [+]新对话 + [✕]关闭
-//    SessionBar      — 会话切换栏: 水平滚动 ●○ 标签 + [+]新建
-//    ChatBubble      — 聊天气泡: 用户(右/MINT) + AI(左/PURPLE) + 📋↻👎操作
-//    TypingIndicator — typing 三点动画 (ArkUI animation)
-//    EmptyStateHint  — 空状态引导: 钻石 SVG + 文案
-//    QuickSuggestions — 推荐快捷语: 分析错题/讲解极限/生成练习/梳理知识
-//    MessageInput    — 输入栏: 图片预览 + 输入框 + 拍照按钮 + 发送按钮
-//    ChatSession     — 非UI工具类: preferences 会话持久化
-//  对接: LlmClient.call() / LlmConfig / preferences / Index.ets
-//  流式输出: 插入占位消息 → LlmClient.call() → streamInto() 原地更新 content
-//  自动滚动: @Watch onMessagesChange → setTimeout 200ms → scrollEdge(Bottom)
-//  会话持久化: ChatSessionManager 封装 preferences CRUD
+//  (完整文档见代码头部注释)
 // ============================================================================
 
 import { BG_DARK, TEXT_4, BORDER, S_2, S_3, S_4, S_6, R_XL, OVERLAY_MASK } from "common"
@@ -95,29 +80,36 @@ export struct AgentFloatWindow {
 
   private realReply = async (userContent: string): Promise<void> => {
     this.busy = true
-    // 插入占位消息（流式期间显示 TypingIndicator）
-    this.messages = [...this.messages, { id: nowId(), role: "ai", content: "", ts: Date.now() }]
+    // 插入占位消息 — 初始显示"思考中..."，确保气泡永远不会空白
+    const placeholder: ChatMsg = { id: nowId(), role: "ai", content: "思考中...", ts: Date.now() }
+    this.messages = [...this.messages, placeholder]
     try {
       if (!(await LlmConfig.getInstance().isConfigured())) { this.fillLast("请先配置 API Key"); return }
       const sp = this.deepThink
         ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
         : "你是 MathMind AI 助手，简洁中文回答。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
       const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
-      if (fullReply.trim().length === 0) {
+      if (typeof fullReply !== "string" || fullReply.trim().length === 0) {
         this.fillLast("（AI 返回了空内容，请重试）"); return
       }
-      this.streamInto(fullReply)
-    } catch (e) { this.fillLast((e as Error).message ?? "AI 回复异常"); this.busy = false }
+      // 覆盖"思考中..." → 流式输出
+      placeholder.content = ""
+      this.streamInto(placeholder, fullReply)
+    } catch (e) {
+      this.fillLast((e as Error).message ?? "AI 回复异常"); this.busy = false
+    } finally {
+      // 安全兜底: 如果 busy 仍为 true (fillLast 未覆盖到的路径)，50ms 后强制重置
+      setTimeout((): void => { this.busy = false }, 50)
+    }
   }
 
-  private streamInto(fullText: string): void {
-    const target = this.messages[this.messages.length - 1]
+  private streamInto(target: ChatMsg, fullText: string): void {
     let pos = 0
     const total = fullText.length
     const t = setInterval((): void => {
       pos = Math.min(pos + 4, total)
       target.content = fullText.substring(0, pos)
-      this.messages = [...this.messages] // 触发重渲染
+      this.messages = [...this.messages]
       if (pos >= total) { clearInterval(t); this.busy = false; this.scroller.scrollEdge(Edge.Bottom) }
     }, 20)
   }
@@ -141,7 +133,7 @@ export struct AgentFloatWindow {
             Column() {
               if (this.messages.length === 0 && !this.busy) { EmptyStateHint() }
               ForEach(this.messages, (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) }, (msg: ChatMsg): string => msg.id.toString())
-              if (this.busy && this.messages.length > 0 && this.messages[this.messages.length - 1].content.length === 0) { TypingIndicator() }
+              if (this.busy && this.messages.length > 0 && this.messages[this.messages.length - 1].content === "思考中...") { TypingIndicator() }
               Blank().height(S_2)
             }.width("100%").padding({ left: S_4, right: S_4, top: S_2 })
           }.layoutWeight(1).width("100%").scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
