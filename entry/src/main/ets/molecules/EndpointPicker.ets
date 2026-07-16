@@ -1,4 +1,21 @@
 ﻿// ============================================================================
+//  EndpointPicker.ets — 端点选择器分子
+//  ----------------------------------------------------------------------------
+//  用途: 选择 API 端点（硅基流动/DeepSeek 预设 + 自定义 URL）
+//  UI:    ◉ 硅基流动  https://api.siliconflow.cn/...
+//         ○ DeepSeek 官方  https://api.deepseek.com/...
+//         ○ 自定义  [________________]
+//  接口:
+//    @Prop epIdx            — 当前选中的预设索引
+//    @Prop useCustom        — 是否使用自定义端点
+//    @Prop customText       — 自定义端点 URL
+//    onTextChange           — 自定义 URL 变更回调 → 父更新 endpointCustom
+//    onSelect(idx)          — 选中预设回调 → 父更新 endpointIdx
+//    onCustom               — 切换到自定义模式回调 → 父更新 useCustomEP
+//  导出: EP_PRESETS / EP_LABELS 常量
+//  依赖: common ColorTokens (TEXT/TEXT_4/F_XS/F_SM/GLASS_8/BG_CARD/R_MD/R_LG)
+//  联动: 选择端点后父组件 @Watch 触发 ModelPicker 模型列表切换
+// ============================================================================// ============================================================================
 //  molecules/EndpointPicker.ets — 端点选择器分子
 //  依赖: common token + EP_PRESETS/EP_LABELS 常量
 //  ============================================================================

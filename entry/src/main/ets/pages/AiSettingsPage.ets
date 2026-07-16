@@ -1,7 +1,33 @@
-﻿// MathMind - 模型配置页 · 原子化重构
-// 令牌层: common ColorTokens
-// 原子层: SectionHeader / ParamRow / SettingsActionBar
-// 分子层: StatusCard / EndpointPicker / ModelPicker
+﻿// ============================================================================
+//  AiSettingsPage.ets — AI 大模型设置页面（装配层）
+//  ----------------------------------------------------------------------------
+//  职责: 仅持有 @State + 生命周期方法 + build() 组件堆叠。零内联模板。
+//
+//  装配结构:
+//    StatusCard       ← 连接状态（绿点 + 已配置/未配置）
+//    SectionHeader    ← "服务端点"
+//    EndpointPicker   ← 硅基流动/DeepSeek + 自定义 URL
+//    SectionHeader    ← "模型"
+//    ModelPicker      ← V3/R1/V4 预设 + 对比小卡 + 自定义
+//    SectionHeader    ← "API Key"
+//    KeyInput         ← 👁/🙈 + 测试按钮
+//    SectionHeader    ← "请求参数"
+//    ParamRow × 3     ← 温度 / 最大 Token / 超时
+//    SettingsActionBar ← 恢复默认 + 保存配置
+//
+//  数据流: 单向 Parent→Child
+//    所有子组件用 @Prop 接收，通过 onChange 回调抛事件给父
+//
+//  对接:
+//    LlmConfig  — 持久化 API Key/端点/模型/参数到 preferences
+//    LlmClient  — 连通性测试（发送 "OK" 验证）
+//    router     — 返回上一页
+//    common     — ColorTokens 设计令牌
+//
+//  端点⇄模型联动:
+//    @Watch('onEndpointChange') → currentPresets 自动切换 SF_MODELS/DS_MODELS
+//    ModelPicker 接收 currentPresets 自动刷新列表
+// ============================================================================
 
 import {
   MINT, MINT_DARK, PURPLE, PURPLE_LIGHT, BG_DARK, BG_CARD,

@@ -1,4 +1,22 @@
 ﻿// ============================================================================
+//  ModelPicker.ets — 模型选择器分子
+//  ----------------------------------------------------------------------------
+//  用途: 选择 AI 模型（DeepSeek-V3/R1/V4 预设 + 自定义 + 对比信息）
+//  UI:    ◉ DeepSeek-V3          ← 模型名
+//          64K · 1/M              ← 上下文长度 · 价格
+//         ○ DeepSeek-R1
+//          128K · 4/M
+//         ○ 自定义  [__________]
+//  接口:
+//    @Prop presets         — 模型预设列表（由父组件 @Watch 动态计算）
+//    @Prop mdlIdx          — 当前选中模型索引
+//    @Prop useCustom       — 是否使用自定义模型
+//    @Prop customText      — 自定义模型 ID
+//    onTextChange/onSelect/onCustom — 同 EndpointPicker 模式
+//  导出: ModelPreset 接口 / SF_MODELS / DS_MODELS 常量
+//  依赖: common ColorTokens + ModelPreset 接口
+//  对接: AiSettingsPage @Watch onEndpointChange → currentPresets → 传入此组件
+// ============================================================================// ============================================================================
 //  molecules/ModelPicker.ets — 模型选择器分子
 //  依赖: common token + ModelPreset 接口
 //  ============================================================================
