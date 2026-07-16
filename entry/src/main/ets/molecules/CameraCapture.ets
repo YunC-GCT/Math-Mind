@@ -6,7 +6,7 @@
 //  依赖: CameraCloseBtn, CameraAlbumBtn, CameraShutterBtn, ViewfinderCorners
 //  ============================================================================
 
-import { F_LG, F_BASE, F_XS, S_1, S_2, S_3, S_5, S_6, CAM_BTN_SIZE, CAM_SHUTTER_INNER } from "common"
+import { F_LG, F_BASE, F_XS, W_MEDIUM, S_1, S_2, S_3, S_5, S_6, CAM_BTN_SIZE, CAM_SHUTTER_INNER } from "common"
 import { CameraCloseBtn } from "../atoms/CameraCloseBtn"
 import { CameraAlbumBtn } from "../atoms/CameraAlbumBtn"
 import { CameraShutterBtn } from "../atoms/CameraShutterBtn"
@@ -25,7 +25,7 @@ export struct CameraCapture {
         CameraCloseBtn({ onTap: (): void => { this.onClose() } })
         Blank()
         Stack() {
-          Text("⟳").fontSize(F_LG).fontWeight(500).fontColor("rgba(255,255,255,0.6)")
+          Text("⟳").fontSize(F_LG).fontWeight(W_MEDIUM).fontColor("rgba(255,255,255,0.6)")
         }
         .width(CAM_BTN_SIZE).height(CAM_BTN_SIZE).borderRadius(CAM_BTN_SIZE / 2 - 2)
         .backgroundColor("rgba(255,255,255,0.05)").alignContent(Alignment.Center)

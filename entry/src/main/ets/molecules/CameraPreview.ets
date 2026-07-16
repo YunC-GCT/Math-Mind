@@ -10,7 +10,7 @@ import {
   TEXT, TEXT_2, TEXT_4,
   S_2, S_4, S_6,
   F_XS, F_SM, F_MD, F_BASE,
-  CAM_PREVIEW_BG,
+  CAM_PREVIEW_BG, W_MEDIUM, W_SEMIBOLD, NOTE_ICON_SIZE,
   SCREEN_W,
 } from "common"
 import { CameraBackBtn } from "../atoms/CameraBackBtn"
@@ -30,9 +30,9 @@ export struct CameraPreview {
       Row() {
         CameraBackBtn({ onTap: (): void => { this.onBack() } })
         Blank()
-        Text("预览").fontSize(F_MD).fontColor(TEXT).fontWeight(600)
+        Text("预览").fontSize(F_MD).fontColor(TEXT).fontWeight(W_SEMIBOLD)
         Blank()
-        Column().width(36)
+        Column().width(NOTE_ICON_SIZE)
       }
       .width("100%").padding({ left: S_4, right: S_4, top: S_2, bottom: S_2 })
 
@@ -59,8 +59,8 @@ export struct CameraPreview {
 
       // 底栏: 重拍 + 确认
       Row() {
-        Text("重拍").fontSize(F_BASE).fontColor("rgba(255,255,255,0.7)").fontWeight(500)
-          .width(S_6 * 2 + 12).textAlign(TextAlign.Center)
+        Text("重拍").fontSize(F_BASE).fontColor("rgba(255,255,255,0.7)").fontWeight(W_MEDIUM)
+          .width(S_6 * 2 + S_3).textAlign(TextAlign.Center)
           .onClick((): void => { this.onBack() })
         Blank().width(12)
         CameraConfirmBtn({ busy: this.busy, onTap: (): void => { this.onConfirm() } })
