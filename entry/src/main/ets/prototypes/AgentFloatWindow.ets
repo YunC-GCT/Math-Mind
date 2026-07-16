@@ -1,5 +1,5 @@
-﻿/**
- * MathMind AI 浮窗 · 装配层 (7 子组件 + 会话管理)
+/**
+ * MathMind AI 浮窗 · 装配层 (8 子组件)
  */
 import { MINT, MINT_LIGHT, BG_DARK, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
 import { LlmClient, LlmConfig } from "common"
@@ -58,7 +58,7 @@ export struct AgentFloatWindow {
   private async loadHistory(): Promise<void> {
     const ss = await this.sm.init(getContext(this))
     if (ss.length > 0) { this.sessions = ss; this.activeSid = ss[0].id; this.messages = ss[0].messages; return }
-    this.messages = [{ id: 1, role: "ai", content: "你好，我是 MathMind AI。\n\n可以帮你分析错题、讲解知识点、生成练习题。试着问我吧 👇", ts: Date.now() }]
+    this.messages = [{ id: 1, role: "ai", content: "你好，我是 MathMind AI。可以帮你分析错题、讲解知识点、生成练习题。试试问我吧 👇", ts: Date.now() }]
   }
 
   private sync(): void { for (let i = 0; i < this.sessions.length; i++) { if (this.sessions[i].id === this.activeSid) { this.sessions[i].messages = this.messages; return } } }
@@ -87,7 +87,19 @@ export struct AgentFloatWindow {
   private streamOut(text: string): void { let pos = 0; const t = setInterval((): void => { pos = Math.min(pos + 3, text.length); this.streamBuffer = text.substring(0, pos); if (pos >= text.length) { clearInterval(t); this.addFinal(text) } }, 25) }
   private addFinal(text: string): void { this.messages = [...this.messages, { id: nowId(), role: "ai", content: text, ts: Date.now() }]; this.busy = false; this.streamBuffer = ""; setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 150) }
 
-) }, (msg: ChatMsg): string => msg.id.toString())
+  build() {
+    Stack() {
+      if (this.show) {
+        Column().width("100%").height("100%").backgroundColor(OVERLAY_MASK).onClick((): void => this.onClose())
+        Column() {
+          Row() { Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4) }.width("100%").height(S_6).justifyContent(FlexAlign.Center)
+          ChatHeader({ deepThink: this.deepThink, onToggleThink: (): void => { this.deepThink = !this.deepThink }, onNewChat: (): void => { this.newSession() }, onClose: this.onClose })
+          Row().width("100%").height(0.5).backgroundColor(BORDER)
+          SessionBar({ sessions: this.sessions, activeSid: this.activeSid, onSwitch: (sid: string): void => { this.switchSession(sid) }, onDelete: (sid: string): void => { this.deleteSession(sid) }, onNew: (): void => { this.newSession() } })
+          Scroll(this.scroller) {
+            Column() {
+              if (this.messages.length === 0 && !this.busy) { EmptyStateHint() }
+              ForEach(this.messages, (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) }, (msg: ChatMsg): string => msg.id.toString())
               if (this.streamBuffer.length > 0) { ChatBubble({ msg: { id: 0, role: "ai", content: this.streamBuffer, ts: Date.now() }, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (): void => {} }) }
               else if (this.busy) { TypingIndicator() }
               Blank().height(S_2)
