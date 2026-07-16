@@ -15,10 +15,12 @@ export class NoteItem {
   body: string = '';
   tags: string[] = [];
   date: string = '';
+  rawId: string = '';
 
   constructor(
     id: number, title: string, type: string, subject: string,
     chapter: string, conf: number, body: string, tags: string[], date: string,
+    rawId: string = '',
   ) {
     this.id = id;
     this.title = title;
@@ -29,6 +31,7 @@ export class NoteItem {
     this.body = body;
     this.tags = tags;
     this.date = date;
+    this.rawId = rawId;
   }
 }
 

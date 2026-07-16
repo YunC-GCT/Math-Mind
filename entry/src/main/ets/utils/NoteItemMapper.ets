@@ -44,6 +44,7 @@ export function unitToNoteItem(unit: KnowledgeUnit): NoteItem {
     body,
     unit.tags,
     dateText(unit.createdAt),
+    rawId,
   )
 }
 

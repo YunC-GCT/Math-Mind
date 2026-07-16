@@ -25,6 +25,17 @@ export struct NotesPage {
 
   private closeDetail = (): void => { this.selectedNote = null }
   private askAi = (_note: NoteItem): void => { this.selectedNote = null }
+  private deleteNote = async (id: string): Promise<void> => {
+    try {
+      const store = await DatabaseHelper.init(getContext(this))
+      await new NoteDao(store).deleteById(id)
+      this.selectedNote = null
+      await this.loadNotes()
+      try { promptAction.showToast({ message: "笔记已删除", duration: 1200 }) } catch (_e) {}
+    } catch (e) {
+      try { promptAction.showToast({ message: "笔记删除失败", duration: 1500 }) } catch (_e) {}
+    }
+  }
 
   aboutToAppear(): void {
     this.loadNotes()
@@ -85,6 +96,7 @@ export struct NotesPage {
           note: this.selectedNote,
           onClose: this.closeDetail,
           onAskAi: this.askAi,
+          onDelete: this.deleteNote,
         })
       }
     }

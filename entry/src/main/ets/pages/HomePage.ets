@@ -87,6 +87,18 @@ export struct HomePage {
     this.today = this.notes.filter((n: NoteItem): boolean => n.date === ts).length
   }
 
+  private deleteNote = async (id: string): Promise<void> => {
+    try {
+      const store = await DatabaseHelper.init(getContext(this))
+      await new NoteDao(store).deleteById(id)
+      this.selectedNote = null
+      await this.loadNotes()
+      try { promptAction.showToast({ message: "笔记已删除", duration: 1200 }) } catch (_e) {}
+    } catch (e) {
+      try { promptAction.showToast({ message: "笔记删除失败", duration: 1500 }) } catch (_e) {}
+    }
+  }
+
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
@@ -169,6 +181,7 @@ export struct HomePage {
         NoteDetailOverlay({
           note: this.selectedNote!,
           onClose: (): void => { this.selectedNote = null },
+          onDelete: this.deleteNote,
         })
       }
     }

@@ -61,9 +61,9 @@ export struct NoteDetailOverlay {
   @Prop note: NoteItem = new NoteItem(0, "", "", "", "", 0, "", [], "")
 
   onClose: () => void = (): void => {}
-  onAskAi: (note: NoteItem) => void = (): void => {}
-  onEdit: (id: number) => void = (): void => {}
-  onDelete: (id: number) => void = (): void => {}
+  onAskAi: (note: NoteItem) => void = (_note: NoteItem): void => {}
+  onEdit: (id: number) => void = (_id: number): void => {}
+  onDelete: (id: string) => void = (_id: string): void => {}
 
   build() {
     Stack() {
@@ -218,7 +218,7 @@ export struct NoteDetailOverlay {
   }
 
   private confirmDelete = (): void => {
-    this.onDelete(this.note.id)
+    this.onDelete(this.note.rawId.length > 0 ? this.note.rawId : this.note.id.toString())
     this.onClose()
   }
 }
