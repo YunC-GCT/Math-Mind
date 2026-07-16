@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  AiSettingsPage.ets — 大模型设置 · 7 行装配
 //  仅 DeepSeek + 自定义端点/模型
 // ============================================================================
@@ -21,7 +21,7 @@ struct AiSettingsPage {
   @StorageProp("statusBarHeight") sbh: number = 0
   @State apiKey: string = ""
   @State useCustomEP: boolean = false; @State customEP: string = ""
-  @State useCustomMD: boolean = false; @State customMD: string = ""
+  @State mdlIdx: number = 0; @State useCustomMD: boolean = false; @State customMD: string = ""
   @State configured: boolean = false; @State testing: boolean = false
   @State statusText: string = "未配置"
   @State temp: number = 0.1; @State maxT: number = 256; @State to: number = 5000
@@ -30,7 +30,7 @@ struct AiSettingsPage {
   aboutToDisappear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE) } catch (e) {} }
 
   private ep(): string { return this.useCustomEP && this.customEP ? this.customEP : DS_ENDPOINT }
-  private md(): string { return this.useCustomMD && this.customMD ? this.customMD : DEFAULT_MODEL }
+  private md(): string { if (this.useCustomMD && this.customMD) { return this.customMD }; return this.mdlIdx === 1 ? "deepseek-v4-pro" : DEFAULT_MODEL }
 
   async load(): Promise<void> {
     const c = LlmConfig.getInstance()
@@ -49,7 +49,7 @@ struct AiSettingsPage {
 
   async handleReset(): Promise<void> {
     try { await LlmConfig.getInstance().resetDefaults(); await LlmConfig.getInstance().clearApiKey()
-      this.apiKey = ""; this.useCustomEP = false; this.customEP = ""; this.useCustomMD = false; this.customMD = ""
+      this.apiKey = ""; this.useCustomEP = false; this.customEP = ""; this.mdlIdx = 0; this.useCustomMD = false; this.customMD = ""
       this.configured = false; this.statusText = "已重置"
     } catch (e) {}
   }
@@ -78,7 +78,8 @@ struct AiSettingsPage {
             onToggle: (v: boolean): void => { this.useCustomEP = v },
             onCustomChange: (v: string): void => { this.customEP = v } })
           SectionHeader({ title: "模型", desc: "DeepSeek-V3 或自定义" })
-          ModelPicker({ useCustom: this.useCustomMD, customText: this.customMD,
+          ModelPicker({ mdlIdx: this.mdlIdx, useCustom: this.useCustomMD, customText: this.customMD,
+            onSelect: (i: number): void => { this.mdlIdx = i; this.useCustomMD = false },
             onToggle: (v: boolean): void => { this.useCustomMD = v },
             onCustomChange: (v: string): void => { this.customMD = v } })
           SectionHeader({ title: "API Key", desc: "从 DeepSeek 获取的密钥" })
