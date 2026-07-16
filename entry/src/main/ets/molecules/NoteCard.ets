@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  components/NoteCard.ets — 笔记卡片原子组件
 //  ----------------------------------------------------------------------------
 //  职责: 渲染一条笔记摘要（渐变图标 + 学科/类型/日期 meta + 标题 + 摘要）。
@@ -7,18 +7,15 @@
 //  ============================================================================
 
 import {
-  MINT, BG_DARK,
+  BG_DARK,
   S_1, S_3,
   BORDER,
-  WARNING,
-  DANGER,
   TEXT,
   TEXT_3,
   TEXT_4,
   R_MD,
   F_XS,
   F_SM,
-  F_BASE,
   F_MD,
   W_MEDIUM, W_SEMIBOLD, W_BOLD,
   LH_TIGHT,
@@ -29,18 +26,7 @@ import {
   typeColor,
   subjectColor,
 } from "common"
-
-// ---- 置信度色板 (本地常量) ----
-
-function confColor(c: number): string {
-  if (c > 0.8) {
-    return MINT
-  }
-  if (c > 0.5) {
-    return WARNING
-  }
-  return DANGER
-}
+import { confColor } from "../atoms/ConfBadge"
 
 @Component
 export struct NoteCard {

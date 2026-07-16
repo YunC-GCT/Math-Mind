@@ -1,16 +1,12 @@
 // ============================================================================
-//  pages/HomePage.ets — 首页装配层
-//  ----------------------------------------------------------------------------
-//  职责: 编排子组件，无内联 UI。管理 notes 数据状态并向下传递。
-//  数据流: @State notes → @Prop 分发给 HeroBanner / ReminderBanner / NoteCard。
-//  依赖:
+//  pages/HomePage.ets 鈥?棣栭〉瑁呴厤灞?//  ----------------------------------------------------------------------------
+//  鑱岃矗: 缂栨帓瀛愮粍浠讹紝鏃犲唴鑱?UI銆傜鐞?notes 鏁版嵁鐘舵€佸苟鍚戜笅浼犻€掋€?//  鏁版嵁娴? @State notes 鈫?@Prop 鍒嗗彂缁?HeroBanner / ReminderBanner / NoteCard銆?//  渚濊禆:
 //    atoms:     HexLogo, FloatingButton
 //    molecules: HeroBanner, ReminderBanner, NoteCard
 //    prototypes: NoteDetailOverlay
 //  ============================================================================
 
 import {
-  MINT, MINT_LIGHT, PURPLE_LIGHT, PINK_LIGHT,
   BG_DARK, TEXT, TEXT_3,
   S_2, S_3, S_4, S_5,
   F_XS, F_BASE, F_MD,
@@ -26,21 +22,21 @@ import { ReminderBanner } from "../molecules/ReminderBanner"
 import { NoteCard } from "../molecules/NoteCard"
 import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
 
-// ---- 纯工具函数 ----
+// ---- 绾伐鍏峰嚱鏁?----
 
 function greet(): string {
   const h: number = new Date().getHours()
-  if (h < 6) { return "凌晨好" }
-  if (h < 11) { return "上午好" }
-  if (h < 13) { return "中午好" }
-  if (h < 18) { return "下午好" }
-  return "晚上好"
+  if (h < 6) { return "鍑屾櫒濂? }
+  if (h < 11) { return "涓婂崍濂? }
+  if (h < 13) { return "涓崍濂? }
+  if (h < 18) { return "涓嬪崍濂? }
+  return "鏅氫笂濂?
 }
 
 function dateStr(): string {
   const d: Date = new Date()
-  const w: string[] = ["日", "一", "二", "三", "四", "五", "六"]
-  return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 · 周" + w[d.getDay()]
+  const w: string[] = ["鏃?, "涓€", "浜?, "涓?, "鍥?, "浜?, "鍏?]
+  return d.getFullYear() + "骞? + (d.getMonth() + 1) + "鏈? + d.getDate() + "鏃?路 鍛? + w[d.getDay()]
 }
 
 @Component
@@ -72,7 +68,7 @@ export struct HomePage {
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
-        // 状态栏
+        // 鐘舵€佹爮
         Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
 
         // Header
@@ -98,23 +94,23 @@ export struct HomePage {
           onGoReview: (): void => { this.onGoReview() },
         })
 
-        // 提醒横幅
+        // 鎻愰啋妯箙
         if (this.notes.length < 3) {
           ReminderBanner({ notesCount: this.notes.length })
         }
 
-        // 笔记标题
+        // 绗旇鏍囬
         Row() {
-          Text("最近笔记")
+          Text("鏈€杩戠瑪璁?)
             .fontSize(F_BASE).fontWeight(W_SEMIBOLD).fontColor(TEXT)
           Blank()
-          Text(this.notes.length + " 条")
+          Text(this.notes.length + " 鏉?)
             .fontSize(F_XS).fontColor(TEXT_3)
         }
         .width("100%")
         .padding({ left: S_5, right: S_5, top: S_4, bottom: S_2 })
 
-        // 笔记列表
+        // 绗旇鍒楄〃
         Scroll() {
           Column() {
             ForEach(this.notes,
@@ -142,7 +138,7 @@ export struct HomePage {
       // FAB
       FloatingButton({
         onTap: (): void => {
-          promptAction.showToast({ message: "用户自定义笔记开发中", duration: 1500 })
+          promptAction.showToast({ message: "鐢ㄦ埛鑷畾涔夌瑪璁板紑鍙戜腑", duration: 1500 })
         },
       })
 

@@ -1,14 +1,13 @@
-﻿/**
+/**
  * MathMind 笔记列表页
  * W3 UI 优化 (2026-07-15): 标题栏视觉提升、全量令牌化
  */
 
 import {
-  MINT, BG_DARK, BORDER, TEXT, TEXT_2, TEXT_3, TEXT_4,
-  S_4, S_5, S_6,
-  R_MD, R_LG,
-  F_XS, F_SM, F_BASE, F_MD,
-  W_MEDIUM, W_SEMIBOLD,
+  BG_DARK, TEXT, TEXT_3,
+  S_4, S_5,
+  F_XS, F_MD,
+  W_SEMIBOLD,
   NoteItem, NOTES,
 } from "common"
 import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"

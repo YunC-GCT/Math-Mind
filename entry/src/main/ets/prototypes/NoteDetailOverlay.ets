@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MathMind 笔记详情浮层 — 第 3 批
  *
  * 触发: HomePage / NotesPage 点笔记卡片

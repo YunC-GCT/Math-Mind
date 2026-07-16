@@ -1,18 +1,14 @@
 // ============================================================================
-//  molecules/TabBar.ets — 底部导航栏分子组件
-//  ----------------------------------------------------------------------------
-//  职责: 渲染 5 个 Tab 按钮（4 普通 + 1 中央 AI），含渐变背景和毛玻璃效果。
-//  来源: 从 Index.ets 提取内联 TabBar Row。
-//  数据流: @Prop cur + onTabChange callback 通知父组件切换。
-//  接口:
-//    @Prop  cur      — 当前选中 Tab 索引
-//    onTabChange      — (index: number) => void
-//    onAiTap           — AI 按钮点击回调
-//  依赖: TabButton (atoms), AiTabButton (atoms)
+//  molecules/TabBar.ets 鈥?搴曢儴瀵艰埅鏍忓垎瀛愮粍浠?//  ----------------------------------------------------------------------------
+//  鑱岃矗: 娓叉煋 5 涓?Tab 鎸夐挳锛? 鏅€?+ 1 涓ぎ AI锛夛紝鍚笎鍙樿儗鏅拰姣涚幓鐠冩晥鏋溿€?//  鏉ユ簮: 浠?Index.ets 鎻愬彇鍐呰仈 TabBar Row銆?//  鏁版嵁娴? @Prop cur + onTabChange callback 閫氱煡鐖剁粍浠跺垏鎹€?//  鎺ュ彛:
+//    @Prop  cur      鈥?褰撳墠閫変腑 Tab 绱㈠紩
+//    onTabChange      鈥?(index: number) => void
+//    onAiTap           鈥?AI 鎸夐挳鐐瑰嚮鍥炶皟
+//  渚濊禆: TabButton (atoms), AiTabButton (atoms)
 //  ============================================================================
 
 import {
-  MINT_DARK, BG_DARK, BORDER,
+  BG_DARK, BORDER,
   S_1, S_2,
   TAB_BAR_HEIGHT,
 } from "common"
@@ -26,11 +22,11 @@ interface TabItem {
 }
 
 const TABS: TabItem[] = [
-  { idx: 0, name: "首页", icon: $r("app.media.ic_home") },
-  { idx: 1, name: "笔记", icon: $r("app.media.ic_notes") },
+  { idx: 0, name: "棣栭〉", icon: $r("app.media.ic_home") },
+  { idx: 1, name: "绗旇", icon: $r("app.media.ic_notes") },
   { idx: 2, name: "AI",   icon: $r("app.media.ic_ai") },
-  { idx: 3, name: "复习", icon: $r("app.media.ic_review") },
-  { idx: 4, name: "我的", icon: $r("app.media.ic_me") },
+  { idx: 3, name: "澶嶄範", icon: $r("app.media.ic_review") },
+  { idx: 4, name: "鎴戠殑", icon: $r("app.media.ic_me") },
 ]
 
 @Component

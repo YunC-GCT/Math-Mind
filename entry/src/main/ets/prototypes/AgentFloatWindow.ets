@@ -1,41 +1,34 @@
 /**
  * ==========================================================================
- *  AgentFloatWindow.ets — AI 对话浮窗装配层
- *  ==========================================================================
- *  职责: 持有全部 @State + 业务逻辑, build() 仅组装 8 个子组件。
+ *  AgentFloatWindow.ets 鈥?AI 瀵硅瘽娴獥瑁呴厤灞? *  ==========================================================================
+ *  鑱岃矗: 鎸佹湁鍏ㄩ儴 @State + 涓氬姟閫昏緫, build() 浠呯粍瑁?8 涓瓙缁勪欢銆? *
+ *  鏁版嵁娴?(鍗曞悜 Parent 鈫?Child):
+ *    messages/inputText/busy 鈫?@Prop 鈫?ChatBubble/MessageInput/...
+ *    瀛愮粍浠跺洖璋?鈫?onChange/onSend 绛?鈫?鐖舵洿鏂?@State
  *
- *  数据流 (单向 Parent → Child):
- *    messages/inputText/busy → @Prop → ChatBubble/MessageInput/...
- *    子组件回调 → onChange/onSend 等 → 父更新 @State
+ *  瀛愮粍浠?(prototypes/chat/):
+ *    ChatHeader      鈥?澶撮儴: 妯″瀷鍚?+ 娣卞害鎬濊€?SVG 鑳跺泭 + [+]鏂板璇?+ [鉁昡鍏抽棴
+ *    SessionBar      鈥?浼氳瘽鍒囨崲鏍? 姘村钩婊氬姩 鈼忊棆 鏍囩 + [+]鏂板缓
+ *    ChatBubble      鈥?鑱婂ぉ姘旀场: 鐢ㄦ埛(鍙矼INT) + AI(宸URPLE) + 馃搵鈫火煈庢搷浣? *    TypingIndicator 鈥?typing 涓夌偣鍔ㄧ敾 (ArkUI animation)
+ *    EmptyStateHint  鈥?绌虹姸鎬佸紩瀵? 閽荤煶 SVG + 鏂囨
+ *    QuickSuggestions 鈥?鎺ㄨ崘蹇嵎璇? 鍒嗘瀽閿欓/璁茶В鏋侀檺/鐢熸垚缁冧範/姊崇悊鐭ヨ瘑
+ *    MessageInput    鈥?杈撳叆鏍? 鍥剧墖棰勮 + 杈撳叆妗?+ 鎷嶇収鎸夐挳 + 鍙戦€佹寜閽? *    ChatSession     鈥?闈濽I宸ュ叿绫? preferences 浼氳瘽鎸佷箙鍖? *
+ *  瀵规帴:
+ *    LlmClient.call()  鈥?AI 璋冪敤 (DeepSeek API)
+ *    LlmConfig         鈥?绔偣/妯″瀷/Key 閰嶇疆
+ *    preferences       鈥?浼氳瘽鍘嗗彶鎸佷箙鍖? *    Index.ets          鈥?鐖剁粍浠舵帶鍒?show/onClose/onGoCamera/pendingImageUri
  *
- *  子组件 (prototypes/chat/):
- *    ChatHeader      — 头部: 模型名 + 深度思考 SVG 胶囊 + [+]新对话 + [✕]关闭
- *    SessionBar      — 会话切换栏: 水平滚动 ●○ 标签 + [+]新建
- *    ChatBubble      — 聊天气泡: 用户(右MINT) + AI(左PURPLE) + 📋↻👎操作
- *    TypingIndicator — typing 三点动画 (ArkUI animation)
- *    EmptyStateHint  — 空状态引导: 钻石 SVG + 文案
- *    QuickSuggestions — 推荐快捷词: 分析错题/讲解极限/生成练习/梳理知识
- *    MessageInput    — 输入栏: 图片预览 + 输入框 + 拍照按钮 + 发送按钮
- *    ChatSession     — 非UI工具类: preferences 会话持久化
+ *  娴佸紡杈撳嚭:
+ *    鎻掑叆绌哄崰浣嶆秷鎭?鈫?LlmClient.call() 鈫?streamInto() 鍘熷湴鏇存柊 content
+ *    鈫?鍗曟皵娉″師鍦板闀? 鏃犺烦鍙? 鏃犳埅鏂? *
+ *  鑷姩婊氬姩:
+ *    @Watch onMessagesChange 鈫?setTimeout 200ms 鈫?scrollEdge(Bottom)
  *
- *  对接:
- *    LlmClient.call()  — AI 调用 (DeepSeek API)
- *    LlmConfig         — 端点/模型/Key 配置
- *    preferences       — 会话历史持久化
- *    Index.ets          — 父组件控制 show/onClose/onGoCamera/pendingImageUri
- *
- *  流式输出:
- *    插入空占位消息 → LlmClient.call() → streamInto() 原地更新 content
- *    → 单气泡原地增长, 无跳变, 无截断
- *
- *  自动滚动:
- *    @Watch onMessagesChange → setTimeout 200ms → scrollEdge(Bottom)
- *
- *  会话持久化:
- *    ChatSessionManager 封装 preferences CRUD
- *    loadHistory() / saveHistory() / sync() 管理多会话
- * ==========================================================================
- */import { MINT, MINT_LIGHT, BG_DARK, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
+ *  浼氳瘽鎸佷箙鍖?
+ *    ChatSessionManager 灏佽 preferences CRUD
+ *    loadHistory() / saveHistory() / sync() 绠＄悊澶氫細璇? * ==========================================================================
+ */
+import { BG_DARK, TEXT_4, BORDER, S_2, S_3, S_4, S_6, R_XL, OVERLAY_MASK } from "common"
 import { LlmClient, LlmConfig } from "common"
 import { promptAction } from "@kit.ArkUI"
 import window from "@ohos.window"
@@ -64,7 +57,7 @@ export struct AgentFloatWindow {
   @State deepThink: boolean = false
   @State imagePreview: string = ""
   @State keyboardHeight: number = 0
-  @State sessions: Session[] = [{ id: "s1", name: "会话 1", messages: [] }]
+  @State sessions: Session[] = [{ id: "s1", name: "浼氳瘽 1", messages: [] }]
   @State activeSid: string = "s1"
   private mainWindow: window.Window | null = null
   private scroller: Scroller = new Scroller()
@@ -91,37 +84,36 @@ export struct AgentFloatWindow {
   private async loadHistory(): Promise<void> {
     const ss = await this.sm.init(getContext(this))
     if (ss.length > 0) { this.sessions = ss; this.activeSid = ss[0].id; this.messages = ss[0].messages; return }
-    this.messages = [{ id: 1, role: "ai", content: "你好，我是 MathMind AI。可以帮你分析错题、讲解知识点、生成练习题。试试问我吧 👇", ts: Date.now() }]
+    this.messages = [{ id: 1, role: "ai", content: "浣犲ソ锛屾垜鏄?MathMind AI銆傚彲浠ュ府浣犲垎鏋愰敊棰樸€佽瑙ｇ煡璇嗙偣銆佺敓鎴愮粌涔犻銆傝瘯璇曢棶鎴戝惂 馃憞", ts: Date.now() }]
   }
 
   private sync(): void { for (let i = 0; i < this.sessions.length; i++) { if (this.sessions[i].id === this.activeSid) { this.sessions[i].messages = this.messages; return } } }
   private switchSession(sid: string): void { this.sync(); for (let i = 0; i < this.sessions.length; i++) { if (this.sessions[i].id === sid) { this.activeSid = sid; this.messages = this.sessions[i].messages; return } } }
-  private newSession(): void { this.sync(); const s: Session = { id: sid(), name: "会话 " + (this.sessions.length + 1).toString(), messages: [] }; this.sessions = [...this.sessions, s]; this.activeSid = s.id; this.messages = []; this.sm.save(this.sessions) }
+  private newSession(): void { this.sync(); const s: Session = { id: sid(), name: "浼氳瘽 " + (this.sessions.length + 1).toString(), messages: [] }; this.sessions = [...this.sessions, s]; this.activeSid = s.id; this.messages = []; this.sm.save(this.sessions) }
   private deleteSession(sid: string): void { if (this.sessions.length <= 1) return; const f = this.sessions.filter((s: Session): boolean => s.id !== sid); this.sessions = f; if (sid === this.activeSid) { this.activeSid = f[0].id; this.messages = f[0].messages }; this.sm.save(this.sessions) }
 
   private send = (text?: string): void => {
     const msg = (text ?? this.inputText).trim()
     if (!msg && !this.imagePreview) { return }
-    if (this.busy) { promptAction.showToast({ message: "AI 正在回复", duration: 1200 }); return }
-    this.messages = [...this.messages, { id: nowId(), role: "user", content: msg || "[图片]", ts: Date.now() }]
+    if (this.busy) { promptAction.showToast({ message: "AI 姝ｅ湪鍥炲", duration: 1200 }); return }
+    this.messages = [...this.messages, { id: nowId(), role: "user", content: msg || "[鍥剧墖]", ts: Date.now() }]
     this.inputText = ""; this.imagePreview = ""
     this.realReply(msg)
   }
 
   private realReply = async (userContent: string): Promise<void> => {
     this.busy = true
-    // 先插入占位消息（流式期间显示 TypingIndicator）
-    this.messages = [...this.messages, { id: nowId(), role: "ai", content: "", ts: Date.now() }]
+    // 鍏堟彃鍏ュ崰浣嶆秷鎭紙娴佸紡鏈熼棿鏄剧ず TypingIndicator锛?    this.messages = [...this.messages, { id: nowId(), role: "ai", content: "", ts: Date.now() }]
     try {
-      if (!(await LlmConfig.getInstance().isConfigured())) { this.fillLast("请先配置 API Key"); return }
+      if (!(await LlmConfig.getInstance().isConfigured())) { this.fillLast("璇峰厛閰嶇疆 API Key"); return }
       const sp = this.deepThink
-        ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
-        : "你是 MathMind AI 助手，简洁中文回答。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
+        ? "浣犳槸 MathMind AI 娣卞害鎬濊€冨姪鎵嬨€傞€愭鎺ㄧ悊锛屽睍绀哄畬鏁存€濊€冭繃绋嬨€傛暟瀛︾敤 Unicode 鐩存帴杈撳嚭濡?鈭玸in x dx, lim(n鈫掆垶), 危x虏銆備笉鐢?$ 鎴?$$ 鍖呰９銆?
+        : "浣犳槸 MathMind AI 鍔╂墜锛岀畝娲佷腑鏂囧洖绛斻€傛暟瀛︾敤 Unicode 鐩存帴杈撳嚭濡?鈭玸in x dx, lim(n鈫掆垶), 危x虏銆備笉鐢?$ 鎴?$$ 鍖呰９銆?
       const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
       this.streamInto(fullReply)
       this.busy = false
       setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 200)
-    } catch (e) { this.fillLast((e as Error).message ?? "AI 回复异常"); this.busy = false }
+    } catch (e) { this.fillLast((e as Error).message ?? "AI 鍥炲寮傚父"); this.busy = false }
   }
 
   private streamInto(fullText: string): void {
@@ -130,8 +122,7 @@ export struct AgentFloatWindow {
     const t = setInterval((): void => {
       pos = Math.min(pos + 4, fullText.length)
       target.content = fullText.substring(0, pos)
-      this.messages = [...this.messages] // 触发重渲染
-      if (pos >= fullText.length) { clearInterval(t) }
+      this.messages = [...this.messages] // 瑙﹀彂閲嶆覆鏌?      if (pos >= fullText.length) { clearInterval(t) }
     }, 20)
   }
 

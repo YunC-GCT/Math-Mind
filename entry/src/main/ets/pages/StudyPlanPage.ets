@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  pages/StudyPlanPage.ets — 学习计划页面（编排层）
 //  ----------------------------------------------------------------------------
 //  职责: 页面骨架布局 + ViewModel 桥接到原子组件。
@@ -25,7 +25,7 @@ import {
   F_BASE,
   F_MD,
   F_2XL,
-  W_BOLD, DANGER_BRIGHT, GLASS_8,
+  W_BOLD, GLASS_8,
 } from "common"
 import { StudyPlanItem } from "common"
 import { StudyPlanViewModel } from "../viewmodels/StudyPlanViewModel"

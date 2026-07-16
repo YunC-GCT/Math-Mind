@@ -1,52 +1,52 @@
 /**
- * MathMind 6 边形 Logo — 32×32 浮空旋转 4s 循环
+ * MathMind 6 杈瑰舰 Logo 鈥?32脳32 娴┖鏃嬭浆 4s 寰幆
  *
- * 外六边形 (strokeWidth 1.5) + 内部 M 字一笔画 (strokeWidth 2)
- * 颜色 #5BE3B0 主题薄荷绿, 无填充, 圆角端点 + 圆角连接
+ * 澶栧叚杈瑰舰 (strokeWidth 1.5) + 鍐呴儴 M 瀛椾竴绗旂敾 (strokeWidth 2)
+ * 棰滆壊 #5BE3B0 涓婚钖勮嵎缁? 鏃犲～鍏? 鍦嗚绔偣 + 鍦嗚杩炴帴
  *
- * 动画 4s 循环:
+ * 鍔ㄧ敾 4s 寰幆:
  *   0%   rotate 0   ty  0
- *   30%  rotate 5°  ty -1.5
- *   60%  rotate -3° ty  1
+ *   30%  rotate 5掳  ty -1.5
+ *   60%  rotate -3掳 ty  1
  *   100% rotate 0   ty  0
  *
- * 链式 setTimeout: 0→30% (1200ms) + 30%→60% (1200ms) + 60%→100% (1600ms) = 4000ms
+ * 閾惧紡 setTimeout: 0鈫?0% (1200ms) + 30%鈫?0% (1200ms) + 60%鈫?00% (1600ms) = 4000ms
  *
- * ArkTS 1.1 strict 限制: struct 内禁普通方法, 全部动画逻辑放 aboutToAppear 内
- * 用 let 声明 + 立即初始化空函数 + 后续赋值, 避免 const 闭包 TDZ
+ * ArkTS 1.1 strict 闄愬埗: struct 鍐呯鏅€氭柟娉? 鍏ㄩ儴鍔ㄧ敾閫昏緫鏀?aboutToAppear 鍐?
+ * 鐢?let 澹版槑 + 绔嬪嵆鍒濆鍖栫┖鍑芥暟 + 鍚庣画璧嬪€? 閬垮厤 const 闂寘 TDZ
  */
-import { MINT } from 'common';
+
 
 @Component
 export struct HexLogo {
-  // 状态名避开 ImageAttribute.rotate/translate (避免跟 base type 方法签名冲突)
+  // 鐘舵€佸悕閬垮紑 ImageAttribute.rotate/translate (閬垮厤璺?base type 鏂规硶绛惧悕鍐茬獊)
   @State rotDeg: number = 0;
   @State ty: number = 0;
   private timer: number = -1;
-  // 链式 setTimeout 循环需要闭包引用, 但 let 闭包互相引用在 ArkTS 1.1 strict
-  // 可能触发 TDZ 编译错误. 改用 struct 字段 (字段赋值后调用合法).
+  // 閾惧紡 setTimeout 寰幆闇€瑕侀棴鍖呭紩鐢? 浣?let 闂寘浜掔浉寮曠敤鍦?ArkTS 1.1 strict
+  // 鍙兘瑙﹀彂 TDZ 缂栬瘧閿欒. 鏀圭敤 struct 瀛楁 (瀛楁璧嬪€煎悗璋冪敤鍚堟硶).
   private startCycle: () => void = (): void => { return; };
 
   aboutToAppear(): void {
     this.startCycle = (): void => {
-      // 0% → 30%: rotate 0→5°, ty 0→-1.5
+      // 0% 鈫?30%: rotate 0鈫?掳, ty 0鈫?1.5
       animateTo({ duration: 1200, curve: Curve.EaseInOut }, () => {
         this.rotDeg = 5;
         this.ty = -1.5;
       });
-      // 30% → 60%: rotate 5°→-3°, ty -1.5→1
+      // 30% 鈫?60%: rotate 5掳鈫?3掳, ty -1.5鈫?
       this.timer = setTimeout(() => {
         animateTo({ duration: 1200, curve: Curve.EaseInOut }, () => {
           this.rotDeg = -3;
           this.ty = 1;
         });
-        // 60% → 100%: rotate -3°→0, ty 1→0
+        // 60% 鈫?100%: rotate -3掳鈫?, ty 1鈫?
         this.timer = setTimeout(() => {
           animateTo({ duration: 1600, curve: Curve.EaseInOut }, () => {
             this.rotDeg = 0;
             this.ty = 0;
           });
-          // 100% 回到 0%, 启动下一个 4s 循环
+          // 100% 鍥炲埌 0%, 鍚姩涓嬩竴涓?4s 寰幆
           this.timer = setTimeout(() => { this.startCycle(); }, 1600);
         }, 1200);
       }, 1200);
@@ -61,9 +61,9 @@ export struct HexLogo {
   build() {
     Image($r('app.media.ic_brand_hex'))
       .width(32).height(32)
-      // SVG 已硬编码 stroke="#5BE3B0" + fill="none", Image.fillColor 在 ArkUI 1.1 可能覆盖 SVG fill
-      // 删 fillColor 让 SVG fill="none" 生效, 6 边形保持空心线条 (不变成实心)
-      // Image.rotate 接受 RotateOptions { angle: number } 对象, 不接受 number 直接
+      // SVG 宸茬‖缂栫爜 stroke="#5BE3B0" + fill="none", Image.fillColor 鍦?ArkUI 1.1 鍙兘瑕嗙洊 SVG fill
+      // 鍒?fillColor 璁?SVG fill="none" 鐢熸晥, 6 杈瑰舰淇濇寔绌哄績绾挎潯 (涓嶅彉鎴愬疄蹇?
+      // Image.rotate 鎺ュ彈 RotateOptions { angle: number } 瀵硅薄, 涓嶆帴鍙?number 鐩存帴
       .rotate({ angle: this.rotDeg })
       .translate({ y: this.ty });
   }
