@@ -180,6 +180,7 @@ export const FAB_SIZE: number       = 54
 export const HERO_RING_SIZE: number = 120
 export const NOTE_ICON_SIZE: number = 36
 export const DOT_SIZE: number       = 8
+export const AVATAR_SIZE: number    = 72
 
 // ========================================================================
 //  TabBar 组件尺寸 (vp)
