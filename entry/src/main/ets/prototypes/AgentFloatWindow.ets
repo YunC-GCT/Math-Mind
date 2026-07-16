@@ -29,7 +29,6 @@ export struct AgentFloatWindow {
   @State busy: boolean = false
   @State deepThink: boolean = false
   @State imagePreview: string = ""
-  @State streamBuffer: string = ""
   @State keyboardHeight: number = 0
   @State sessions: Session[] = [{ id: "s1", name: "会话 1", messages: [] }]
   @State activeSid: string = "s1"
@@ -42,8 +41,8 @@ export struct AgentFloatWindow {
   onPendingImageChange(): void { if (this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri } }
   onMessagesChange(): void {
     if (this.messages.length > 0) {
-      setTimeout((): void => { this.scroller.scrollToIndex(this.messages.length - 1, false) }, 100)
       this.sync(); this.sm.save(this.sessions)
+      setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 200)
     }
   }
 
@@ -76,16 +75,37 @@ export struct AgentFloatWindow {
   }
 
   private realReply = async (userContent: string): Promise<void> => {
-    this.busy = true; this.streamBuffer = ""
+    this.busy = true
+    // 先插入占位消息（流式期间显示 TypingIndicator）
+    this.messages = [...this.messages, { id: nowId(), role: "ai", content: "", ts: Date.now() }]
     try {
-      if (!(await LlmConfig.getInstance().isConfigured())) { this.addFinal("请先配置 API Key"); return }
-      const sp = this.deepThink ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程，使用 LaTeX。" : "你是 MathMind AI 助手，简洁中文回答，适当使用 LaTeX。"
-      this.streamOut(await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }]))
-    } catch (e) { this.addFinal((e as Error).message ?? "AI 回复异常") }
+      if (!(await LlmConfig.getInstance().isConfigured())) { this.fillLast("请先配置 API Key"); return }
+      const sp = this.deepThink
+        ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
+        : "你是 MathMind AI 助手，简洁中文回答。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
+      const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
+      this.streamInto(fullReply)
+      this.busy = false
+      setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 200)
+    } catch (e) { this.fillLast((e as Error).message ?? "AI 回复异常"); this.busy = false }
   }
 
-  private streamOut(text: string): void { let pos = 0; const t = setInterval((): void => { pos = Math.min(pos + 3, text.length); this.streamBuffer = text.substring(0, pos); if (pos >= text.length) { clearInterval(t); this.addFinal(text) } }, 25) }
-  private addFinal(text: string): void { this.messages = [...this.messages, { id: nowId(), role: "ai", content: text, ts: Date.now() }]; this.busy = false; this.streamBuffer = ""; setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 150) }
+  private streamInto(fullText: string): void {
+    const target = this.messages[this.messages.length - 1]
+    let pos = 0
+    const t = setInterval((): void => {
+      pos = Math.min(pos + 4, fullText.length)
+      target.content = fullText.substring(0, pos)
+      this.messages = [...this.messages] // 触发重渲染
+      if (pos >= fullText.length) { clearInterval(t) }
+    }, 20)
+  }
+
+  private fillLast(text: string): void {
+    const last = this.messages[this.messages.length - 1]
+    if (last && last.role === "ai") { last.content = text; this.messages = [...this.messages] }
+    this.busy = false
+  }
 
   build() {
     Stack() {
@@ -100,8 +120,7 @@ export struct AgentFloatWindow {
             Column() {
               if (this.messages.length === 0 && !this.busy) { EmptyStateHint() }
               ForEach(this.messages, (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) }, (msg: ChatMsg): string => msg.id.toString())
-              if (this.streamBuffer.length > 0) { ChatBubble({ msg: { id: 0, role: "ai", content: this.streamBuffer, ts: Date.now() }, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (): void => {} }) }
-              else if (this.busy) { TypingIndicator() }
+              if (this.busy && this.messages.length > 0 && this.messages[this.messages.length - 1].content.length === 0) { TypingIndicator() }
               Blank().height(S_2)
             }.width("100%").padding({ left: S_4, right: S_4, top: S_2 })
           }.layoutWeight(1).width("100%").scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
