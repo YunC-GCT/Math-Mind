@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MathMind AI 浮窗 · 装配层 (6 子组件 + 多会话持久化)
  */
 import { MINT, MINT_LIGHT, BG_DARK, TEXT, TEXT_3, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_MD, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
@@ -178,7 +178,8 @@ export struct AgentFloatWindow {
                 (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) },
                 (msg: ChatMsg): string => msg.id.toString()
               )
-              if (this.busy && this.streamBuffer.length === 0) { TypingIndicator() }
+              if (this.streamBuffer.length > 0) { ChatBubble({ msg: { id: 0, role: "ai", content: this.streamBuffer, ts: Date.now() }, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (): void => {} }) }
+              else if (this.busy) { TypingIndicator() }
               Blank().height(S_2)
             }.width("100%").padding({ left: S_4, right: S_4, top: S_2 })
           }.layoutWeight(1).width("100%").scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
