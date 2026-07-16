@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MathMind AI 浮窗 · 装配层 (6 子组件 + 多会话持久化)
  */
 import { MINT, MINT_LIGHT, BG_DARK, TEXT, TEXT_3, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_MD, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
@@ -29,6 +29,7 @@ export struct AgentFloatWindow {
   @State busy: boolean = false
   @State deepThink: boolean = false
   @State imagePreview: string = ""
+  @State streamBuffer: string = ""
   @State keyboardHeight: number = 0
   @State sessions: Session[] = [{ id: "s1", name: "\u5BF9\u8BDD 1", messages: [] }]
   @State activeSid: string = "s1"
@@ -105,18 +106,29 @@ export struct AgentFloatWindow {
     this.realReply(msg)
   }
   private realReply = async (userContent: string): Promise<void> => {
-    this.busy = true
+    this.busy = true; this.streamBuffer = ""
     try {
-      if (!(await LlmConfig.getInstance().isConfigured())) { this.addAiMsg("\u8BF7\u5148\u914D\u7F6E API Key"); this.busy = false; return }
+      if (!(await LlmConfig.getInstance().isConfigured())) { this.streamBuffer = "\u8BF7\u5148\u914D\u7F6E API Key"; this.finishStream(); return }
       const sp = this.deepThink ? "\u4F60\u662F MathMind AI \u6DF1\u5EA6\u601D\u8003\u52A9\u624B\u3002\u9010\u6B65\u63A8\u7406\uFF0C\u4F7F\u7528 LaTeX\u3002" : "\u4F60\u662F MathMind AI \u52A9\u624B\uFF0C\u7B80\u6D01\u4E2D\u6587\u56DE\u7B54\uFF0C\u4F7F\u7528 LaTeX\u3002"
-      const reply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
-      this.addAiMsg(reply)
+      const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
+      this.streamOut(fullReply)
     } catch (e) {
       const err = (e as Error).message ?? ""
-      if (err.indexOf("NO_API_KEY") >= 0) { this.addAiMsg("\u8BF7\u5148\u914D\u7F6E API Key") }
-      else if (err.indexOf("NETWORK_ERROR") >= 0) { this.addAiMsg("\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25") }
-      else { this.addAiMsg("AI\u56DE\u590D\u5F02\u5E38") }
-    } finally { this.busy = false }
+      const errMsg = err.indexOf("NO_API_KEY") >= 0 ? "\u8BF7\u5148\u914D\u7F6E API Key" : err.indexOf("NETWORK_ERROR") >= 0 ? "\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25" : "AI\u56DE\u590D\u5F02\u5E38"
+      this.messages = [...this.messages, { id: nowId(), role: "ai", content: errMsg, ts: Date.now() }]
+      this.busy = false; this.streamBuffer = ""
+    }
+  }
+  private streamOut(fullText: string): void {
+    const msgId = nowId(); let pos = 0
+    const timer = setInterval((): void => {
+      if (pos < fullText.length) { pos = Math.min(pos + 4, fullText.length); this.streamBuffer = fullText.substring(0, pos) }
+      else { clearInterval(timer); this.finishStream() }
+    }, 25)
+  }
+  private finishStream(): void {
+    if (this.streamBuffer.length > 0) { this.messages = [...this.messages, { id: nowId(), role: "ai", content: this.streamBuffer, ts: Date.now() }] }
+    this.busy = false; this.streamBuffer = ""
   }
   private addAiMsg = (content: string): void => {
     this.messages = [...this.messages, { id: nowId(), role: "ai", content, ts: Date.now() }]
@@ -166,7 +178,7 @@ export struct AgentFloatWindow {
                 (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) },
                 (msg: ChatMsg): string => msg.id.toString()
               )
-              if (this.busy) { TypingIndicator() }
+              if (this.busy && this.streamBuffer.length === 0) { TypingIndicator() }
               Blank().height(S_2)
             }.width("100%").padding({ left: S_4, right: S_4, top: S_2 })
           }.layoutWeight(1).width("100%").scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
