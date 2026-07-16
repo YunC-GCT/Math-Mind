@@ -5,7 +5,7 @@
 //  (完整文档见代码头部注释)
 // ============================================================================
 
-import { BG_DARK, TEXT_4, BORDER, S_2, S_3, S_4, S_6, R_XL, OVERLAY_MASK } from "common"
+import { BG_DARK, TEXT_4, BORDER, S_2, S_3, S_4, S_6, R_XL, OVERLAY_MASK, SCREEN_H } from "common"
 import { LlmClient, LlmConfig } from "common"
 import { promptAction } from "@kit.ArkUI"
 import window from "@ohos.window"
@@ -37,6 +37,8 @@ export struct AgentFloatWindow {
   @State sessions: Session[] = [{ id: "s1", name: "会话 1", messages: [] }]
   @State activeSid: string = "s1"
   @State renderKey: number = 0
+  @State floatHeight: number = 48
+  private dragStartH: number = 48
   private mainWindow: window.Window | null = null
   private scroller: Scroller = new Scroller()
   private sm: ChatSessionManager = new ChatSessionManager()
@@ -119,7 +121,7 @@ export struct AgentFloatWindow {
       if (this.show) {
         Column().width("100%").height("100%").backgroundColor(OVERLAY_MASK).onClick((): void => this.onClose())
         Column() {
-          Row() { Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4) }.width("100%").height(S_6).justifyContent(FlexAlign.Center)
+          Row() { Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4) }.width("100%").height(S_6).justifyContent(FlexAlign.Center).gesture(PanGesture({ direction: PanDirection.Vertical }).onActionStart((): void => { this.dragStartH = this.floatHeight }).onActionUpdate((event: GestureEvent): void => { this.floatHeight = Math.max(30, Math.min(90, this.dragStartH - event.offsetY / SCREEN_H * 100)) }))
           ChatHeader({ deepThink: this.deepThink, onToggleThink: (): void => { this.deepThink = !this.deepThink }, onNewChat: (): void => { this.newSession() }, onClose: this.onClose })
           Row().width("100%").height(0.5).backgroundColor(BORDER)
           SessionBar({ sessions: this.sessions, activeSid: this.activeSid, onSwitch: (sid: string): void => { this.switchSession(sid) }, onDelete: (sid: string): void => { this.deleteSession(sid) }, onNew: (): void => { this.newSession() } })
@@ -135,7 +137,7 @@ export struct AgentFloatWindow {
           QuickSuggestions({ onSelect: (p: string): void => { this.send(p) } })
           MessageInput({ inputText: this.inputText, imagePreview: this.imagePreview, busy: this.busy, onTextChange: (v: string): void => { this.inputText = v }, onSend: (): void => { this.send() }, onCamera: (): void => { this.onGoCamera() }, onClearImage: (): void => { this.imagePreview = "" } })
         }
-        .width("100%").height("48%").backgroundColor(BG_DARK).borderRadius({ topLeft: R_XL, topRight: R_XL }).padding({ left: S_3, right: S_3 }).position({ x: 0, y: "100%" }).markAnchor({ x: 0, y: "100%" }).translate({ y: -(74 + this.keyboardHeight) })
+        .width("100%").height(this.floatHeight + "%").backgroundColor(BG_DARK).borderRadius({ topLeft: R_XL, topRight: R_XL }).padding({ left: S_3, right: S_3 }).position({ x: 0, y: "100%" }).markAnchor({ x: 0, y: "100%" }).translate({ y: -(74 + this.keyboardHeight) })
       }
     }.width("100%").height("100%").hitTestBehavior(this.show ? HitTestMode.Default : HitTestMode.None)
   }
