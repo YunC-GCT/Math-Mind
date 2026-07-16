@@ -93,14 +93,14 @@ export struct AgentFloatWindow {
       if (typeof fullReply !== "string" || fullReply.trim().length === 0) {
         this.fillLast("（AI 返回了空内容，请重试）"); return
       }
-      placeholder.content = fullReply
-      this.messages = [...this.messages]
+      const idx = this.messages.length - 1
+      this.messages = [...this.messages.slice(0, idx), { id: placeholder.id, role: "ai", content: fullReply, ts: placeholder.ts }]
       this.busy = false
       this.scroller.scrollEdge(Edge.Bottom)
     } catch (e) {
       const errMsg: string = (e as Error).message ?? "AI 回复异常"
-      placeholder.content = errMsg
-      this.messages = [...this.messages]
+      const idx2 = this.messages.length - 1
+      this.messages = [...this.messages.slice(0, idx2), { id: placeholder.id, role: "ai", content: errMsg, ts: placeholder.ts }]
       this.busy = false
     }
   }
@@ -108,7 +108,7 @@ export struct AgentFloatWindow {
 
   private fillLast(text: string): void {
     const last = this.messages[this.messages.length - 1]
-    if (last && last.role === "ai") { last.content = text; this.messages = [...this.messages] }
+    if (last && last.role === "ai") { const i = this.messages.length - 1; this.messages = [...this.messages.slice(0, i), { id: last.id, role: "ai", content: text, ts: last.ts }] }
     this.busy = false
   }
 
