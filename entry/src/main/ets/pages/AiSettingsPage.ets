@@ -1,99 +1,60 @@
-// ============================================================================
-//  AiSettingsPage.ets — AI 大模型设置页面（装配层）
-//  ----------------------------------------------------------------------------
-//  职责: 仅持有 @State + 生命周期方法 + build() 组件堆叠。零内联模板。
-//
-//  装配结构:
-//    StatusCard       ← 连接状态（绿点 + 已配置/未配置）
-//    SectionHeader    ← "服务端点"
-//    EndpointPicker   ← 硅基流动/DeepSeek + 自定义 URL
-//    SectionHeader    ← "模型"
-//    ModelPicker      ← V3/R1/V4 预设 + 对比小卡 + 自定义
-//    SectionHeader    ← "API Key"
-//    KeyInput         ← 👁/🙈 + 测试按钮
-//    SectionHeader    ← "请求参数"
-//    ParamRow × 3     ← 温度 / 最大 Token / 超时
-//    SettingsActionBar ← 恢复默认 + 保存配置
-//
-//  数据流: 单向 Parent→Child
-//    所有子组件用 @Prop 接收，通过 onChange 回调抛事件给父
-//
-//  对接:
-//    LlmConfig  — 持久化 API Key/端点/模型/参数到 preferences
-//    LlmClient  — 连通性测试（发送 "OK" 验证）
-//    router     — 返回上一页
-//    common     — ColorTokens 设计令牌
-//
-//  端点⇄模型联动:
-//    @Watch('onEndpointChange') → currentPresets 自动切换 SF_MODELS/DS_MODELS
-//    ModelPicker 接收 currentPresets 自动刷新列表
+﻿// ============================================================================
+//  AiSettingsPage.ets — 大模型设置（精简版）
+//  端点: DeepSeek 官方 + 自定义
+//  模型: DeepSeek-V3 默认 + 自定义
 // ============================================================================
 
 import {
-  MINT, MINT_DARK, PURPLE, PURPLE_LIGHT, BG_DARK, BG_CARD,
-  TEXT, TEXT_2, TEXT_3, TEXT_4, BORDER, S_2, S_3, S_4, R_MD, R_LG, R_FULL,
-  F_XS, F_SM, F_BASE, F_MD, W_SEMIBOLD, GLASS_8,
+  MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, TEXT_4, BORDER,
+  S_2, S_3, S_4, R_MD, R_LG,
+  F_XS, F_SM, F_BASE, F_MD, W_SEMIBOLD,
 } from "common"
 import { LlmConfig, LlmClient } from "common"
 import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
 import { router } from "@kit.ArkUI"
-import { StatusCard } from "../molecules/StatusCard"
-import { SectionHeader } from "../atoms/SectionHeader"
-import { ParamRow } from "../atoms/ParamRow"
-import { SettingsActionBar } from "../atoms/SettingsActionBar"
-import { EndpointPicker, EP_PRESETS } from "../molecules/EndpointPicker"
-import { ModelPicker, ModelPreset, SF_MODELS, DS_MODELS } from "../molecules/ModelPicker"
-import { KeyInput } from "../molecules/KeyInput"
+
+const DS_ENDPOINT = "https://api.deepseek.com/chat/completions"
+const DEFAULT_MODEL = "deepseek-chat"
 
 @Entry
 @Component
 struct AiSettingsPage {
   @StorageProp("statusBarHeight") statusBarH: number = 0
   @State apiKey: string = ""
-  @State @Watch("onEndpointChange") endpointIdx: number = 0
-  @State endpointCustom: string = ""
-  @State @Watch("onEndpointChange") useCustomEP: boolean = false
-  @State modelIdx: number = 0
-  @State modelCustom: string = ""
+  @State useCustomEP: boolean = false
+  @State customEP: string = ""
   @State useCustomMD: boolean = false
+  @State customMD: string = ""
   @State configured: boolean = false
   @State testing: boolean = false
   @State statusText: string = "未配置"
   @State tempText: string = "0.1"
-  @State maxTokensText: string = "256"
-  @State timeoutText: string = "5000"
+  @State maxTText: string = "256"
+  @State toText: string = "5000"
   @State temperature: number = 0.1
   @State maxTokens: number = 256
   @State timeoutMs: number = 5000
-  @State currentPresets: ModelPreset[] = SF_MODELS
-
-  onEndpointChange(): void { this.currentPresets = (this.useCustomEP || this.endpointIdx !== 1) ? SF_MODELS : DS_MODELS }
 
   aboutToAppear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET) } catch (e) {}; this.loadConfig() }
   aboutToDisappear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE) } catch (e) {} }
 
-  private ep(): string { return this.useCustomEP ? this.endpointCustom : EP_PRESETS[this.endpointIdx] }
-  private md(): string { return this.useCustomMD ? this.modelCustom : this.currentPresets[this.modelIdx].value }
+  private ep(): string { return this.useCustomEP ? this.customEP : DS_ENDPOINT }
+  private md(): string { return this.useCustomMD ? this.customMD : DEFAULT_MODEL }
 
   async loadConfig(): Promise<void> {
     const c = LlmConfig.getInstance()
     const key = await c.getApiKey()
     if (key !== null && key.length > 0) { this.apiKey = key; this.configured = true; this.statusText = "已配置" }
     const ep = c.getEndpoint()
-    let epM = -1
-    for (let i = 0; i < EP_PRESETS.length; i++) { if (ep === EP_PRESETS[i]) { epM = i; break } }
-    if (epM >= 0) { this.endpointIdx = epM; this.useCustomEP = false }
-    else { this.endpointCustom = ep; this.useCustomEP = true }
+    if (ep !== DS_ENDPOINT) { this.customEP = ep; this.useCustomEP = true }
     const m = c.getModel()
-    let mM = -1
-    for (let i = 0; i < this.currentPresets.length; i++) { if (m === this.currentPresets[i].value) { mM = i; break } }
-    if (mM >= 0) { this.modelIdx = mM; this.useCustomMD = false } else { this.modelCustom = m; this.useCustomMD = true }
+    if (m !== DEFAULT_MODEL) { this.customMD = m; this.useCustomMD = true }
     this.temperature = c.getTemperature(); this.maxTokens = c.getMaxTokens(); this.timeoutMs = c.getTimeoutMs()
-    this.tempText = this.temperature.toString(); this.maxTokensText = this.maxTokens.toString(); this.timeoutText = this.timeoutMs.toString()
+    this.tempText = this.temperature.toString(); this.maxTText = this.maxTokens.toString(); this.toText = this.timeoutMs.toString()
   }
 
   async handleSave(): Promise<void> {
-    const tp = parseFloat(this.tempText); const mt = parseInt(this.maxTokensText); const to = parseInt(this.timeoutText)
+    const tp = parseFloat(this.tempText); const mt = parseInt(this.maxTText); const to = parseInt(this.toText)
     if (isNaN(tp) || isNaN(mt) || isNaN(to)) { promptAction.showToast({ message: "参数必须为数字", duration: 2000 }); return }
     try {
       await LlmConfig.getInstance().saveAll(this.ep(), this.md(), tp, mt, to)
@@ -104,8 +65,7 @@ struct AiSettingsPage {
 
   async handleReset(): Promise<void> {
     try { await LlmConfig.getInstance().resetDefaults(); await LlmConfig.getInstance().clearApiKey()
-      this.apiKey = ""; this.endpointIdx = 0; this.useCustomEP = false; this.endpointCustom = ""
-      this.modelIdx = 0; this.useCustomMD = false; this.modelCustom = ""
+      this.apiKey = ""; this.useCustomEP = false; this.customEP = ""; this.useCustomMD = false; this.customMD = ""
       this.configured = false; this.statusText = "已恢复默认"
       promptAction.showToast({ message: "已恢复默认", duration: 1500 })
     } catch (e) { promptAction.showToast({ message: "恢复失败", duration: 1500 }) }
@@ -114,8 +74,8 @@ struct AiSettingsPage {
   async handleTest(): Promise<void> {
     if (this.apiKey.trim().length === 0) { promptAction.showToast({ message: "请先输入 API Key", duration: 1500 }); return }
     await LlmConfig.getInstance().setApiKey(this.apiKey.trim())
-    const tp2 = parseFloat(this.tempText); const mt2 = parseInt(this.maxTokensText); const to2 = parseInt(this.timeoutText)
-    await LlmConfig.getInstance().saveAll(this.ep(), this.md(), isNaN(tp2) ? 0.1 : tp2, isNaN(mt2) ? 256 : mt2, isNaN(to2) ? 5000 : to2)
+    const tp = parseFloat(this.tempText); const mt = parseInt(this.maxTText); const to = parseInt(this.toText)
+    await LlmConfig.getInstance().saveAll(this.ep(), this.md(), isNaN(tp) ? 0.1 : tp, isNaN(mt) ? 256 : mt, isNaN(to) ? 5000 : to)
     this.testing = true
     try { await new LlmClient().call([{ role: "system", content: "Reply OK." }, { role: "user", content: "OK" }])
       promptAction.showToast({ message: "连接成功", duration: 1500 }); this.statusText = "已配置 · 连接正常"
@@ -132,39 +92,115 @@ struct AiSettingsPage {
       Row().width("100%").height(0.5).backgroundColor(BORDER)
       Scroll() {
         Column() {
-          StatusCard({ configured: this.configured, statusText: this.statusText, cardPadding: S_4 })
-          SectionHeader({ title: "服务端点", desc: "选择预设或输入自定义地址" })
-          EndpointPicker({
-            epIdx: this.endpointIdx, useCustom: this.useCustomEP, customText: this.endpointCustom,
-            onTextChange: (v: string): void => { this.endpointCustom = v },
-            onSelect: (i: number): void => { this.useCustomEP = false; this.endpointIdx = i },
-            onCustom: (): void => { this.useCustomEP = true },
-          })
-          SectionHeader({ title: "模型", desc: "选择 DeepSeek 模型或自定义" })
-          ModelPicker({
-            presets: this.currentPresets, mdlIdx: this.modelIdx, useCustom: this.useCustomMD, customText: this.modelCustom,
-            onTextChange: (v: string): void => { this.modelCustom = v },
-            onSelect: (i: number): void => { this.useCustomMD = false; this.modelIdx = i },
-            onCustom: (): void => { this.useCustomMD = true },
-          })
-          SectionHeader({ title: "API Key", desc: "从模型服务商获取的密钥" })
-          KeyInput({
-            apiKey: this.apiKey, testing: this.testing,
-            onChange: (v: string): void => { this.apiKey = v },
-            onTest: (): void => { this.handleTest() },
-          })
-          SectionHeader({ title: "请求参数", desc: "" })
+          // ---- 连接状态 ----
+          Row() {
+            Column() {
+              Text("连接状态").fontSize(F_XS).fontColor(TEXT_3).margin({ bottom: 4 })
+              Text(this.statusText).fontSize(F_BASE).fontWeight(W_SEMIBOLD).fontColor(this.configured ? MINT : TEXT_4)
+            }.alignItems(HorizontalAlign.Start)
+            Blank()
+            Circle({ width: 10, height: 10 }).fill(this.configured ? MINT : TEXT_4)
+          }.width("100%").padding(S_4).borderRadius(R_LG).backgroundColor(BG_CARD).margin({ left: S_2, right: S_2 })
+
+          // ---- 服务端点 ----
+          this.Section("服务端点", "DeepSeek 官方或自定义")
           Column() {
-            ParamRow({ label: "温度", value: this.tempText, hint: "0-2", onChange: (v: string): void => { this.tempText = v } })
-            Row().width("100%").height(0.5).backgroundColor(BORDER)
-            ParamRow({ label: "最大 Token", value: this.maxTokensText, hint: "1-8192", onChange: (v: string): void => { this.maxTokensText = v } })
-            Row().width("100%").height(0.5).backgroundColor(BORDER)
-            ParamRow({ label: "超时(ms)", value: this.timeoutText, hint: "1000-60000", onChange: (v: string): void => { this.timeoutText = v } })
+            Row() {
+              Radio({ value: "ep_default", group: "ep" }).checked(!this.useCustomEP)
+                .onChange((v: boolean): void => { if (v) { this.useCustomEP = false } })
+              Column() {
+                Text("DeepSeek 官方").fontSize(F_SM).fontColor(TEXT)
+                Text(DS_ENDPOINT).fontSize(10).fontColor(TEXT_4).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+              }.alignItems(HorizontalAlign.Start).margin({ left: 8 }).layoutWeight(1)
+            }.width("100%").padding({ left: 4, right: 4, top: 6, bottom: 6 })
+
+            Row() {
+              Radio({ value: "ep_custom", group: "ep" }).checked(this.useCustomEP)
+                .onChange((v: boolean): void => { if (v) { this.useCustomEP = true } })
+              TextInput({ text: this.customEP, placeholder: "自定义端点地址..." }).layoutWeight(1).height(44)
+                .fontSize(F_XS).fontColor(TEXT).placeholderColor(TEXT_4)
+                .backgroundColor("#0AFFFFFF").borderRadius(R_MD)
+                .onChange((v: string): void => { this.customEP = v })
+            }.width("100%").padding({ left: 4, right: 8, top: 6, bottom: 10 })
           }.width("100%").borderRadius(R_LG).backgroundColor(BG_CARD).margin({ left: S_2, right: S_2 })
-          SettingsActionBar({ onSave: (): void => { this.handleSave() }, onReset: (): void => { this.handleReset() } })
+
+          // ---- 模型 ----
+          this.Section("模型", "默认 DeepSeek-V3 或自定义")
+          Column() {
+            Row() {
+              Radio({ value: "md_default", group: "md" }).checked(!this.useCustomMD)
+                .onChange((v: boolean): void => { if (v) { this.useCustomMD = false } })
+              Column() {
+                Text("DeepSeek-V3").fontSize(F_SM).fontColor(TEXT)
+                Text(DEFAULT_MODEL + " · 64K").fontSize(9).fontColor(TEXT_4).margin({ top: 1 })
+              }.alignItems(HorizontalAlign.Start).margin({ left: 8 }).layoutWeight(1)
+            }.width("100%").padding({ left: 4, right: 4, top: 6, bottom: 6 })
+
+            Row() {
+              Radio({ value: "md_custom", group: "md" }).checked(this.useCustomMD)
+                .onChange((v: boolean): void => { if (v) { this.useCustomMD = true } })
+              TextInput({ text: this.customMD, placeholder: "自定义模型 ID..." }).layoutWeight(1).height(44)
+                .fontSize(F_XS).fontColor(TEXT).placeholderColor(TEXT_4)
+                .backgroundColor("#0AFFFFFF").borderRadius(R_MD)
+                .onChange((v: string): void => { this.customMD = v })
+            }.width("100%").padding({ left: 4, right: 8, top: 6, bottom: 10 })
+          }.width("100%").borderRadius(R_LG).backgroundColor(BG_CARD).margin({ left: S_2, right: S_2 })
+
+          // ---- API Key ----
+          this.Section("API Key", "从 DeepSeek 获取的密钥")
+          Row() {
+            TextInput({ text: this.apiKey, placeholder: "sk-..." }).type(InputType.Password)
+              .layoutWeight(1).height(42).fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor("transparent")
+              .onChange((v: string): void => { this.apiKey = v })
+            Button(this.testing ? "..." : "测试").fontSize(F_XS).fontColor(BG_DARK)
+              .height(44).borderRadius(R_MD).backgroundColor(MINT).enabled(!this.testing).margin({ left: 8 })
+              .onClick((): void => { this.handleTest() })
+          }.width("100%").padding({ left: 16, right: 16, top: 8, bottom: 8 }).borderRadius(R_LG).backgroundColor(BG_CARD).margin({ left: S_2, right: S_2 })
+
+          // ---- 请求参数 ----
+          this.Section("请求参数", "")
+          Column() {
+            this.Param("温度", this.tempText, "0-2", (v: string): void => { this.tempText = v })
+            Row().width("100%").height(0.5).backgroundColor(BORDER)
+            this.Param("最大 Token", this.maxTText, "1-8192", (v: string): void => { this.maxTText = v })
+            Row().width("100%").height(0.5).backgroundColor(BORDER)
+            this.Param("超时(ms)", this.toText, "1000-60000", (v: string): void => { this.toText = v })
+          }.width("100%").borderRadius(R_LG).backgroundColor(BG_CARD).margin({ left: S_2, right: S_2 })
+
+          // ---- 操作按钮 ----
+          Row() {
+            Button("恢复默认").fontSize(F_SM).fontColor(TEXT_3).height(44).borderRadius(R_MD)
+              .backgroundColor("#1AFFFFFF").layoutWeight(1)
+              .onClick((): void => { this.handleReset() })
+            Button("保存配置").fontSize(F_SM).fontColor(BG_DARK).height(44).borderRadius(R_MD)
+              .backgroundColor(MINT).layoutWeight(1).margin({ left: 12 })
+              .onClick((): void => { this.handleSave() })
+          }.width("100%").padding({ left: S_2, right: S_2, top: 20 })
+
           Blank().height(40)
         }.width("100%")
       }.layoutWeight(1).width("100%")
     }.width("100%").height("100%").backgroundColor(BG_DARK)
+  }
+
+  @Builder Section(title: string, desc: string) {
+    Column() {
+      Text(title).fontSize(F_SM).fontWeight(W_SEMIBOLD).fontColor(TEXT)
+      if (desc.length > 0) { Text(desc).fontSize(F_XS).fontColor(TEXT_4).margin({ top: 2 }) }
+    }.alignItems(HorizontalAlign.Start).width("100%").padding({ left: 20, right: S_2, top: 20, bottom: 8 })
+  }
+
+  @Builder Param(label: string, value: string, hint: string, cb: (v: string) => void) {
+    Row() {
+      Column() {
+        Text(label).fontSize(F_SM).fontColor(TEXT_3)
+        Text(hint).fontSize(10).fontColor(TEXT_4).margin({ top: 2 })
+      }.alignItems(HorizontalAlign.Start)
+      Blank()
+      TextInput({ text: value, placeholder: hint }).type(InputType.Number).width(90).height(44)
+        .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
+        .backgroundColor("#0AFFFFFF").borderRadius(R_MD).textAlign(TextAlign.Center)
+        .onChange(cb)
+    }.width("100%").padding({ left: 16, right: 16, top: 10, bottom: 10 })
   }
 }
