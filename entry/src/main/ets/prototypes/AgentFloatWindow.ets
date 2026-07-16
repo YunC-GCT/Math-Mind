@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MathMind AI 浮窗 · 装配层 (7 子组件 + 会话管理)
  */
 import { MINT, MINT_LIGHT, BG_DARK, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
@@ -12,6 +12,7 @@ import { EmptyStateHint } from "./chat/EmptyStateHint"
 import { QuickSuggestions } from "./chat/QuickSuggestions"
 import { MessageInput } from "./chat/MessageInput"
 import { ChatSessionManager, sid } from "./chat/ChatSession"
+import { SessionBar } from "./chat/SessionBar"
 
 interface ChatMsg { id: number; role: string; content: string; ts: number }
 interface Session { id: string; name: string; messages: ChatMsg[] }
@@ -86,35 +87,7 @@ export struct AgentFloatWindow {
   private streamOut(text: string): void { let pos = 0; const t = setInterval((): void => { pos = Math.min(pos + 3, text.length); this.streamBuffer = text.substring(0, pos); if (pos >= text.length) { clearInterval(t); this.addFinal(text) } }, 25) }
   private addFinal(text: string): void { this.messages = [...this.messages, { id: nowId(), role: "ai", content: text, ts: Date.now() }]; this.busy = false; this.streamBuffer = ""; setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 150) }
 
-  @Builder SessionBar() {
-    Row() {
-      Scroll() {
-        Row() {
-          ForEach(this.sessions, (s: Session): void => {
-            Row() {
-              Text(s.id === this.activeSid ? "● " + s.name : "○ " + s.name).fontSize(F_XS).fontColor(s.id === this.activeSid ? MINT : TEXT_3).fontWeight(W_MEDIUM)
-              if (this.sessions.length > 1) { Text("✕").fontSize(9).fontColor(TEXT_4).margin({ left: S_1 }).onClick((): void => { this.deleteSession(s.id) }) }
-            }.padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 }).borderRadius(R_FULL).backgroundColor(s.id === this.activeSid ? MINT_LIGHT : GLASS_10).margin({ right: S_2 }).onClick((): void => { this.switchSession(s.id) })
-          }, (s: Session): string => s.id)
-          Text("+").fontSize(F_SM).fontColor(TEXT_3).width(28).height(28).borderRadius(14).textAlign(TextAlign.Center).backgroundColor(GLASS_10).onClick((): void => { this.newSession() })
-        }.padding({ left: S_2, right: S_2 })
-      }.layoutWeight(1).scrollBar(BarState.Off)
-    }.width("100%").height(36).padding({ top: S_1, bottom: S_1 })
-  }
-
-  build() {
-    Stack() {
-      if (this.show) {
-        Column().width("100%").height("100%").backgroundColor(OVERLAY_MASK).onClick((): void => this.onClose())
-        Column() {
-          Row() { Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4) }.width("100%").height(S_6).justifyContent(FlexAlign.Center)
-          ChatHeader({ deepThink: this.deepThink, onToggleThink: (): void => { this.deepThink = !this.deepThink }, onNewChat: (): void => { this.newSession() }, onClose: this.onClose })
-          Row().width("100%").height(0.5).backgroundColor(BORDER)
-          this.SessionBar()
-          Scroll(this.scroller) {
-            Column() {
-              if (this.messages.length === 0 && !this.busy) { EmptyStateHint() }
-              ForEach(this.messages, (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) }, (msg: ChatMsg): string => msg.id.toString())
+) }, (msg: ChatMsg): string => msg.id.toString())
               if (this.streamBuffer.length > 0) { ChatBubble({ msg: { id: 0, role: "ai", content: this.streamBuffer, ts: Date.now() }, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (): void => {} }) }
               else if (this.busy) { TypingIndicator() }
               Blank().height(S_2)
