@@ -1,4 +1,4 @@
-// chat/ChatBubble.ets — 聊天气泡 + LaTeX 视觉区分
+﻿// chat/ChatBubble.ets — 聊天气泡 + LaTeX 视觉区分
 import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT,
   TEXT, TEXT_2, TEXT_4, S_1, S_2, S_3, R_MD, F_XS, F_SM, W_SEMIBOLD,
 } from "common"
@@ -41,6 +41,8 @@ export struct ChatBubble {
                 .onClick((): void => { if (this.onCopy) { this.onCopy(this.msg.content) } })
               Text("\u21BB").fontSize(10).fontColor(TEXT_4).padding({ top: S_1 })
                 .onClick((): void => { if (this.onRegen) { this.onRegen(this.msg) } })
+              Text("\uD83D\uDC4E").fontSize(9).fontColor(TEXT_4).padding({ top: S_1, left: S_2 })
+                .onClick((): void => { if (this.onFeedback) { this.onFeedback(this.msg) } })
             }
           }.alignItems(HorizontalAlign.Start)
           Blank()
