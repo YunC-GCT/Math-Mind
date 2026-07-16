@@ -42,7 +42,7 @@ export struct AgentFloatWindow {
   onPendingImageChange(): void { if (this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri } }
   onMessagesChange(): void {
     if (this.messages.length > 0) {
-      setTimeout((): void => { this.scroller.scrollToIndex(this.messages.length - 1, true) }, 50)
+      setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 80)
       this.syncSession(); this.saveHistory()
     }
   }
@@ -163,7 +163,7 @@ export struct AgentFloatWindow {
             Column() {
               if (this.messages.length === 0 && !this.busy) { EmptyStateHint() }
               ForEach(this.messages,
-                (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) },
+                (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) },
                 (msg: ChatMsg): string => msg.id.toString()
               )
               if (this.busy) { TypingIndicator() }
