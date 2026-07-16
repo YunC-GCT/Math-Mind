@@ -77,12 +77,16 @@ export class DispatcherMVP {
         }
       }
 
-      // Step 3: KnowledgeModelMVP 自分词 + 结构化 + 真值检验 + 入库(一次性完成)
+      // Step 3: KnowledgeModelMVP 自分词 + 结构化 + 真值检验 + 入库（批量处理多段文本）
+      // structureBatch 按空行分割文本，每段独立调用 AI 处理（初赛最多 3 段）
+      // 批量返回为空时降级为单段 structure() 调用，确保总有结果
       const model = new KnowledgeModelMVP(this.noteDao);
-      const unit: KnowledgeUnitExt = await model.structure(ocrText);
-      log.info('structure done, note.id=' + unit.id
+      const units: KnowledgeUnitExt[] = await model.structureBatch(ocrText);
+      const unit: KnowledgeUnitExt = units.length > 0 ? units[0] : await model.structure(ocrText);
+      log.info('structure done, notes.count=' + String(units.length)
+        + ', note.id=' + unit.id
         + ', category=' + unit.type
-        + ', truthFlag=' + unit.truthFlag.toString());
+        + ', truthFlag=' + String(unit.truthFlag));
 
       // Step 4: 存入 lastUnit 供调用方读取, 返回成功
       this.lastUnit = unit;

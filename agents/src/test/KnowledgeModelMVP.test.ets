@@ -22,6 +22,8 @@ class MockNoteDao implements NoteDaoInterface {
   async insert(unit: KnowledgeUnitExt): Promise<number> {
     return 42;
   }
+  async update(unit: KnowledgeUnitExt): Promise<void> {
+  }
 }
 
 // ── 辅助 ──

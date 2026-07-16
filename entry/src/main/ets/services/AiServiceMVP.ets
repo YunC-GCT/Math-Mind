@@ -43,6 +43,14 @@ class NoteDaoAdapter implements NoteDaoInterface {
   async insert(unit: KnowledgeUnitExt): Promise<number> {
     return await this.realDao.insert(unit);
   }
+
+  /**
+   * 将 update 转发给真实 NoteDaoMVP 实现
+   * NoteDaoAdapter 本身不包含业务逻辑，只做接口适配
+   */
+  async update(unit: KnowledgeUnitExt): Promise<void> {
+    return await this.realDao.update(unit);
+  }
 }
 
 // ==================== 主类 ====================

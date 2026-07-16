@@ -76,8 +76,16 @@ export class KnowledgeModelMVP {
   async structure(ocrText: string): Promise<KnowledgeUnitExt> {
     const startTime: number = Date.now();
 
-    // Step 1: Call AI (via shared LlmClient)
-    const aiRaw: AiRawResponse = await this.callAi(ocrText);
+    // Step 1: Call AI (via shared LlmClient); 失败时 fallback 规则兜底
+    // P0 防护: 网络超时 / API Key 过期 / 模型返回空内容 均不会导致崩溃
+    // catch 块调用 ruleFallback() 用简单关键词规则生成降级结果，保证演示不中断
+    let aiRaw: AiRawResponse;
+    try {
+      aiRaw = await this.callAi(ocrText);
+    } catch (e) {
+      console.warn('[KnowledgeModelMVP] AI 调用失败，使用规则兜底: ' + String(e));
+      aiRaw = this.ruleFallback(ocrText);
+    }
 
     // Step 2: Build KnowledgeUnitExt
     const unit: KnowledgeUnitExt = createUnitExt(
@@ -146,13 +154,43 @@ export class KnowledgeModelMVP {
     const rawContent: string = await client.call(messages);
 
     if (!rawContent || rawContent.length === 0) {
-      throw new Error('AI ' + '\u8FD4\u56DE\u4E3A\u7A7A\uFF1Acontent \u4E3A\u7A7A');
+      throw new Error('AI 返回为空：content 为空');
     }
 
-    const parsed: Record<string, Object> = JSON.parse(rawContent) as Record<string, Object>;
+    // 解析 JSON：三层防护
+    //   ① 剥离 markdown 代码块包裹（```json ... ```）
+    //   ② 提取第一个 { 到最后一个 } 之间的内容（容错 AI 额外文字）
+    //   ③ JSON.parse 失败时抛可控错误，由上层 structure() 的 catch 统一兜底
+    let parsed: Record<string, Object>;
+    try {
+      let cleaned: string = rawContent.trim();
+      // 尝试匹配 ```json ... ``` 或 ``` ... ``` 代码块
+      const codeBlockMatch: RegExpMatchArray | null = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch !== null && codeBlockMatch.length >= 2) {
+        cleaned = codeBlockMatch[1].trim();
+      }
+      // 容错：只取最外层 {} 之间的内容
+      const braceStart: number = cleaned.indexOf('{');
+      const braceEnd: number = cleaned.lastIndexOf('}');
+      if (braceStart !== -1 && braceEnd > braceStart) {
+        cleaned = cleaned.substring(braceStart, braceEnd + 1);
+      }
+      parsed = JSON.parse(cleaned) as Record<string, Object>;
+    } catch (e) {
+      // 此处不静默吞错，而是抛异常让上层 structure() 统一走 ruleFallback
+      throw new Error('AI 返回内容无法解析为 JSON，已触发规则兜底');
+    }
+
+    // P0 防护: category 白名单校验
+    // AI 可能返回 "例题"、"微积分" 等不在 5 类之内的值，默认降级为 "概念"
+    const VALID_CATEGORIES: string[] = ['概念', '定理', '公式', '证明题', '计算题'];
+    const rawCategory: string = (parsed['category'] as string) ?? '';
+    const category: KnowledgeCategory = VALID_CATEGORIES.indexOf(rawCategory) !== -1
+      ? rawCategory as KnowledgeCategory
+      : '概念';
 
     const aiRaw: AiRawResponse = {
-      category: parsed['category'] as KnowledgeCategory,
+      category: category,
       title: parsed['title'] as string,
       tags: parsed['tags'] as string[],
       difficulty: parsed['difficulty'] as number,
@@ -235,6 +273,66 @@ export class KnowledgeModelMVP {
       '  ]\n' +
       '}';
   }
+  /**
+   * AI 调用失败时的规则兜底：关键词判断分类 + 简单 fallback
+   *
+   * 触发条件：
+   *   - 网络超时 / API Key 过期 → LlmClient 抛异常
+   *   - AI 返回空内容 → callAi 抛异常
+   *   - AI 返回非 JSON → JSON.parse 抛异常
+   *   - 以上异常被 structure() 的 catch 捕获后调用本方法
+   *
+   * 分类规则（优先级从高到低）：
+   *   1. 含"证明"/"求证" → 证明题
+   *   2. 含"计算"/"求解"/"求" → 计算题
+   *   3. 含"定理" → 定理
+   *   4. 含"="且不含"请" → 公式（避免"请计算"误判为公式）
+   *   5. 兜底 → 概念
+   *
+   * @param ocrText - 输入文本
+   * @returns AiRawResponse（规则生成的分类结果，difficulty/importance 默认 3）
+   */
+  private ruleFallback(ocrText: string): AiRawResponse {
+    const trimmed: string = ocrText.trim();
+
+    // 1. 关键词优先级链判断 category
+    let category: KnowledgeCategory = '概念';
+    if (trimmed.indexOf('证明') !== -1 || trimmed.indexOf('求证') !== -1) {
+      category = '证明题';
+    } else if (
+      trimmed.indexOf('计算') !== -1 ||
+      trimmed.indexOf('求解') !== -1 ||
+      trimmed.indexOf('求') !== -1
+    ) {
+      category = '计算题';
+    } else if (trimmed.indexOf('定理') !== -1) {
+      category = '定理';
+    } else if (
+      trimmed.indexOf('=') !== -1 &&
+      trimmed.indexOf('请') === -1
+    ) {
+      category = '公式';
+    }
+
+    // 2. title 取原文前 30 字（过长则截断加省略号）
+    const title: string = trimmed.length > 30 ? trimmed.substring(0, 30) + '...' : trimmed;
+
+    // 3. 占位结构化字段：整个原文塞进一个 raw 字段，UI 可以原样展示
+    const fallbackFields: StructuredField[] = [
+      { key: 'raw', label: '原文', value: trimmed },
+    ];
+
+    // 4. 返回默认评分为 3 的结果
+    return {
+      category: category,
+      title: title,
+      tags: [category, 'fallback'],
+      difficulty: 3,
+      importance: 3,
+      fields: fallbackFields,
+    };
+  }
+
   /**
    * 合并标签：AI 返回的标签 + 最小类名，去重
    *
@@ -352,26 +450,64 @@ export class KnowledgeModelMVP {
   }
 
   /**
-   * 检查花括号 {} 是否配对，缺的自动补，多的自动删
+   * 检查三类括号 {} () [] 是否配对，缺的自动补，多的自动删
+   *
+   * 设计要点：
+   *   - 分别维护 curly / paren / square 三个独立深度计数器
+   *   - 多余的闭合括号直接丢弃（不补对应的开括号，因为无法确定该补在哪里）
+   *   - 缺失的闭合括号统一在文本末尾补全
+   *   - 三类括号互不干扰（如 [{]} 视为合法，因为每类各自配对）
    *
    * @param text - 输入文本
    * @returns 检查结果 + 修正后的文本
    */
   checkBracePairing(text: string): BracePairingResult {
     const errors: string[] = [];
-    let braceDepth: number = 0;
+    // 三类括号：{} () []
+    let curlyDepth: number = 0;
+    let parenDepth: number = 0;
+    let squareDepth: number = 0;
     let result: string = '';
+
+    const openCurly: string = '{';
+    const closeCurly: string = '}';
+    const openParen: string = '(';
+    const closeParen: string = ')';
+    const openSquare: string = '[';
+    const closeSquare: string = ']';
 
     for (let i: number = 0; i < text.length; i++) {
       const ch: string = text[i];
-      if (ch === '{') {
-        braceDepth = braceDepth + 1;
+      if (ch === openCurly) {
+        curlyDepth = curlyDepth + 1;
         result = result + ch;
-      } else if (ch === '}') {
-        braceDepth = braceDepth - 1;
-        if (braceDepth < 0) {
-          errors.push('位置 ' + String(i) + ': 多余的闭合花括号 }（已自动移除）');
-          braceDepth = 0;
+      } else if (ch === closeCurly) {
+        curlyDepth = curlyDepth - 1;
+        if (curlyDepth < 0) {
+          errors.push('位置 ' + String(i) + ': 多余的 }（已自动移除）');
+          curlyDepth = 0;
+        } else {
+          result = result + ch;
+        }
+      } else if (ch === openParen) {
+        parenDepth = parenDepth + 1;
+        result = result + ch;
+      } else if (ch === closeParen) {
+        parenDepth = parenDepth - 1;
+        if (parenDepth < 0) {
+          errors.push('位置 ' + String(i) + ': 多余的 )（已自动移除）');
+          parenDepth = 0;
+        } else {
+          result = result + ch;
+        }
+      } else if (ch === openSquare) {
+        squareDepth = squareDepth + 1;
+        result = result + ch;
+      } else if (ch === closeSquare) {
+        squareDepth = squareDepth - 1;
+        if (squareDepth < 0) {
+          errors.push('位置 ' + String(i) + ': 多余的 ]（已自动移除）');
+          squareDepth = 0;
         } else {
           result = result + ch;
         }
@@ -380,10 +516,23 @@ export class KnowledgeModelMVP {
       }
     }
 
-    if (braceDepth > 0) {
-      errors.push('缺少 ' + String(braceDepth) + ' 个闭合花括号 }（已在末尾自动补充）');
-      for (let j: number = 0; j < braceDepth; j++) {
-        result = result + '}';
+    // 补全缺失的闭合括号
+    if (curlyDepth > 0) {
+      errors.push('缺少 ' + String(curlyDepth) + ' 个 }（已在末尾自动补充）');
+      for (let j: number = 0; j < curlyDepth; j++) {
+        result = result + closeCurly;
+      }
+    }
+    if (parenDepth > 0) {
+      errors.push('缺少 ' + String(parenDepth) + ' 个 )（已在末尾自动补充）');
+      for (let j: number = 0; j < parenDepth; j++) {
+        result = result + closeParen;
+      }
+    }
+    if (squareDepth > 0) {
+      errors.push('缺少 ' + String(squareDepth) + ' 个 ]（已在末尾自动补充）');
+      for (let j: number = 0; j < squareDepth; j++) {
+        result = result + closeSquare;
       }
     }
 
@@ -405,12 +554,14 @@ export class KnowledgeModelMVP {
     if (text.indexOf('除以0') !== -1 || text.indexOf('除以零') !== -1) {
       issues.push('检测到"除以0/除以零"——请确认分母不为零');
     }
-    const slashZeroIdx: number = text.indexOf('/0');
-    if (slashZeroIdx !== -1) {
-      const after: string = text.substring(slashZeroIdx + 2);
-      if (after.length === 0 || isNaN(Number(after[0]))) {
-        issues.push('检测到 "/0" 表达式，可能存在除零风险');
-      }
+    // P1 优化: 用正则精准匹配分母位置的 /0，避免误报 \sqrt{0} 等安全表达式
+    // fracZeroPattern  匹配 \frac{x}{0} 中花括号内的 /0
+    // divZeroPattern   匹配 (x/0) 或 [x/0] 中括号内的 /0
+    // 注意：LaTeX 中的 /0 如出现在 \sqrt{0}、/0.5 等位置则不会触发
+    const fracZeroPattern: RegExp = /\{\s*\/\s*0\s*\}/;
+    const divZeroPattern: RegExp = /[({]\s*\/\s*0\s*[)}]/;
+    if (fracZeroPattern.test(text) || divZeroPattern.test(text)) {
+      issues.push('检测到分母位置的 /0 表达式，可能存在除零风险');
     }
     if (text.indexOf('分母为0') !== -1 || text.indexOf('分母为零') !== -1) {
       issues.push('检测到"分母为0/分母为零"——请确认分母不为零');
@@ -556,5 +707,54 @@ export class KnowledgeModelMVP {
       searchPos = hatClose + 1;
     }
     return result;
+  }
+
+  /**
+   * 批量处理：按空行分割多段文本，逐段 structure（初赛限定最多 3 段）
+   *
+   * @param ocrText - 可能包含多段知识的文本
+   * @returns KnowledgeUnitExt 数组
+   */
+  async structureBatch(ocrText: string): Promise<KnowledgeUnitExt[]> {
+    // 阶段 1: 将文本按空行拆分为多个独立段落
+    //   - 逐行扫描，空行作为段落分隔符
+    //   - 连续多空行视为一个分隔符（不会产生空段落）
+    //   - 每个段落内的换行保留原样
+    const rawSegments: string[] = ocrText.split('\n');
+    const merged: string[] = [];
+    let current: string = '';
+    for (let s: number = 0; s < rawSegments.length; s++) {
+      const line: string = rawSegments[s].trim();
+      if (line.length === 0) {
+        // 遇到空行：提交当前累积的段落，重置缓冲区
+        if (current.length > 0) {
+          merged.push(current);
+          current = '';
+        }
+      } else {
+        // 非空行：追加到当前段落
+        if (current.length > 0) {
+          current = current + '\n';
+        }
+        current = current + line;
+      }
+    }
+    // 提交最后一个段落（如果文本不以空行结尾）
+    if (current.length > 0) {
+      merged.push(current);
+    }
+
+    // 阶段 2: 逐段调用 structure() 独立处理
+    const results: KnowledgeUnitExt[] = [];
+    for (let i: number = 0; i < merged.length; i++) {
+      const seg: string = merged[i];
+      // 初赛限定最多 3 段，避免 AI 并发调用耗时过长导致演示卡顿
+      if (results.length >= 3) {
+        break;
+      }
+      const unit: KnowledgeUnitExt = await this.structure(seg);
+      results.push(unit);
+    }
+    return results;
   }
 }

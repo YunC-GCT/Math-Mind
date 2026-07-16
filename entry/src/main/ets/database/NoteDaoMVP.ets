@@ -60,6 +60,40 @@ export class NoteDaoMVP {
   }
 
   /**
+   * 按 id 更新已有知识单元的全部字段（WHERE id = unit.id）
+   *
+   * 更新范围：title / content / tags / fields / truthFlag / truthDetails
+   *           / difficulty / importance / needsUserInput / updatedAt / source / userId
+   * 注意：type（最小类）和 createdAt 不更新，因为分类和时间应保持不变
+   *
+   * @param unit 知识单元（id 字段用于 WHERE 条件，其余字段写入 SET）
+   */
+  async update(unit: KnowledgeUnitExt): Promise<void> {
+    const store: relationalStore.RdbStore = await getRdbStore(this.context);
+
+    const values: relationalStore.ValuesBucket = {
+      'title': unit.title,
+      'content': unit.content,
+      'tags': JSON.stringify(unit.tags),
+      'fields': JSON.stringify(unit.fields),
+      'truthFlag': unit.truthFlag ? 1 : 0,
+      'truthDetails': JSON.stringify(unit.truthDetails),
+      'difficulty': unit.difficulty,
+      'importance': unit.importance,
+      'needsUserInput': JSON.stringify(unit.needsUserInput),
+      'updatedAt': Date.now(),
+      'source': unit.source,
+      'userId': unit.userId,
+    };
+
+    const predicates: relationalStore.RdbPredicates = new relationalStore.RdbPredicates('notes');
+    predicates.equalTo('id', unit.id);
+
+    const affectedRows: number = await store.update(values, predicates);
+    console.info('[NoteDaoMVP] update ' + '\u6210\u529F: id=' + unit.id + ', rows=' + String(affectedRows));
+  }
+
+  /**
    * 按 ID 查询知识单元。
    *
    * @param id 知识单元 ID

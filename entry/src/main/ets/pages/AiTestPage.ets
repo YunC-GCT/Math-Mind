@@ -18,11 +18,15 @@ import { KnowledgeModelMVP } from 'agents';
 import { NoteDaoInterface } from 'agents';
 import { KnowledgeUnitExt } from 'agents';
 
-// Mock NoteDao（正式版会注入真实 NoteDao）
+// Mock NoteDao（测试/演示用，不进真实数据库；正式版注入真实 NoteDao 实现）
 class MockNoteDao implements NoteDaoInterface {
   async insert(unit: KnowledgeUnitExt): Promise<number> {
     console.info('[AiTestPage] MockNoteDao.insert ' + unit.title);
     return 1;
+  }
+  // Mock 版 update 仅打日志，不做实际持久化
+  async update(unit: KnowledgeUnitExt): Promise<void> {
+    console.info('[AiTestPage] MockNoteDao.update ' + unit.title);
   }
 }
 
