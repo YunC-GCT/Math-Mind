@@ -13,20 +13,21 @@
  */
 
 import {
-  MINT, MINT_DARK, MINT_GLOW, MINT_BORDER, PURPLE, PINK, AMBER,
-  BG_DARK, BG_CARD,
+  MINT, MINT_GLOW,
+  BG_DARK,
   TEXT, TEXT_2, TEXT_3, TEXT_4, BORDER,
-  GLASS_10, DANGER, OVERLAY_MASK_SOLID,
+  GLASS_10, OVERLAY_MASK_SOLID,
   S_1, S_2, S_3, S_4, S_5, S_6,
-  R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
-  F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL, F_2XL,
+  R_FULL,
+  F_XS, F_SM, F_BASE, F_2XL,
   W_SEMIBOLD, W_BOLD,
-  NoteItem, typeColor, subjectColor, recentDate, stripMD,
+  NoteItem, typeColor, subjectColor, recentDate,
 } from "common"
 import { promptAction } from "@kit.ArkUI"
-import { AlertDialog } from "@kit.ArkUI"
 import { ConfBadge } from "../atoms/ConfBadge"
 import { AppIcon } from "../atoms/AppIcon"
+import { NoteAiCard } from "./NoteDetailOverlay/NoteAiCard"
+import { NoteActionBar } from "./NoteDetailOverlay/NoteActionBar"
 
 // 解析 body 成章节
 interface Section {
@@ -180,7 +181,7 @@ export struct NoteDetailOverlay {
             .padding({ left: 20, right: 20, bottom: 16 })
 
             // AI 卡
-            this.AiCard()
+            NoteAiCard({ onTap: (): void => this.handleAskAi() })
 
             Blank().height(80)
           }
@@ -192,17 +193,11 @@ export struct NoteDetailOverlay {
         .edgeEffect(EdgeEffect.Spring)
 
         // 底部操作栏
-        Row() {
-          this.ActionBtn("Del", "删除", DANGER, (): void => this.confirmDelete())
-          Blank().width(8)
-          this.ActionBtn("Edit", "编辑", TEXT_2, (): void => this.mockEdit())
-          Blank().width(8)
-          this.ActionBtn("Share", "分享", TEXT_2, (): void => this.mockShare())
-        }
-        .width("100%")
-        .padding({ left: S_4, right: S_4, top: S_2, bottom: S_6 })
-        .backgroundColor(BG_DARK)
-        .border({ width: { top: 1 }, color: BORDER })
+        NoteActionBar({
+          onDelete: (): void => this.confirmDelete(),
+          onEdit: (): void => this.mockEdit(),
+          onShare: (): void => this.mockShare(),
+        })
       }
       .width("100%").height("100%")
       .backgroundColor(BG_DARK)
@@ -242,49 +237,6 @@ export struct NoteDetailOverlay {
       .margin({ right: S_2, bottom: S_2 })
   }
 
-  // ========== AI 卡 ==========
-  @Builder
-  AiCard() {
-    Column() {
-      Row() {
-        Stack() {
-          AppIcon({ name: "star", iconSize: 14, color: BG_DARK, strokeWidth: 2 })
-        }
-        .width(28).height(28)
-        .borderRadius(14)
-        .linearGradient({ angle: 135, colors: [[MINT, 0], [PURPLE, 1]] })
-        .alignContent(Alignment.Center)
-        .margin({ right: 10 })
-
-        Column() {
-          Text("AI 解答")
-            .fontSize(F_BASE).fontWeight(W_BOLD)
-            .fontColor(TEXT)
-          Text("让 MathMind AI 解释这道题")
-            .fontSize(F_XS)
-            .fontColor(TEXT_3)
-            .margin({ top: 2 })
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-
-        AppIcon({ name: "chevron-right", iconSize: 18, color: MINT, strokeWidth: 2 })
-      }
-      .width("100%")
-      .alignItems(VerticalAlign.Center)
-    }
-    .width("100%")
-    .padding({ left: S_4, right: S_4, top: S_4, bottom: S_4 })
-    .borderRadius(R_LG)
-    .backgroundColor("#0DFFFFFF")
-    .border({ width: 1, color: MINT_BORDER })
-    .linearGradient({
-      angle: 135,
-      colors: [["#1A5BE3B0", 0], ["#0D9775FA", 1]],
-    })
-    .onClick((): void => this.handleAskAi())
-  }
-
   // ========== 关闭按钮 ==========
   @Builder
   CloseBtn() {
@@ -296,21 +248,6 @@ export struct NoteDetailOverlay {
     .backgroundColor(GLASS_10)
     .alignContent(Alignment.Center)
     .onClick((): void => this.onClose())
-  }
-
-  // ========== 底部操作按钮 ==========
-  @Builder
-  ActionBtn(icon: string, label: string, color: ResourceColor, action: () => void) {
-    Column() {
-      Text(icon).fontSize(10).fontColor(color).fontWeight(W_BOLD).maxLines(1)
-      Text(label).fontSize(10).fontColor(color).margin({ top: 3 })
-    }
-    .layoutWeight(1).height(44)
-    .borderRadius(R_MD)
-    .backgroundColor(GLASS_10)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .onClick((): void => action())
   }
 
   // ========== 行为 ==========
