@@ -9,7 +9,7 @@
 //  ============================================================================
 
 import {
-  MINT, BG_DARK, BG_CARD, TEXT_3,
+  BG_DARK, BG_CARD, TEXT_3,
   S_2, S_4, S_6,
   R_LG, R_FULL,
   F_SM,
@@ -73,7 +73,7 @@ export struct MePage {
         Button("退出登录")
           .fontSize(F_SM)
           .fontColor(DANGER)
-          .width("100%").height(44)
+          .width("100%").height(S_6 * 2 - S_1)
           .backgroundColor(GLASS_8)
           .borderRadius(R_FULL)
           .margin({ left: S_4, right: S_4, top: S_6, bottom: S_6 * 2 - S_2 })
