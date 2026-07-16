@@ -26,6 +26,7 @@ import {
 import { promptAction } from "@kit.ArkUI"
 import { AlertDialog } from "@kit.ArkUI"
 import { ConfBadge } from "../atoms/ConfBadge"
+import { AppIcon } from "../atoms/AppIcon"
 
 // 解析 body 成章节
 interface Section {
@@ -126,7 +127,9 @@ export struct NoteDetailOverlay {
             // meta 行
             Row() {
               if (this.note.chapter && this.note.chapter.length > 0) {
-                Text("📖 " + this.note.chapter)
+                AppIcon({ name: "notes", iconSize: 12, color: TEXT_2, strokeWidth: 1.6 })
+                  .margin({ right: S_1 })
+                Text(this.note.chapter)
                   .fontSize(F_XS)
                   .fontColor(TEXT_2)
                 Text("  ·  ")
@@ -190,11 +193,11 @@ export struct NoteDetailOverlay {
 
         // 底部操作栏
         Row() {
-          this.ActionBtn("🗑", "删除", DANGER, (): void => this.confirmDelete())
+          this.ActionBtn("Del", "删除", DANGER, (): void => this.confirmDelete())
           Blank().width(8)
-          this.ActionBtn("✎", "编辑", TEXT_2, (): void => this.mockEdit())
+          this.ActionBtn("Edit", "编辑", TEXT_2, (): void => this.mockEdit())
           Blank().width(8)
-          this.ActionBtn("↗", "分享", TEXT_2, (): void => this.mockShare())
+          this.ActionBtn("Share", "分享", TEXT_2, (): void => this.mockShare())
         }
         .width("100%")
         .padding({ left: S_4, right: S_4, top: S_2, bottom: S_6 })
@@ -245,9 +248,7 @@ export struct NoteDetailOverlay {
     Column() {
       Row() {
         Stack() {
-          Text("✦")
-            .fontSize(14).fontWeight(W_BOLD)
-            .fontColor(BG_DARK)
+          AppIcon({ name: "star", iconSize: 14, color: BG_DARK, strokeWidth: 2 })
         }
         .width(28).height(28)
         .borderRadius(14)
@@ -267,8 +268,7 @@ export struct NoteDetailOverlay {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
-        Text(">")
-          .fontSize(20).fontColor(MINT).fontWeight(500)
+        AppIcon({ name: "chevron-right", iconSize: 18, color: MINT, strokeWidth: 2 })
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
@@ -289,9 +289,7 @@ export struct NoteDetailOverlay {
   @Builder
   CloseBtn() {
     Stack() {
-      Text("✕")
-        .fontSize(16).fontWeight(500)
-        .fontColor(TEXT_2)
+      AppIcon({ name: "close", iconSize: 16, color: TEXT_2, strokeWidth: 2 })
     }
     .width(S_4 * 2).height(S_4 * 2)
     .borderRadius(22)
@@ -302,10 +300,10 @@ export struct NoteDetailOverlay {
 
   // ========== 底部操作按钮 ==========
   @Builder
-  ActionBtn(icon: string, label: string, color: string, action: () => void) {
+  ActionBtn(icon: string, label: string, color: ResourceColor, action: () => void) {
     Column() {
-      Text(icon).fontSize(16).fontColor(color)
-      Text(label).fontSize(10).fontColor(color).margin({ top: 2 })
+      Text(icon).fontSize(10).fontColor(color).fontWeight(W_BOLD).maxLines(1)
+      Text(label).fontSize(10).fontColor(color).margin({ top: 3 })
     }
     .layoutWeight(1).height(44)
     .borderRadius(R_MD)

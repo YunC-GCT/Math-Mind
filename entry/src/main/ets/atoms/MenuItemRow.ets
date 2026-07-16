@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  atoms/MenuItemRow.ets — 菜单行原子组件
 //  ----------------------------------------------------------------------------
 //  职责: 图标 + 标签 + 右箭头 的通用菜单行。纯展示，交互通过 onClick 回调。
@@ -6,19 +6,18 @@
 //  ============================================================================
 
 import { TEXT_2, TEXT_4, BORDER, S_4, F_SM, F_MD } from "common"
+import { AppIcon } from "./AppIcon"
 
 @Component
 export struct MenuItemRow {
-  @Prop icon: string = ""
+  @Prop icon: string = "notes"
   @Prop label: string = ""
   onTap?: () => void
 
   build() {
     Row() {
-      Text(this.icon)
-        .fontSize(F_MD + 1)
+      AppIcon({ name: this.icon, iconSize: 18, color: TEXT_4, strokeWidth: 1.8 })
         .width(22)
-        .textAlign(TextAlign.Center)
         .flexShrink(0)
 
       Text(this.label)
@@ -27,9 +26,7 @@ export struct MenuItemRow {
         .layoutWeight(1)
         .margin({ left: 12 })
 
-      Text(">")
-        .fontSize(F_MD + 1)
-        .fontColor(TEXT_4)
+      AppIcon({ name: "chevron-right", iconSize: F_MD + 1, color: TEXT_4, strokeWidth: 1.8 })
     }
     .width("100%")
     .padding({ left: 16, right: 16, top: S_4, bottom: S_4 })

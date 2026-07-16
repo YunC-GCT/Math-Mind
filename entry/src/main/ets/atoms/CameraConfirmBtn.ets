@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { MINT, BG_DARK, F_BASE, F_XL, SCREEN_W } from "common"
+import { AppIcon } from "./AppIcon"
 
 @Component
 export struct CameraConfirmBtn {
@@ -16,7 +17,8 @@ export struct CameraConfirmBtn {
       if (this.busy) {
         LoadingProgress().width(F_XL).height(F_XL).color(BG_DARK)
       } else {
-        Text("✓ 使用").fontSize(F_BASE).fontColor(BG_DARK).fontWeight(700)
+        AppIcon({ name: "check", iconSize: F_BASE, color: BG_DARK, strokeWidth: 2.2 })
+        Text("使用").fontSize(F_BASE).fontColor(BG_DARK).fontWeight(700).margin({ left: 4 })
       }
     }
     .layoutWeight(1)

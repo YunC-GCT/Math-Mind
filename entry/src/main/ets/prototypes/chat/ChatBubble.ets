@@ -78,11 +78,14 @@ export struct ChatBubble {
               .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: S_1, bottomRight: R_MD + 4 })
               .backgroundColor(PURPLE_LIGHT).constraintSize({ maxWidth: "92%" })
             Row() {
-              Text("\uD83D\uDCCB").fontSize(9).fontColor(TEXT_4).padding({ top: S_1, right: S_2 })
+              Text("Copy").fontSize(9).fontColor(TEXT_4).fontWeight(W_SEMIBOLD)
+                .padding({ top: S_1, right: S_2 })
                 .onClick((): void => { if (this.onCopy) { this.onCopy(this.msg.content) } })
-              Text("\u21BB").fontSize(10).fontColor(TEXT_4).padding({ top: S_1 })
+              Text("Retry").fontSize(9).fontColor(TEXT_4).fontWeight(W_SEMIBOLD)
+                .padding({ top: S_1 })
                 .onClick((): void => { if (this.onRegen) { this.onRegen(this.msg) } })
-              Text("\uD83D\uDC4E").fontSize(9).fontColor(TEXT_4).padding({ top: S_1, left: S_2 })
+              Text("Flag").fontSize(9).fontColor(TEXT_4).fontWeight(W_SEMIBOLD)
+                .padding({ top: S_1, left: S_2 })
                 .onClick((): void => { if (this.onFeedback) { this.onFeedback(this.msg) } })
             }
           }.alignItems(HorizontalAlign.Start)

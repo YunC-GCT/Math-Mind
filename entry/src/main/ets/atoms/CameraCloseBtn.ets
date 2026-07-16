@@ -4,7 +4,8 @@
 //  尺寸: SCREEN_W/8 圆形
 // ============================================================================
 
-import { F_LG, W_MEDIUM, SCREEN_W } from "common"
+import { SCREEN_W } from "common"
+import { AppIcon } from "./AppIcon"
 
 @Component
 export struct CameraCloseBtn {
@@ -12,7 +13,7 @@ export struct CameraCloseBtn {
 
   build() {
     Stack() {
-      Text("✕").fontSize(F_LG).fontWeight(W_MEDIUM).fontColor("rgba(255,255,255,0.8)")
+      AppIcon({ name: "close", iconSize: SCREEN_W / 20, color: "rgba(255,255,255,0.8)", strokeWidth: 2 })
     }
     .width(SCREEN_W / 8).height(SCREEN_W / 8)
     .borderRadius(SCREEN_W / 16)

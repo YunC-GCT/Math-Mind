@@ -30,6 +30,7 @@ import {
 import { StudyPlanItem } from "common"
 import { StudyPlanViewModel } from "../viewmodels/StudyPlanViewModel"
 import { PlanItemRow } from "../molecules/PlanItemRow"
+import { AppIcon } from "../atoms/AppIcon"
 import { promptAction } from "@kit.ArkUI"
 
 @Entry
@@ -74,9 +75,19 @@ export struct StudyPlanPage {
 
       Blank()
 
-      Text(this.vm.isLoading ? "⏳ 生成中..." : "🤖 智能生成")
-        .fontSize(F_XS)
-        .fontColor(this.vm.isLoading ? MINT : TEXT_3)
+      Row({ space: 4 }) {
+        if (this.vm.isLoading) {
+          LoadingProgress().width(12).height(12).color(MINT)
+          Text("生成中...")
+            .fontSize(F_XS)
+            .fontColor(MINT)
+        } else {
+          AppIcon({ name: "ai", iconSize: 12, color: TEXT_3, strokeWidth: 1.8 })
+          Text("智能生成")
+            .fontSize(F_XS)
+            .fontColor(TEXT_3)
+        }
+      }
         .padding({ left: 12, right: 12, top: 6, bottom: 6 })
         .border({ width: 1, color: this.vm.isLoading ? MINT : BORDER, radius: R_FULL })
         .onClick((): void => {
@@ -96,9 +107,7 @@ export struct StudyPlanPage {
   StatsBar() {
     Row() {
       Row({ space: 6 }) {
-        Text("✓")
-          .fontSize(F_MD)
-          .fontColor(MINT)
+        AppIcon({ name: "check", iconSize: F_MD, color: MINT, strokeWidth: 2.2 })
         Text(`${this.vm.completedCount}/${this.vm.totalCount} 已完成`)
           .fontSize(F_BASE)
           .fontColor(TEXT_2)
@@ -166,9 +175,9 @@ export struct StudyPlanPage {
       .fontColor(TEXT)
       .placeholderColor(TEXT_3)
 
-      Button("＋")
-        .fontSize(28)
-        .fontColor(MINT)
+      Button() {
+        AppIcon({ name: "plus", iconSize: 22, color: MINT, strokeWidth: 2.2 })
+      }
         .backgroundColor(GLASS_8)
         .onClick((): void => { this.vm.addItem() })
         .enabled(this.vm.newTitle.trim().length > 0)

@@ -1,0 +1,68 @@
+// ============================================================================
+//  atoms/AppIcon.ets — lightweight icon component
+// ----------------------------------------------------------------------------
+//  Prefer existing SVG resources. For missing assets, use compact glyph marks
+//  with stable sizing instead of hand-rolled Path viewBox math.
+// ============================================================================
+
+import { TEXT_3, W_BOLD } from "common"
+
+@Component
+export struct AppIcon {
+  @Prop name: string = "notes"
+  @Prop iconSize: number = 16
+  @Prop color: ResourceColor = TEXT_3
+  @Prop strokeWidth: number = 2
+
+  private glyph(): string {
+    if (this.name === "close") { return "x" }
+    if (this.name === "check") { return "✓" }
+    if (this.name === "plus") { return "+" }
+    if (this.name === "trash") { return "Del" }
+    if (this.name === "edit") { return "Edit" }
+    if (this.name === "share") { return "↗" }
+    if (this.name === "copy") { return "Copy" }
+    if (this.name === "refresh") { return "↻" }
+    if (this.name === "feedback") { return "!" }
+    if (this.name === "book") { return "Book" }
+    if (this.name === "chevron-right") { return "›" }
+    if (this.name === "star") { return "✦" }
+    if (this.name === "paperclip") { return "Link" }
+    return ""
+  }
+
+  build() {
+    Stack() {
+      if (this.name === "notes") {
+        Image($r("app.media.ic_notes")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "ai") {
+        Image($r("app.media.ic_ai")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "review") {
+        Image($r("app.media.ic_review")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "me") {
+        Image($r("app.media.ic_me")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "home") {
+        Image($r("app.media.ic_home")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "camera") {
+        Image($r("app.media.ic_camera")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "album") {
+        Image($r("app.media.ic_album")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "circle") {
+        Circle({ width: this.iconSize * 0.72, height: this.iconSize * 0.72 })
+          .fill(Color.Transparent)
+          .stroke(this.color)
+          .strokeWidth(this.strokeWidth)
+      } else {
+        Text(this.glyph())
+          .fontSize(this.iconSize <= 14 ? this.iconSize - 3 : this.iconSize - 4)
+          .fontColor(this.color)
+          .fontWeight(W_BOLD)
+          .maxLines(1)
+          .textAlign(TextAlign.Center)
+          .width(this.iconSize * 1.8)
+      }
+    }
+    .width(this.iconSize).height(this.iconSize)
+    .alignContent(Alignment.Center)
+  }
+}

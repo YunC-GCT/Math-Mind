@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MathMind 复习计划页
  * W3: 状态栏避让 + 令牌化
  */
@@ -8,6 +8,7 @@ import {
   F_SM, F_BASE, F_2XL, W_SEMIBOLD,
 } from "common"
 import { router } from "@kit.ArkUI"
+import { AppIcon } from "../atoms/AppIcon"
 
 @Component
 export struct ReviewPage {
@@ -21,7 +22,8 @@ export struct ReviewPage {
         Column() {
           Blank()
           Column() {
-            Text("📋").fontSize(F_2XL + 18).margin({ bottom: 12 })
+            AppIcon({ name: "review", iconSize: F_2XL + 18, color: MINT, strokeWidth: 1.8 })
+              .margin({ bottom: 12 })
             Text("学习计划").fontSize(F_BASE + 1).fontWeight(W_SEMIBOLD).fontColor(TEXT).margin({ bottom: 8 })
             Text("通过 AI 对话分析笔记后\n自动生成个性化复习计划").fontSize(F_SM + 1).fontColor(TEXT_3)
               .textAlign(TextAlign.Center).lineHeight(20).margin({ bottom: 16 })

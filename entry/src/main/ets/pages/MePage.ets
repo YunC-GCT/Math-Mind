@@ -103,11 +103,11 @@ export struct MePage {
 
         // 菜单
         Column() {
-          MenuItemRow({ icon: "📋", label: "我的复习计划", onTap: (): void => this.toast("复习计划开发中") })
-          MenuItemRow({ icon: "📕", label: "错题本", onTap: (): void => this.toast("错题本开发中") })
-          MenuItemRow({ icon: "⭐", label: "我的收藏", onTap: (): void => this.toast("收藏功能开发中") })
-          MenuItemRow({ icon: "🤖", label: "模型", onTap: (): void => { router.pushUrl({ url: "pages/AiSettings/AiSettingsPage" }) } })
-          MenuItemRow({ icon: "🚪", label: "切换账号", onTap: (): void => this.toast("切换账号开发中") })
+          MenuItemRow({ icon: "review", label: "我的复习计划", onTap: (): void => this.toast("复习计划开发中") })
+          MenuItemRow({ icon: "notes", label: "错题本", onTap: (): void => this.toast("错题本开发中") })
+          MenuItemRow({ icon: "home", label: "我的收藏", onTap: (): void => this.toast("收藏功能开发中") })
+          MenuItemRow({ icon: "ai", label: "模型", onTap: (): void => { router.pushUrl({ url: "pages/AiSettings/AiSettingsPage" }) } })
+          MenuItemRow({ icon: "me", label: "切换账号", onTap: (): void => this.toast("切换账号开发中") })
         }
         .width("100%")
         .backgroundColor(BG_CARD)

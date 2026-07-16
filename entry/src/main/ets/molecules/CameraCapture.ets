@@ -5,11 +5,12 @@
 //  SCREEN_W=377 (Pura90 基准) → 所有尺寸 = SCREEN_W * 比例
 // ============================================================================
 
-import { F_LG, F_BASE, F_XS, W_MEDIUM, S_3, S_4, S_6, SCREEN_W } from "common"
+import { F_BASE, F_XS, S_3, S_4, S_6, SCREEN_W } from "common"
 import { CameraCloseBtn } from "../atoms/CameraCloseBtn"
 import { CameraAlbumBtn } from "../atoms/CameraAlbumBtn"
 import { CameraShutterBtn } from "../atoms/CameraShutterBtn"
 import { ViewfinderCorners } from "../atoms/ViewfinderCorners"
+import { AppIcon } from "../atoms/AppIcon"
 
 @Component
 export struct CameraCapture {
@@ -23,7 +24,7 @@ export struct CameraCapture {
         CameraCloseBtn({ onTap: (): void => { this.onClose() } })
         Blank()
         Stack() {
-          Text("⟳").fontSize(F_LG).fontWeight(W_MEDIUM).fontColor("rgba(255,255,255,0.6)")
+          AppIcon({ name: "refresh", iconSize: SCREEN_W / 20, color: "rgba(255,255,255,0.6)", strokeWidth: 2 })
         }
         .width(SCREEN_W / 8).height(SCREEN_W / 8)
         .borderRadius(SCREEN_W / 16)

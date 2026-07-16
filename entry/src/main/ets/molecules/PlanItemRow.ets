@@ -9,6 +9,7 @@
 
 import { MINT, TEXT, TEXT_3, S_1, S_3, S_5, F_XL, F_MD, F_XS } from "common"
 import { PriorityBadge } from "../atoms/PriorityBadge"
+import { AppIcon } from "../atoms/AppIcon"
 
 @Component
 export struct PlanItemRow {
@@ -21,9 +22,12 @@ export struct PlanItemRow {
   build() {
     Row({ space: S_3 }) {
       // ---- 完成状态图标 ----
-      Text(this.isDone ? "●" : "○")
-        .fontSize(F_XL + 2)
-        .fontColor(this.isDone ? MINT : TEXT_3)
+      AppIcon({
+        name: this.isDone ? "check" : "circle",
+        iconSize: F_XL,
+        color: this.isDone ? MINT : TEXT_3,
+        strokeWidth: 2,
+      })
         .onClick((): void => {
           if (this.onToggle) {
             this.onToggle()
@@ -42,10 +46,13 @@ export struct PlanItemRow {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
         if (this.linkedNoteId.length > 0) {
-          Text("📎 关联笔记: " + this.linkedNoteId)
-            .fontSize(F_XS)
-            .fontColor(TEXT_3)
-            .maxLines(1)
+          Row({ space: S_1 }) {
+            AppIcon({ name: "paperclip", iconSize: F_XS + 2, color: TEXT_3, strokeWidth: 1.4 })
+            Text("关联笔记: " + this.linkedNoteId)
+              .fontSize(F_XS)
+              .fontColor(TEXT_3)
+              .maxLines(1)
+          }
         }
       }
       .layoutWeight(1)
