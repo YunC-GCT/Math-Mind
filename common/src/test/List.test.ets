@@ -1,0 +1,10 @@
+/**
+ * List.test.ets — common 模块本地单元测试入口
+ *
+ * common 模块暂无可单独运行的单元测试（纯共享类型/工具/LLM 基础设施）。
+ * 此空文件确保测试构建系统不会因缺少测试入口而报错。
+ */
+
+export default function testsuite(): void {
+  // no-op: common 模块的测试逻辑后续添加
+}

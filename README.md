@@ -1,7 +1,7 @@
 # MathMind · 当前状态
 
 > 工程: YunC-GCT/Math-Mind · 5 module HarmonyOS 数学学习助手  
-> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-14
+> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-15
 
 ---
 
@@ -23,9 +23,7 @@
 
 | 功能 | 阻塞原因 | 负责人 |
 |------|---------|--------|
-| 拍照→AI 分析整链 | `AiService.capture()` 空壳，未桥接 CameraOverlay→Dispatcher | Mavis |
-| OCR 文字识别 | `OcrTool.ets` 空壳 | D |
-| 3×3 分类真实现 | `TypeClassifier.ets` stub mock | D |
+| Capture-to-AI chain | OCR/classification side is connected; `AgentFloatWindow` still needs to call `AiService.capture()` when sending images | Mavis |
 | 知识建模+入库 | `KnowledgeModel.ets` stub（有 `structure()` 但未调 DB） | L |
 | 笔记数据库 | `NoteDao.ets` 空壳 | L |
 | HTTP 客户端 | `ApiClient.ets` 已实现（未使用） | Mavis |
@@ -72,14 +70,14 @@ MathMind/
 |------|------|---------|
 | `entry/database/NoteDao.ets` | L | ❌ 空壳 — TODO(A1) |
 | `entry/services/ApiClient.ets` | Mavis | ✅ 已实现 — HTTP request() + JWT + 401 重试 |
-| `entry/services/AiService.ets` | Mavis | ❌ 空壳 — TODO(E1)，拍照→Dispatcher 桥接待写 |
+| `entry/services/AiService.ets` | Mavis | DONE - `capture()` builds image payload -> Dispatcher and calls NoteDao insert |
 | `entry/overlays/CameraOverlay.ets` | Mavis | ✅ 完整 — CameraPicker/PhotoViewPicker + UI |
 | `agents/core/Dispatcher.ets` | Mavis | ✅ 完整 — dispatch() 调度链 TypeClassifier→KnowledgeModel |
-| `agents/agents/TypeClassifier.ets` | D | ⚠️ stub mock — classify() 返固定 "计算/高等代数" |
+| `agents/agents/TypeClassifier.ets` | D | DONE - image/file uses OcrTool, text goes straight to classifier, LLM failures use rule fallback |
 | `agents/agents/KnowledgeModel.ets` | L | ⚠️ stub — structure() 返 mock KnowledgeUnit |
-| `agents/mcp/tools/OcrTool.ets` | D | ❌ 空壳 — TODO(B1) |
+| `agents/mcp/tools/OcrTool.ets` | D | DONE - calls local FastAPI `/api/v1/ocr/recognize`, merges text + LaTeX formulas |
 
-每个空壳顶部都有完整的接口约定注释(入参/返回/责任/依赖/验证方式),等责任人填实现。
+D-side OCR/classification shells have been replaced by the real local OCR pipeline; L-side KnowledgeModel/NoteDao still need quality and persistence work.
 
 **新目录**(按 DIRECTORY_MAP 精简链布局):
 - `agents/src/main/ets/agents/`
@@ -118,7 +116,7 @@ entry/src/main/ets/
 │   └── NoteDao.ets             # 数据库 DAO (空壳, 待实现)
 ├── services/
 │   ├── ApiClient.ets           # HTTP 客户端 (✅ 已实现)
-│   └── AiService.ets           # AI 服务 (❌ 空壳，待桥接拍照→Dispatcher)
+    `-- AiService.ets           # AI service (capture is wired to Dispatcher; UI image send still needs to call it)
 ├── entryability/
 │   └── EntryAbility.ets        # 应用入口
 └── entrybackupability/
@@ -229,7 +227,7 @@ entry/src/main/ets/
 - `e155fae` 相册按钮换 SVG 图标 `ic_album.svg` + 快门改 MINT 品牌色 + 模拟器 toast 提示
 - `33d3a5d` + `40508ae` module.json5 加 CAMERA + INTERNET 权限声明，修复合并冲突导致 CAMERA 权限丢失
 - **降级策略**: 模拟器无相机 → catch 降级 mock uri + toast "模拟器不支持相机"
-- **已知限制**: 拍照→Dispatcher 链路待 `AiService.capture()` 桥接（当前仅浮窗预览）
+- **Known limit**: `AiService.capture()` can call Dispatcher now, but `AgentFloatWindow` still sends images through the plain LLM chat path. It should call `AiService.capture(imageUri, userText)` when an image is present.
 
 ### 1.11 AgentFloatWindow · 接入 LlmClient 真实 AI 对话 (2026-07-14)
 
@@ -247,6 +245,19 @@ entry/src/main/ets/
 - **LlmConfig init 竞态**: `1a1f8a7` `EntryAbility` 补 `.catch()` 错误处理
 - **AiSettingsPage**: `8053cfa` save 后 `loadConfig()` 自动刷新 UI
 - **死代码清理**: 删 `ingestImage()` / `send()`/`sendQuick()` 中的 mock reply 残留
+
+---
+
+### 1.13 Local OCR pipeline integrated into TypeClassifier (2026-07-15)
+
+- `babdba8` changed `OcrTool.ets` from an empty shell into a local OCR HTTP client using HarmonyOS `http.request()` + `multiFormDataList` to upload image files.
+- Default OCR endpoint is `http://127.0.0.1:8000/api/v1/ocr/recognize`; for emulator/device testing, change it to the workstation LAN IP. If starting `formula_api:ocr_router` directly, the path is `/recognize`.
+- `TypeClassifier.ets` no longer uses mock OCR text: `image` and `file(image/*)` payloads call `OcrTool`, then merge OCR text and LaTeX formulas into `ocrText`.
+- Classification uses the shared `LlmClient` first and asks for `{ type, subject, chapter, confidence }` JSON; missing API key, network errors, and parse failures fall back to local keyword rules.
+- `Dispatcher` flow stays unchanged: `TypeClassifier.classify()` produces real `ocrText`, then `KnowledgeModel.structure()` consumes it.
+- `agents/Index.ets` now exports `OcrTool` and `OcrRecognitionResult` for reuse and tests.
+- Verified: `formula_api.py`, `ocr_text_tool.py`, and `formula_tool.py` compile from source; SDK declarations confirm `multiFormDataList/filePath/remoteFileName`; full ArkTS build was not run because `hvigor/ohpm` is not available in this shell.
+- Remaining UI wiring: when `AgentFloatWindow` sends an image, call `new AiService().capture(imagePreview, inputText)` instead of the plain LLM chat path.
 
 ---
 
@@ -272,8 +283,8 @@ entry/src/main/ets/
 
 ### 2.2 角色 B · 分类 (2 文件) — D
 
-- `agents/src/main/ets/mcp/tools/OcrTool.ets` (B1) — ML Kit OCR
-- `agents/src/main/ets/agents/TypeClassifier.ets` (B2) — 3×3 分类
+- `agents/src/main/ets/mcp/tools/OcrTool.ets` (B1) - local FastAPI OCR workstation client (text + LaTeX)
+- `agents/src/main/ets/agents/TypeClassifier.ets` (B2) - OCR -> DeepSeek/rule-fallback 3x3 classification
 
 ### 2.3 角色 C · 写笔记 (2 文件) — L
 
@@ -299,12 +310,12 @@ entry/src/main/ets/
 ### P0 — 拍照→AI 整链打通
 | 任务 | 文件 | 负责 | 说明 |
 |------|------|------|------|
-| 实现 AiService.capture() | AiService.ets | Mavis | imageUri→base64→Dispatcher.dispatch() |
-| 接入拍照回调 | Index.ets | Mavis | onCameraConfirm 调 AiService.capture() |
-| 真值分类 | TypeClassifier.ets | D | OCR→DeepSeek 3×3 分类，替换 stub |
+| AiService.capture() | AiService.ets | Mavis | DONE - builds image DispatchPayload and calls Dispatcher |
+| Image send wiring | AgentFloatWindow.ets | Mavis | Call `AiService.capture(imagePreview, inputText)` when an image is present |
+| Classification | TypeClassifier.ets | D | DONE - OCR -> DeepSeek/rule-fallback 3x3 classification, stub replaced |
 | 真值建模+入库 | KnowledgeModel.ets | L | 3模板+真值检验+NoteDao INSERT |
 | 数据库 | NoteDao.ets | L | RDB INSERT + queryById |
-| OCR 识别 | OcrTool.ets | D | ML Kit OCR → LaTeX |
+| OCR | OcrTool.ets | D | DONE - local FastAPI OCR -> text + LaTeX |
 
 ### P1 — 体验增强
 | 任务 | 说明 |

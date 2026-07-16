@@ -16,6 +16,8 @@ export { Dispatcher } from './core/Dispatcher';
 //   L 接手: 替换 KnowledgeModel.structure body + NoteDao.insert/queryById
 export { TypeClassifier } from './agents/TypeClassifier';
 export { KnowledgeModel } from './agents/KnowledgeModel';
+export { OcrTool } from './mcp/tools/OcrTool';
+export type { OcrRecognitionResult } from './mcp/tools/OcrTool';
 
 // 重新导出 DispatchPayload 类型(定义在 common/models/CaptureChain.ets)
 //   UI 端 (entry/) 可以 `import type { DispatchPayload } from 'agents'`
