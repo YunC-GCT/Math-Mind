@@ -1,4 +1,4 @@
-// chat/ChatBubble.ets — 聊天气泡 + LaTeX 视觉区分
+﻿// chat/ChatBubble.ets — 聊天气泡 + LaTeX 视觉区分
 import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT,
   TEXT, TEXT_2, TEXT_4, S_1, S_2, S_3, R_MD, F_XS, F_SM, W_SEMIBOLD,
 } from "common"
