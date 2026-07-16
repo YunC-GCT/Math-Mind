@@ -5,7 +5,7 @@
 
 import {
   MINT, MINT_DARK, PURPLE, PURPLE_LIGHT, BG_DARK, BG_CARD,
-  TEXT, TEXT_2, TEXT_3, TEXT_4, BORDER, S_2, R_MD, R_LG, R_FULL,
+  TEXT, TEXT_2, TEXT_3, TEXT_4, BORDER, S_2, S_3, S_4, R_MD, R_LG, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, W_SEMIBOLD, GLASS_8,
 } from "common"
 import { LlmConfig, LlmClient } from "common"
@@ -101,20 +101,22 @@ struct AiSettingsPage {
       Row() {
         Text("← 返回").fontSize(F_SM).fontColor(MINT).onClick((): void => { router.back() })
         Blank(); Text("模型配置").fontSize(F_MD).fontWeight(W_SEMIBOLD).fontColor(TEXT); Blank(); Row().width(60)
-      }.width("100%").padding({ left: S_2, right: S_2, top: 12, bottom: 12 }).margin({ top: this.statusBarH })
+      }.width("100%").padding({ left: S_2, right: S_2, top: S_3, bottom: S_3 }).margin({ top: this.statusBarH })
       Row().width("100%").height(0.5).backgroundColor(BORDER)
       Scroll() {
         Column() {
-          StatusCard({ configured: this.configured, statusText: this.statusText, cardPadding: 16 })
+          StatusCard({ configured: this.configured, statusText: this.statusText, cardPadding: S_4 })
           SectionHeader({ title: "服务端点", desc: "选择预设或输入自定义地址" })
           EndpointPicker({
-            epIdx: this.endpointIdx, useCustom: this.useCustomEP, customText: $endpointCustom,
+            epIdx: this.endpointIdx, useCustom: this.useCustomEP, customText: this.endpointCustom,
+            onTextChange: (v: string): void => { this.endpointCustom = v },
             onSelect: (i: number): void => { this.useCustomEP = false; this.endpointIdx = i },
             onCustom: (): void => { this.useCustomEP = true },
           })
           SectionHeader({ title: "模型", desc: "选择 DeepSeek 模型或自定义" })
           ModelPicker({
-            presets: this.currentPresets, mdlIdx: this.modelIdx, useCustom: this.useCustomMD, customText: $modelCustom,
+            presets: this.currentPresets, mdlIdx: this.modelIdx, useCustom: this.useCustomMD, customText: this.modelCustom,
+            onTextChange: (v: string): void => { this.modelCustom = v },
             onSelect: (i: number): void => { this.useCustomMD = false; this.modelIdx = i },
             onCustom: (): void => { this.useCustomMD = true },
           })

@@ -26,7 +26,8 @@ export struct ModelPicker {
   @Prop presets: ModelPreset[] = SF_MODELS
   @Prop mdlIdx: number = 0
   @Prop useCustom: boolean = false
-  @Link customText: string
+  @Prop customText: string = ''
+  onTextChange?: (v: string) => void
   onSelect?: (idx: number) => void
   onCustom?: () => void
 
@@ -58,7 +59,7 @@ export struct ModelPicker {
           .layoutWeight(1).height(44)
           .fontSize(F_XS).fontColor(TEXT).placeholderColor(TEXT_4)
           .backgroundColor(GLASS_8).borderRadius(R_MD)
-          .onChange((v: string): void => { this.customText = v })
+          .onChange((v: string): void => { if (this.onTextChange) { this.onTextChange(v) } })
       }.width("100%").padding({ left: 4, right: 8, top: 6, bottom: 10 })
     }
     .width("100%").borderRadius(R_LG).backgroundColor(BG_CARD)
