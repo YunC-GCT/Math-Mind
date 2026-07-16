@@ -92,7 +92,7 @@ export struct AgentFloatWindow {
       const sp = this.deepThink
         ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
         : "你是 MathMind AI 助手，简洁中文回答。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
-      const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
+      const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }], { timeoutMs: 30000 })
       if (typeof fullReply !== "string" || fullReply.trim().length === 0) {
         this.fillLast("（AI 返回了空内容，请重试）"); return
       }
