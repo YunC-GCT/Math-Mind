@@ -1,10 +1,13 @@
 // ============================================================================
-//  pages/StudyPlanPage.ets 鈥?瀛︿範璁″垝椤甸潰锛堢紪鎺掑眰锛?//  ----------------------------------------------------------------------------
-//  鑱岃矗: 椤甸潰楠ㄦ灦甯冨眬 + ViewModel 妗ユ帴鍒板師瀛愮粍浠躲€?//  鏉ユ簮: 鍩轰簬 swiftui-to-arkui TodoPage锛屾媶鍒嗕负 PlanItemRow / PriorityBadge 鍘熷瓙缁勪欢銆?//
-//  瀵规帴:
-//    - 鎸佷箙鍖? 宸插鎺?鈫?StudyPlanDao (RDB study_plan 琛?
-//    - AI 鐢熸垚: 宸插鎺?鈫?LlmClient.call()锛屾寜閽皟鐢?vm.generatePlan()
-//    - 鍏宠仈绗旇: linkedNoteId 瀛楁宸插鎺?KnowledgeUnit.id
+//  pages/StudyPlanPage.ets — 学习计划页面（编排层）
+//  ----------------------------------------------------------------------------
+//  职责: 页面骨架布局 + ViewModel 桥接到原子组件。
+//  来源: 基于 swiftui-to-arkui TodoPage，拆分为 PlanItemRow / PriorityBadge 原子组件。
+//
+//  对接:
+//    - 持久化: 已对接 → StudyPlanDao (RDB study_plan 表)
+//    - AI 生成: 已对接 → LlmClient.call()，按钮调用 vm.generatePlan()
+//    - 关联笔记: linkedNoteId 字段已对接 KnowledgeUnit.id
 //  ============================================================================
 
 import {
@@ -38,7 +41,7 @@ export struct StudyPlanPage {
   aboutToAppear(): void {
     this.vm.init(getContext(this)).then((): void => {
       if (this.vm.initError) {
-        promptAction.showToast({ message: "鏁版嵁鍔犺浇澶辫触锛岃閲嶅惎搴旂敤", duration: 2000 })
+        promptAction.showToast({ message: "数据加载失败，请重启应用", duration: 2000 })
       }
     })
   }
@@ -59,21 +62,19 @@ export struct StudyPlanPage {
   // ====================================================================
   //  @Builder 子组件（仅页面级骨架 — 不抽为 @Component 的原因：
   //  每个 @Builder 直接访问 this.vm，抽离需穿 @Prop 链，无复用收益）
-  //  @Builder 瀛愮粍浠讹紙浠呴〉闈㈢骇楠ㄦ灦锛?  // ====================================================================
-  //  @Builder 子组件（仅页面级骨架 — 不抽为 @Component 的原因：
-  //  每个 @Builder 直接访问 this.vm，抽离需穿 @Prop 链，无复用收益）
+  // ====================================================================
 
   @Builder
   HeaderBar() {
     Row() {
-      Text("瀛︿範璁″垝")
+      Text("学习计划")
         .fontSize(F_2XL)
         .fontWeight(W_BOLD)
         .fontColor(TEXT)
 
       Blank()
 
-      Text(this.vm.isLoading ? "鈴?鐢熸垚涓?.." : "馃 鏅鸿兘鐢熸垚")
+      Text(this.vm.isLoading ? "⏳ 生成中..." : "🤖 智能生成")
         .fontSize(F_XS)
         .fontColor(this.vm.isLoading ? MINT : TEXT_3)
         .padding({ left: 12, right: 12, top: 6, bottom: 6 })
@@ -98,10 +99,10 @@ export struct StudyPlanPage {
   StatsBar() {
     Row() {
       Row({ space: 6 }) {
-        Text("鉁?)
+        Text("✓")
           .fontSize(F_MD)
           .fontColor(MINT)
-        Text(`${this.vm.completedCount}/${this.vm.totalCount} 宸插畬鎴恅)
+        Text(`${this.vm.completedCount}/${this.vm.totalCount} 已完成`)
           .fontSize(F_BASE)
           .fontColor(TEXT_2)
       }
@@ -118,7 +119,7 @@ export struct StudyPlanPage {
         .color(MINT)
         .style({ strokeWidth: 6, strokeRadius: 3 })
       } else {
-        Text("鏆傛棤璁″垝")
+        Text("暂无计划")
           .fontSize(F_XS)
           .fontColor(TEXT_3)
       }
@@ -155,7 +156,7 @@ export struct StudyPlanPage {
   InputBar() {
     Row({ space: 8 }) {
       TextInput({
-        placeholder: "鏂板瀛︿範璁″垝...",
+        placeholder: "新增学习计划...",
         text: this.vm.newTitle,
       })
       .onChange((value: string): void => { this.vm.newTitle = value })
@@ -168,7 +169,7 @@ export struct StudyPlanPage {
       .fontColor(TEXT)
       .placeholderColor(TEXT_3)
 
-      Button("锛?)
+      Button("＋")
         .fontSize(28)
         .fontColor(MINT)
         .backgroundColor(GLASS_8)
