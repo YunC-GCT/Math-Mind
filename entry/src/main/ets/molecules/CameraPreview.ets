@@ -8,7 +8,7 @@
 
 import {
   TEXT, TEXT_2, TEXT_4,
-  S_2, S_4, S_6,
+  S_2, S_3, S_4, S_6,
   F_XS, F_SM, F_MD, F_BASE,
   CAM_PREVIEW_BG, W_MEDIUM, W_SEMIBOLD, NOTE_ICON_SIZE, CAM_BTN_SIZE,
   SCREEN_W,
