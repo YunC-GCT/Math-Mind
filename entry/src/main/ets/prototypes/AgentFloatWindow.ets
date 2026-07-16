@@ -43,7 +43,7 @@ export struct AgentFloatWindow {
   onPendingImageChange(): void { if (this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri } }
   onMessagesChange(): void {
     if (this.messages.length > 0) {
-      setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 80)
+      setTimeout((): void => { if (this.messages.length > 0) { this.scroller.scrollToIndex(this.messages.length - 1, false) } }, 100)
       this.syncSession(); this.saveHistory()
     }
   }

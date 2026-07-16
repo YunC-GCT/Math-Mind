@@ -1,24 +1,25 @@
-// chat/ChatBubble.ets — 聊天气泡 + LaTeX 兜底
+// chat/ChatBubble.ets — 聊天气泡 + LaTeX/MD 净化
 import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT,
   TEXT, TEXT_2, TEXT_4, S_1, S_2, S_3, R_MD, F_XS, F_SM, W_SEMIBOLD,
 } from "common"
 
 interface ChatMsg { id: number; role: string; content: string; ts: number }
 
-function formatLatex(raw: string): string {
+function cleanMarkdown(raw: string): string {
   let r = raw
-  while (r.indexOf("$$") >= 0) {
-    const s = r.indexOf("$$") + 2; const e = r.indexOf("$$", s)
-    if (e < 0) break
-    const f = r.substring(s, e)
-    r = r.substring(0, s-2) + "\n\u2523 " + f + " \u252B\n" + r.substring(e+2)
-  }
-  while (r.indexOf("$") >= 0) {
-    const s = r.indexOf("$") + 1; const e = r.indexOf("$", s)
-    if (e < 0) break
-    const f = r.substring(s, e)
-    r = r.substring(0, s-1) + " \u3008" + f + "\u3009 " + r.substring(e+1)
-  }
+  // 移除 **bold** / *italic* / __underline__
+  while (r.indexOf("**") >= 0) { const s = r.indexOf("**") + 2; const e = r.indexOf("**", s); if (e < 0) break; r = r.substring(0, s-2) + r.substring(s, e) + r.substring(e+2) }
+  while (r.indexOf("__") >= 0) { const s = r.indexOf("__") + 2; const e = r.indexOf("__", s); if (e < 0) break; r = r.substring(0, s-2) + r.substring(s, e) + r.substring(e+2) }
+  // LaTeX: \lim_{x\to 0} → lim(x→0)
+  while (r.indexOf("\\lim_{") >= 0) { const s = r.indexOf("\\lim_{") + 5; const e = r.indexOf("}", s); if (e < 0) break; const body = r.substring(s, e+1); r = r.substring(0, s-5) + "lim" + body + r.substring(e+1) }
+  r = r.replace(/\\to/g, "→")
+  // LaTeX: \frac{a}{b} → (a)/(b)
+  while (r.indexOf("\\frac{") >= 0) { const s1 = r.indexOf("\\frac{") + 6; const e1 = r.indexOf("}", s1); const s2 = r.indexOf("{", e1) + 1; const e2 = r.indexOf("}", s2); if (e1 < 0 || e2 < 0) break; r = r.substring(0, s1-6) + "(" + r.substring(s1, e1) + ")/(" + r.substring(s2, e2) + ")" + r.substring(e2+1) }
+  // 通用: 移除剩余反斜杠命令和花括号
+  while (r.indexOf("\\") >= 0) { const s = r.indexOf("\\"); let e = s+1; while (e < r.length && r[e] !== " " && r[e] !== "{" && r[e] !== "\n") e++; r = r.substring(0, s) + r.substring(e) }
+  r = r.replace(/{/g, "").replace(/}/g, "")
+  // 移除 ### 标题
+  r = r.replace(/#{1,3}\s/g, "")
   return r
 }
 
@@ -30,11 +31,12 @@ export struct ChatBubble {
   onFeedback?: (msg: ChatMsg) => void
 
   build() {
+    const display = cleanMarkdown(this.msg.content)
     Column() {
       if (this.msg.role === "user") {
         Row() { Blank()
           Column() {
-            Text(formatLatex(this.msg.content)).fontSize(F_SM).fontColor(MINT_DARK).lineHeight(20)
+            Text(display).fontSize(F_SM).fontColor(MINT_DARK).lineHeight(20)
               .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
               .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: R_MD + 4, bottomRight: S_1 })
               .backgroundColor(MINT_LIGHT).constraintSize({ maxWidth: "78%" })
@@ -44,7 +46,7 @@ export struct ChatBubble {
         Row() {
           Column() {
             Text("AI").fontSize(9).fontColor(TEXT_4).fontWeight(W_SEMIBOLD).margin({ bottom: S_1, left: S_1 })
-            Text(formatLatex(this.msg.content)).fontSize(F_SM).fontColor(TEXT_2).lineHeight(20)
+            Text(display).fontSize(F_SM).fontColor(TEXT_2).lineHeight(20)
               .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
               .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: S_1, bottomRight: R_MD + 4 })
               .backgroundColor(PURPLE_LIGHT).constraintSize({ maxWidth: "85%" })
