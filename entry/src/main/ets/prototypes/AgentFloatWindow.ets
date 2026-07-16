@@ -1,7 +1,7 @@
 /**
- * MathMind AI 浮窗 · 装配层 (6 子组件 + 会话持久化)
+ * MathMind AI 浮窗 · 装配层 (6 子组件 + 多会话持久化)
  */
-import { MINT, MINT_LIGHT, BG_DARK, TEXT_4, BORDER, S_2, S_3, S_4, S_6, R_XL, OVERLAY_MASK } from "common"
+import { MINT, MINT_LIGHT, BG_DARK, TEXT, TEXT_3, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_MD, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
 import { LlmClient, LlmConfig } from "common"
 import { promptAction } from "@kit.ArkUI"
 import window from "@ohos.window"
@@ -14,7 +14,9 @@ import { QuickSuggestions } from "./chat/QuickSuggestions"
 import { MessageInput } from "./chat/MessageInput"
 
 interface ChatMsg { id: number; role: string; content: string; ts: number }
+interface Session { id: string; name: string; messages: ChatMsg[] }
 function nowId(): number { return Date.now() * 1000 + Math.floor(Math.random() * 1000) }
+function sid(): string { return Date.now().toString(36) }
 
 @Component
 export struct AgentFloatWindow {
@@ -28,6 +30,9 @@ export struct AgentFloatWindow {
   @State deepThink: boolean = false
   @State imagePreview: string = ""
   @State keyboardHeight: number = 0
+  @State sessions: Session[] = [{ id: "s1", name: "\u5BF9\u8BDD 1", messages: [] }]
+  @State activeSid: string = "s1"
+  @State showSessions: boolean = false
   private mainWindow: window.Window | null = null
   private scroller: Scroller = new Scroller()
   private prefs: preferences.Preferences | null = null
@@ -38,7 +43,7 @@ export struct AgentFloatWindow {
   onMessagesChange(): void {
     if (this.messages.length > 0) {
       setTimeout((): void => { this.scroller.scrollToIndex(this.messages.length - 1, true) }, 50)
-      this.saveHistory()
+      this.syncSession(); this.saveHistory()
     }
   }
 
@@ -55,20 +60,40 @@ export struct AgentFloatWindow {
   private async loadHistory(): Promise<void> {
     try {
       this.prefs = await preferences.getPreferences(getContext(this), "chat_history")
-      const raw = this.prefs.getSync("messages", "") as string
-      if (raw && raw.length > 0) { try { this.messages = JSON.parse(raw) as ChatMsg[]; return } catch (e) {} }
+      const raw = this.prefs.getSync("sessions", "") as string
+      if (raw && raw.length > 0) {
+        try { const parsed = JSON.parse(raw) as Session[]; if (parsed.length > 0) { this.sessions = parsed; this.activeSid = parsed[0].id; this.messages = parsed[0].messages; return } } catch (e) {}
+      }
     } catch (e) {}
-    this.messages = [{ id: 1, role: "ai",
-      content: "\u4F60\u597D\uFF0C\u6211\u662F MathMind AI\u3002\n\n\u53EF\u4EE5\u5E2E\u4F60\u5206\u6790\u9519\u9898\u3001\u8BB2\u89E3\u77E5\u8BC6\u70B9\u3001\u751F\u6210\u7EC3\u4E60\u9898\u3002\u8BD5\u7740\u95EE\u6211\u5427 \uD83D\uDC47", ts: Date.now() }]
+    this.sessions = [{ id: "s1", name: "\u5BF9\u8BDD 1", messages: [] }]
+    this.activeSid = "s1"
+    this.messages = [{ id: 1, role: "ai", content: "\u4F60\u597D\uFF0C\u6211\u662F MathMind AI\u3002\n\n\u53EF\u4EE5\u5E2E\u4F60\u5206\u6790\u9519\u9898\u3001\u8BB2\u89E3\u77E5\u8BC6\u70B9\u3001\u751F\u6210\u7EC3\u4E60\u9898\u3002\u8BD5\u7740\u95EE\u6211\u5427 \uD83D\uDC47", ts: Date.now() }]
+    this.syncSession()
   }
   private saveHistory(): void {
-    if (this.prefs && this.messages.length > 0) {
-      try { this.prefs.putSync("messages", JSON.stringify(this.messages)); this.prefs.flush() } catch (e) {}
-    }
+    if (this.prefs) { try { this.prefs.putSync("sessions", JSON.stringify(this.sessions)); this.prefs.flush() } catch (e) {} }
   }
-  private clearHistory(): void {
-    this.messages = []
-    if (this.prefs) { try { this.prefs.deleteSync("messages"); this.prefs.flush() } catch (e) {} }
+  private syncSession(): void {
+    for (let i = 0; i < this.sessions.length; i++) { if (this.sessions[i].id === this.activeSid) { this.sessions[i].messages = this.messages; return } }
+  }
+  private switchSession(sid: string): void {
+    this.syncSession()
+    for (let i = 0; i < this.sessions.length; i++) { if (this.sessions[i].id === sid) { this.activeSid = sid; this.messages = this.sessions[i].messages; this.showSessions = false; return } }
+  }
+  private newSession(): void {
+    this.syncSession()
+    const n = this.sessions.length + 1
+    const s: Session = { id: sid(), name: "\u5BF9\u8BDD " + n.toString(), messages: [] }
+    this.sessions = [...this.sessions, s]
+    this.activeSid = s.id; this.messages = []; this.showSessions = false
+    this.saveHistory()
+  }
+  private deleteSession(sid: string): void {
+    if (this.sessions.length <= 1) return
+    const filtered = this.sessions.filter((s: Session): boolean => s.id !== sid)
+    this.sessions = filtered
+    if (sid === this.activeSid) { this.activeSid = filtered[0].id; this.messages = filtered[0].messages }
+    this.saveHistory()
   }
 
   private send = (text?: string): void => {
@@ -97,6 +122,33 @@ export struct AgentFloatWindow {
     this.messages = [...this.messages, { id: nowId(), role: "ai", content, ts: Date.now() }]
   }
 
+  @Builder SessionBar() {
+    Row() {
+      Scroll() {
+        Row() {
+          ForEach(this.sessions,
+            (s: Session): void => {
+              Row() {
+                Text(s.id === this.activeSid ? "\u25CF " + s.name : "\u25CB " + s.name)
+                  .fontSize(F_XS).fontColor(s.id === this.activeSid ? MINT : TEXT_3).fontWeight(W_MEDIUM)
+                if (this.sessions.length > 1) {
+                  Text("\u2715").fontSize(9).fontColor(TEXT_4).margin({ left: S_1 })
+                    .onClick((): void => { this.deleteSession(s.id) })
+                }
+              }
+              .padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 }).borderRadius(R_FULL)
+              .backgroundColor(s.id === this.activeSid ? MINT_LIGHT : GLASS_10)
+              .margin({ right: S_2 })
+              .onClick((): void => { this.switchSession(s.id) })
+            }, (s: Session): string => s.id)
+          Text("+").fontSize(F_SM).fontColor(TEXT_3).width(28).height(28).borderRadius(14)
+            .textAlign(TextAlign.Center).backgroundColor(GLASS_10)
+            .onClick((): void => { this.newSession() })
+        }.padding({ left: S_2, right: S_2 })
+      }.layoutWeight(1).scrollBar(BarState.Off)
+    }.width("100%").height(36).padding({ top: S_1, bottom: S_1 })
+  }
+
   build() {
     Stack() {
       if (this.show) {
@@ -104,8 +156,9 @@ export struct AgentFloatWindow {
         Column() {
           Row() { Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4) }
             .width("100%").height(S_6).justifyContent(FlexAlign.Center)
-          ChatHeader({ deepThink: this.deepThink, onToggleThink: (): void => { this.deepThink = !this.deepThink }, onNewChat: (): void => { this.clearHistory() }, onClose: this.onClose })
+          ChatHeader({ deepThink: this.deepThink, onToggleThink: (): void => { this.deepThink = !this.deepThink }, onNewChat: (): void => { this.newSession() }, onClose: this.onClose })
           Row().width("100%").height(0.5).backgroundColor(BORDER)
+          this.SessionBar()
           Scroll(this.scroller) {
             Column() {
               if (this.messages.length === 0 && !this.busy) { EmptyStateHint() }
@@ -123,7 +176,7 @@ export struct AgentFloatWindow {
             onTextChange: (v: string): void => { this.inputText = v }, onSend: (): void => { this.send() },
             onCamera: (): void => { this.onGoCamera() }, onClearImage: (): void => { this.imagePreview = "" } })
         }
-        .width("100%").height("40%").backgroundColor(BG_DARK).borderRadius({ topLeft: R_XL, topRight: R_XL })
+        .width("100%").height("48%").backgroundColor(BG_DARK).borderRadius({ topLeft: R_XL, topRight: R_XL })
         .padding({ left: S_3, right: S_3 }).position({ x: 0, y: "100%" }).markAnchor({ x: 0, y: "100%" })
         .translate({ y: -(74 + this.keyboardHeight) })
       }
