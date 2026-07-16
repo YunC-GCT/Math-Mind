@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  MathMind 设计 Token — 令牌层
 //  ----------------------------------------------------------------------------
 //  对照: styles.css :root + app.js tc()/sc()
@@ -181,6 +181,7 @@ export const HERO_RING_SIZE: number = 120
 export const NOTE_ICON_SIZE: number = 36
 export const DOT_SIZE: number       = 8
 export const AVATAR_SIZE: number    = 72
+export const AI_SETTINGS_BTN_H: number = 44   // AiSettings 按钮/输入框高度
 
 // ========================================================================
 //  TabBar 组件尺寸 (vp)

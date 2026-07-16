@@ -1,7 +1,9 @@
 // ============================================================================
-//  pages/Index.ets 鈥?涓诲鍣ㄨ閰嶅眰
+//  pages/Index.ets — 主容器装配层
 //  ----------------------------------------------------------------------------
-//  鑱岃矗: 5 Tab 瀵艰埅缂栨帓锛岀鐞?CameraOverlay / AgentFloatWindow 娴眰鐘舵€併€?//  鏁版嵁娴? @State cur 鈫?TabContent + TabBar锛屾诞灞傜姸鎬佺敱鍥炶皟鎺у埗銆?//  渚濊禆:
+//  职责: 5 Tab 导航编排，管理 CameraOverlay / AgentFloatWindow 浮层状态。
+//  数据流: @State cur → TabContent + TabBar，浮层状态由回调控制。
+//  依赖:
 //    molecules: TabBar
 //    pages:     HomePage, NotesPage, ReviewPage, MePage
 //    prototypes: CameraOverlay, AgentFloatWindow
@@ -30,7 +32,7 @@ struct Index {
     try {
       this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE)
     } catch (e) {
-      // 闄嶇骇: 閿洏閬胯澶辫触涓嶅奖鍝嶄富娴佺▼
+      // 闂勫秶楠? 闁款喚娲忛柆鑳唨婢惰精瑙︽稉宥呭閸濆秳瀵屽ù浣衡柤
     }
   }
 
@@ -51,7 +53,7 @@ struct Index {
   build() {
     Stack() {
       Column() {
-        // 鍐呭鍖?        Tabs({ index: this.cur, controller: this.tc }) {
+        // 閸愬懎顔愰崠?        Tabs({ index: this.cur, controller: this.tc }) {
           TabContent() {
             HomePage({
               onGoReview: (): void => { this.cur = 3; this.tc.changeIndex(3) },

@@ -1,4 +1,4 @@
-﻿// common HSP - public API 鍏ュ彛
+// common HSP - public API 鍏ュ彛
 // W1 锟?3: 鏆撮湶锟?Agent 涓氬姟鎵€闇€鐨勬渶灏忛泦(Dispatcher 锟?
 
 // ========== 璁捐 Token (棰滆壊 / 灏哄 / 瀛楀彿) ==========
@@ -13,7 +13,7 @@ export {
   R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL, F_2XL, F_3XL,
   SCREEN_W, SCREEN_H,
-  HEADER_H, FAB_SIZE, HERO_RING_SIZE, NOTE_ICON_SIZE, DOT_SIZE, AVATAR_SIZE,
+  HEADER_H, FAB_SIZE, HERO_RING_SIZE, NOTE_ICON_SIZE, DOT_SIZE, AVATAR_SIZE, AI_SETTINGS_BTN_H,
   TAB_BAR_HEIGHT, TAB_ICON_SIZE, TAB_BTN_RADIUS, AI_BTN_SIZE, AI_ICON_SIZE,
   DANGER, DANGER_BRIGHT, WARNING, SUCCESS,
   GLASS_8, GLASS_10, GLASS_14,

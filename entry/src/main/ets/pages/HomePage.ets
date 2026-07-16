@@ -1,6 +1,9 @@
 // ============================================================================
-//  pages/HomePage.ets 鈥?棣栭〉瑁呴厤灞?//  ----------------------------------------------------------------------------
-//  鑱岃矗: 缂栨帓瀛愮粍浠讹紝鏃犲唴鑱?UI銆傜鐞?notes 鏁版嵁鐘舵€佸苟鍚戜笅浼犻€掋€?//  鏁版嵁娴? @State notes 鈫?@Prop 鍒嗗彂缁?HeroBanner / ReminderBanner / NoteCard銆?//  渚濊禆:
+//  pages/HomePage.ets — 首页装配层
+//  ----------------------------------------------------------------------------
+//  职责: 编排子组件，无内联 UI。管理 notes 数据状态并向下传递。
+//  数据流: @State notes → @Prop 分发给 HeroBanner / ReminderBanner / NoteCard。
+//  依赖:
 //    atoms:     HexLogo, FloatingButton
 //    molecules: HeroBanner, ReminderBanner, NoteCard
 //    prototypes: NoteDetailOverlay
@@ -22,21 +25,21 @@ import { ReminderBanner } from "../molecules/ReminderBanner"
 import { NoteCard } from "../molecules/NoteCard"
 import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
 
-// ---- 绾伐鍏峰嚱鏁?----
+// ---- 缁绢垰浼愰崗宄板毐閺?----
 
 function greet(): string {
   const h: number = new Date().getHours()
-  if (h < 6) { return "鍑屾櫒濂? }
-  if (h < 11) { return "涓婂崍濂? }
-  if (h < 13) { return "涓崍濂? }
-  if (h < 18) { return "涓嬪崍濂? }
-  return "鏅氫笂濂?
+  if (h < 6) { return "閸戝本娅掓總? }
+  if (h < 11) { return "娑撳﹤宕嶆總? }
+  if (h < 13) { return "娑擃厼宕嶆總? }
+  if (h < 18) { return "娑撳宕嶆總? }
+  return "閺呮矮绗傛總?
 }
 
 function dateStr(): string {
   const d: Date = new Date()
-  const w: string[] = ["鏃?, "涓€", "浜?, "涓?, "鍥?, "浜?, "鍏?]
-  return d.getFullYear() + "骞? + (d.getMonth() + 1) + "鏈? + d.getDate() + "鏃?路 鍛? + w[d.getDay()]
+  const w: string[] = ["閺?, "娑撯偓", "娴?, "娑?, "閸?, "娴?, "閸?]
+  return d.getFullYear() + "楠? + (d.getMonth() + 1) + "閺? + d.getDate() + "閺?璺?閸? + w[d.getDay()]
 }
 
 @Component
@@ -67,8 +70,7 @@ export struct HomePage {
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
-        // 鐘舵€佹爮
-        Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
+        // 閻樿埖鈧焦鐖?        Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
 
         // Header
         Row() {
@@ -93,24 +95,23 @@ export struct HomePage {
           onGoReview: (): void => { this.onGoReview() },
         })
 
-        // 鎻愰啋妯箙
+        // 閹绘劙鍟嬪Ο顏勭畽
         if (this.notes.length < 3) {
           ReminderBanner({ notesCount: this.notes.length })
         }
 
-        // 绗旇鏍囬
+        // 缁楁棁顔囬弽鍥暯
         Row() {
-          Text("鏈€杩戠瑪璁?)
+          Text("閺堚偓鏉╂垹鐟拋?)
             .fontSize(F_BASE).fontWeight(W_SEMIBOLD).fontColor(TEXT)
           Blank()
-          Text(this.notes.length + " 鏉?)
+          Text(this.notes.length + " 閺?)
             .fontSize(F_XS).fontColor(TEXT_3)
         }
         .width("100%")
         .padding({ left: S_5, right: S_5, top: S_4, bottom: S_2 })
 
-        // 绗旇鍒楄〃
-        Scroll() {
+        // 缁楁棁顔囬崚妤勩€?        Scroll() {
           Column() {
             ForEach(this.notes,
               (note: NoteItem, i: number): void => {
@@ -137,7 +138,7 @@ export struct HomePage {
       // FAB
       FloatingButton({
         onTap: (): void => {
-          promptAction.showToast({ message: "鐢ㄦ埛鑷畾涔夌瑪璁板紑鍙戜腑", duration: 1500 })
+          promptAction.showToast({ message: "閻劍鍩涢懛顏勭暰娑斿鐟拋鏉跨磻閸欐垳鑵?, duration: 1500 })
         },
       })
 
