@@ -17,7 +17,7 @@ import { MePage } from "./MePage"
 import { TabBar } from "../molecules/TabBar"
 import { AgentFloatWindow } from "../prototypes/AgentFloatWindow"
 import { CameraOverlay } from "../prototypes/CameraOverlay"
-import { KeyboardAvoidMode } from "@kit.ArkUI"
+import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
 
 @Entry
 @Component
@@ -32,7 +32,7 @@ struct Index {
     try {
       this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE)
     } catch (e) {
-      // 闂勫秶楠? 闁款喚娲忛柆鑳唨婢惰精瑙︽稉宥呭閸濆秳瀵屽ù浣衡柤
+      // 降级: 键盘避让失败不影响主流程
     }
   }
 
@@ -53,9 +53,11 @@ struct Index {
   build() {
     Stack() {
       Column() {
-        // 閸愬懎顔愰崠?        Tabs({ index: this.cur, controller: this.tc }) {
+        // 内容区
+        Tabs({ index: this.cur, controller: this.tc }) {
           TabContent() {
             HomePage({
+              onGoCamera: (): void => { this.showCamera = true },
               onGoReview: (): void => { this.cur = 3; this.tc.changeIndex(3) },
             })
           }
@@ -64,7 +66,11 @@ struct Index {
             Column().width("100%").height("100%").backgroundColor(BG_DARK)
           }
           TabContent() {
-            ReviewPage()
+            ReviewPage({
+              onGoAI: (): void => {
+                promptAction.showToast({ message: "AI 对话功能开发中", duration: 1500 })
+              }
+            })
           }
           TabContent() { MePage() }
         }

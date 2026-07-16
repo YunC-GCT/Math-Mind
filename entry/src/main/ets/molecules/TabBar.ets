@@ -12,7 +12,7 @@
 //  ============================================================================
 
 import {
-  BG_DARK, BORDER,
+  MINT_DARK, BG_DARK, BORDER,
   S_1, S_2,
   TAB_BAR_HEIGHT,
 } from "common"
@@ -26,11 +26,11 @@ interface TabItem {
 }
 
 const TABS: TabItem[] = [
-  { idx: 0, name: "濡絾鐗犻妴?, icon: $r("app.media.ic_home") },
-  { idx: 1, name: "缂佹妫侀?, icon: $r("app.media.ic_notes") },
+  { idx: 0, name: "首页", icon: $r("app.media.ic_home") },
+  { idx: 1, name: "笔记", icon: $r("app.media.ic_notes") },
   { idx: 2, name: "AI",   icon: $r("app.media.ic_ai") },
-  { idx: 3, name: "濠㈣泛绉崇弧?, icon: $r("app.media.ic_review") },
-  { idx: 4, name: "闁瑰瓨鍨瑰▓?, icon: $r("app.media.ic_me") },
+  { idx: 3, name: "复习", icon: $r("app.media.ic_review") },
+  { idx: 4, name: "我的", icon: $r("app.media.ic_me") },
 ]
 
 @Component
@@ -61,10 +61,10 @@ export struct TabBar {
     .padding({ left: S_1 + 2, right: S_1 + 2, bottom: S_2 + 2 })
     .linearGradient({
       angle: 180,
-      colors: [["#00FFFFFF", 0], [BG_DARK, 1]],
+      colors: [["#00000000", 0], [BG_DARK, 1]],
     })
-    .backdropBlur(S_6)
-    .border({ width: { top: S_1 / 4 }, color: BORDER })
+    .backdropBlur(24)
+    .border({ width: { top: 1 }, color: BORDER })
     .justifyContent(FlexAlign.SpaceAround)
     .alignItems(VerticalAlign.Center)
   }

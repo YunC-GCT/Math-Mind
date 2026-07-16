@@ -8,7 +8,7 @@
 //    onTap          — 点击回调
 //  ============================================================================
 
-import { MINT, MINT_DARK, BG_DARK, F_XL, FAB_SIZE, SHADOW_FAB, S_4, S_5 } from "common"
+import { MINT, MINT_DARK, BG_DARK, FAB_SIZE, SHADOW_FAB, S_4, S_5 } from "common"
 
 @Component
 export struct FloatingButton {
@@ -18,7 +18,7 @@ export struct FloatingButton {
   build() {
     Stack() {
       Text(this.icon)
-        .fontSize(F_XL + 2)
+        .fontSize(22)
         .fontColor(BG_DARK)
         .fontWeight(FontWeight.Bold)
     }

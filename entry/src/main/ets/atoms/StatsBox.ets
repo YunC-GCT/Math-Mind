@@ -3,7 +3,7 @@
 //  W3: 边框减细 + 间距令牌化
 // ============================================================================
 
-import { TEXT, TEXT_3, BORDER, GLASS_8, S_2, S_3, R_LG, F_XS, F_MD, W_BOLD } from "common"
+import { TEXT, TEXT_3, BORDER, GLASS_8, S_2, S_3, F_XS, F_MD, W_BOLD } from "common"
 
 @Component
 export struct StatsBox {
@@ -24,7 +24,7 @@ export struct StatsBox {
     }
     .layoutWeight(1)
     .padding({ top: S_3, bottom: S_3 })
-    .borderRadius(R_LG)
+    .borderRadius(12)
     .backgroundColor(GLASS_8)
     .border({ width: 0.5, color: BORDER })
     .alignItems(HorizontalAlign.Center)

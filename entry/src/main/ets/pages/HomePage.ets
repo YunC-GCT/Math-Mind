@@ -10,6 +10,7 @@
 //  ============================================================================
 
 import {
+  MINT, MINT_LIGHT, PURPLE_LIGHT, PINK_LIGHT,
   BG_DARK, TEXT, TEXT_3,
   S_2, S_3, S_4, S_5,
   F_XS, F_BASE, F_MD,
@@ -25,21 +26,21 @@ import { ReminderBanner } from "../molecules/ReminderBanner"
 import { NoteCard } from "../molecules/NoteCard"
 import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
 
-// ---- 缁绢垰浼愰崗宄板毐閺?----
+// ---- 纯工具函数 ----
 
 function greet(): string {
   const h: number = new Date().getHours()
-  if (h < 6) { return "閸戝本娅掓總? }
-  if (h < 11) { return "娑撳﹤宕嶆總? }
-  if (h < 13) { return "娑擃厼宕嶆總? }
-  if (h < 18) { return "娑撳宕嶆總? }
-  return "閺呮矮绗傛總?
+  if (h < 6) { return "凌晨好" }
+  if (h < 11) { return "上午好" }
+  if (h < 13) { return "中午好" }
+  if (h < 18) { return "下午好" }
+  return "晚上好"
 }
 
 function dateStr(): string {
   const d: Date = new Date()
-  const w: string[] = ["閺?, "娑撯偓", "娴?, "娑?, "閸?, "娴?, "閸?]
-  return d.getFullYear() + "楠? + (d.getMonth() + 1) + "閺? + d.getDate() + "閺?璺?閸? + w[d.getDay()]
+  const w: string[] = ["日", "一", "二", "三", "四", "五", "六"]
+  return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 · 周" + w[d.getDay()]
 }
 
 @Component
@@ -52,6 +53,7 @@ export struct HomePage {
   @State today: number = 0
   @State selectedNote: NoteItem | null = null
 
+  onGoCamera: () => void = (): void => {}
   onGoReview: () => void = (): void => {}
 
   aboutToAppear(): void {
@@ -70,7 +72,8 @@ export struct HomePage {
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
-        // 閻樿埖鈧焦鐖?        Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
+        // 状态栏
+        Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
 
         // Header
         Row() {
@@ -95,23 +98,24 @@ export struct HomePage {
           onGoReview: (): void => { this.onGoReview() },
         })
 
-        // 閹绘劙鍟嬪Ο顏勭畽
+        // 提醒横幅
         if (this.notes.length < 3) {
           ReminderBanner({ notesCount: this.notes.length })
         }
 
-        // 缁楁棁顔囬弽鍥暯
+        // 笔记标题
         Row() {
-          Text("閺堚偓鏉╂垹鐟拋?)
+          Text("最近笔记")
             .fontSize(F_BASE).fontWeight(W_SEMIBOLD).fontColor(TEXT)
           Blank()
-          Text(this.notes.length + " 閺?)
+          Text(this.notes.length + " 条")
             .fontSize(F_XS).fontColor(TEXT_3)
         }
         .width("100%")
         .padding({ left: S_5, right: S_5, top: S_4, bottom: S_2 })
 
-        // 缁楁棁顔囬崚妤勩€?        Scroll() {
+        // 笔记列表
+        Scroll() {
           Column() {
             ForEach(this.notes,
               (note: NoteItem, i: number): void => {
@@ -138,7 +142,7 @@ export struct HomePage {
       // FAB
       FloatingButton({
         onTap: (): void => {
-          promptAction.showToast({ message: "閻劍鍩涢懛顏勭暰娑斿鐟拋鏉跨磻閸欐垳鑵?, duration: 1500 })
+          promptAction.showToast({ message: "用户自定义笔记开发中", duration: 1500 })
         },
       })
 

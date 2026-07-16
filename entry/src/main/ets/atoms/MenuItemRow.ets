@@ -5,7 +5,7 @@
 //  来源: 从 MePage.ets MenuItem @Builder 抽取。
 //  ============================================================================
 
-import { TEXT_2, TEXT_4, BORDER, S_3, S_4, S_5, F_SM, F_MD } from "common"
+import { TEXT_2, TEXT_4, BORDER, S_4, F_SM, F_MD } from "common"
 
 @Component
 export struct MenuItemRow {
@@ -17,7 +17,7 @@ export struct MenuItemRow {
     Row() {
       Text(this.icon)
         .fontSize(F_MD + 1)
-        .width(S_5 + 2)
+        .width(22)
         .textAlign(TextAlign.Center)
         .flexShrink(0)
 
@@ -25,14 +25,14 @@ export struct MenuItemRow {
         .fontSize(F_SM)
         .fontColor(TEXT_2)
         .layoutWeight(1)
-        .margin({ left: S_3 })
+        .margin({ left: 12 })
 
       Text(">")
         .fontSize(F_MD + 1)
         .fontColor(TEXT_4)
     }
     .width("100%")
-    .padding({ left: S_4, right: S_4, top: S_4, bottom: S_4 })
+    .padding({ left: 16, right: 16, top: S_4, bottom: S_4 })
     .border({ width: { bottom: 1 }, color: BORDER })
     .onClick((): void => {
       if (this.onTap) {
