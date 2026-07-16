@@ -95,16 +95,14 @@ export struct AgentFloatWindow {
         this.fillLast("（AI 返回了空内容，请重试）"); return
       }
       this.busy = false
-      const replyMsg: ChatMsg = { id: placeholder.id, role: "ai", content: fullReply, ts: placeholder.ts }
-      const idx = this.messages.length - 1
-      this.messages = [...this.messages.slice(0, idx), replyMsg]
+      const replyMsg: ChatMsg = { id: nowId(), role: "ai", content: fullReply, ts: Date.now() }
+      this.messages = [...this.messages.slice(0, -1), replyMsg]
       this.renderKey++
       setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 100)
     } catch (e) {
       this.busy = false
       const errMsg: string = (e as Error).message ?? "AI 回复异常"
-      const idx2 = this.messages.length - 1
-      this.messages = [...this.messages.slice(0, idx2), { id: placeholder.id, role: "ai", content: errMsg, ts: placeholder.ts }]
+      this.messages = [...this.messages.slice(0, -1), { id: nowId(), role: "ai", content: errMsg, ts: Date.now() }]
       this.renderKey++
     }
   }
@@ -112,7 +110,7 @@ export struct AgentFloatWindow {
 
   private fillLast(text: string): void {
     const last = this.messages[this.messages.length - 1]
-    if (last && last.role === "ai") { const i = this.messages.length - 1; this.messages = [...this.messages.slice(0, i), { id: last.id, role: "ai", content: text, ts: last.ts }] }
+    if (last && last.role === "ai") { this.messages = [...this.messages.slice(0, -1), { id: nowId(), role: "ai", content: text, ts: Date.now() }] }
     this.busy = false
   }
 
