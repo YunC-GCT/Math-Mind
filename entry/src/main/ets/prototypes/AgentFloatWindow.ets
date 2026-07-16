@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MathMind AI · Variant B — 沉浸对话型
  * P0/P1 修复: 模型状态指示 · typing 三点动画 · 气泡三重区分 · 推荐分组
  */
@@ -84,10 +84,10 @@ export struct AgentFloatWindow {
   }
   private sendQuick = (prompt: string): void => { this.send(prompt) }
   private realReply = async (userContent: string): Promise<void> => {
-    this.busy = true; this.startTyping()
+    this.busy = true
     try {
       if (!(await LlmConfig.getInstance().isConfigured())) {
-        this.addAiMsg("请先在「我的 → 大模型设置」中配置 API Key"); this.busy = false; this.stopTyping(); return
+        this.addAiMsg("请先在「我的 → 大模型设置」中配置 API Key"); this.busy = false; return
       }
       const systemPrompt = this.deepThink
         ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程，使用 LaTeX。"
@@ -101,7 +101,7 @@ export struct AgentFloatWindow {
       if (err.indexOf("NO_API_KEY") >= 0) { this.addAiMsg("请先配置 API Key") }
       else if (err.indexOf("NETWORK_ERROR") >= 0) { this.addAiMsg("网络连接失败") }
       else { this.addAiMsg("AI 回复异常") }
-    } finally { this.busy = false; this.stopTyping() }
+    } finally { this.busy = false }
   }
   private addAiMsg = (content: string): void => {
     this.messages = [...this.messages, { id: nowId(), role: "ai", content, ts: Date.now() }]
@@ -115,7 +115,7 @@ export struct AgentFloatWindow {
       Text("DeepSeek-V3").fontSize(F_XS).fontColor(TEXT_2).fontWeight(W_MEDIUM)
       // 思考胶囊: 描边圆角 + 图标 + 文字 (DeepSeek风格)
       Row() {
-        Text("⚛").fontSize(F_SM).fontColor(this.deepThink ? MINT : TEXT_3)
+        Stack() {`n          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1)`n          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1).rotate({ angle: 60 })`n          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1).rotate({ angle: 120 })`n          Circle({ width: 2, height: 2 }).fill(this.deepThink ? MINT : TEXT_3)`n        }.width(12).height(12)
         Text(" 深度思考").fontSize(F_XS).fontColor(this.deepThink ? MINT : TEXT_3).fontWeight(W_MEDIUM)
       }
       .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
@@ -175,7 +175,7 @@ export struct AgentFloatWindow {
   @Builder EmptyHint() {
     Column() {
       // P0-1: 空状态用几何结晶 logo（文字代替 SVG）
-      Text("✦").fontSize(48).fontColor(MINT).margin({ bottom: S_3 })
+      Stack() {`n          Path().width(30).height(30)`n            .commands("M 15 0 L 28 15 L 15 30 L 2 15 Z")`n            .fill(MINT).opacity(0.3)`n          Path().width(18).height(18)`n            .commands("M 15 4 L 26 15 L 15 26 L 4 15 Z")`n            .fill(MINT)`n        }.width(48).height(48).margin({ bottom: S_3 })
       Text("有什么数学问题？").fontSize(F_MD).fontWeight(W_SEMIBOLD).fontColor(TEXT)
       Text("试试下方的推荐问题，或直接输入").fontSize(F_XS).fontColor(TEXT_3).margin({ top: S_2 })
     }.width("100%").padding({ top: S_6, bottom: S_6 }).alignItems(HorizontalAlign.Center)
@@ -241,7 +241,7 @@ export struct AgentFloatWindow {
             .width("100%").height(S_6).justifyContent(FlexAlign.Center)
           this.Header()
           Row().width("100%").height(0.5).backgroundColor(BORDER)
-          Scroll() {
+          Scroll(this.scroller) {
             Column() {
               if (this.messages.length === 0 && !this.busy) { this.EmptyHint() }
               ForEach(this.messages,
