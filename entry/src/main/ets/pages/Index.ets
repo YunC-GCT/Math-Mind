@@ -68,7 +68,7 @@ struct Index {
           TabContent() {
             ReviewPage({
               onGoAI: (): void => {
-                promptAction.showToast({ message: "AI 对话功能开发中", duration: 1500 })
+                try { promptAction.showToast({ message: "AI 对话功能开发中", duration: 1500 }) } catch (e) {}
               }
             })
           }

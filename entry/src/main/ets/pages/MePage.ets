@@ -34,7 +34,7 @@ export struct MePage {
   private todayNew(): number { return 3 }
 
   private toast(msg: string): void {
-    promptAction.showToast({ message: msg, duration: 2000, bottom: "50%" })
+    try { promptAction.showToast({ message: msg, duration: 2000, bottom: "50%" }) } catch (e) {}
   }
 
   build() {
