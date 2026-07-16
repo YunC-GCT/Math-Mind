@@ -95,7 +95,7 @@ export struct AgentFloatWindow {
 
   private realReply = async (userContent: string): Promise<void> => {
     this.busy = true
-    // 先插入占位消息（流式期间显示 TypingIndicator）
+    // 插入占位消息（流式期间显示 TypingIndicator）
     this.messages = [...this.messages, { id: nowId(), role: "ai", content: "", ts: Date.now() }]
     try {
       if (!(await LlmConfig.getInstance().isConfigured())) { this.fillLast("请先配置 API Key"); return }
@@ -103,20 +103,22 @@ export struct AgentFloatWindow {
         ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
         : "你是 MathMind AI 助手，简洁中文回答。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
       const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
+      if (fullReply.trim().length === 0) {
+        this.fillLast("（AI 返回了空内容，请重试）"); return
+      }
       this.streamInto(fullReply)
-      this.busy = false
-      setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 200)
     } catch (e) { this.fillLast((e as Error).message ?? "AI 回复异常"); this.busy = false }
   }
 
   private streamInto(fullText: string): void {
     const target = this.messages[this.messages.length - 1]
     let pos = 0
+    const total = fullText.length
     const t = setInterval((): void => {
-      pos = Math.min(pos + 4, fullText.length)
+      pos = Math.min(pos + 4, total)
       target.content = fullText.substring(0, pos)
       this.messages = [...this.messages] // 触发重渲染
-      if (pos >= fullText.length) { clearInterval(t) }
+      if (pos >= total) { clearInterval(t); this.busy = false; this.scroller.scrollEdge(Edge.Bottom) }
     }, 20)
   }
 
