@@ -1,7 +1,14 @@
-/**
- * MathMind 首页 — 装配层
- * W3 UI 优化: 六层架构，组件编排，零内联 UI
- */
+// ============================================================================
+//  pages/HomePage.ets — 首页装配层
+//  ----------------------------------------------------------------------------
+//  职责: 编排子组件，无内联 UI。管理 notes 数据状态并向下传递。
+//  数据流: @State notes → @Prop 分发给 HeroBanner / ReminderBanner / NoteCard。
+//  依赖:
+//    atoms:     HexLogo, FloatingButton
+//    molecules: HeroBanner, ReminderBanner, NoteCard
+//    prototypes: NoteDetailOverlay
+//  ============================================================================
+
 import {
   MINT, MINT_LIGHT, PURPLE_LIGHT, PINK_LIGHT,
   BG_DARK, TEXT, TEXT_3,
@@ -18,6 +25,8 @@ import { HeroBanner } from "../molecules/HeroBanner"
 import { ReminderBanner } from "../molecules/ReminderBanner"
 import { NoteCard } from "../molecules/NoteCard"
 import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
+
+// ---- 纯工具函数 ----
 
 function greet(): string {
   const h: number = new Date().getHours()

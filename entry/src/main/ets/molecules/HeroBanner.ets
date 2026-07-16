@@ -1,8 +1,19 @@
-/**
- * HeroBanner 分子组件 — 首页 Hero 区
- * 从 HomePage 提取，组装 GradientRing + StatsBox
- * 数据流: 全部 @Prop + callback, 单向
- */
+// ============================================================================
+//  molecules/HeroBanner.ets — 首页 Hero 横幅分子组件
+//  ----------------------------------------------------------------------------
+//  职责: 组装问候行 + 日期 + GradientRing 进度环 + StatsBox 统计方块。
+//  来源: 从 HomePage.ets 提取，消除内联 50 行 UI。
+//  数据流: 全部 @Prop 单向，回调 onGoReview 通知父组件。
+//  接口:
+//    @Prop  greeting   — 问候语 ("上午好")
+//    @Prop  dateText   — 日期字符串
+//    @Prop  avg        — 掌握率百分比 (0-100)
+//    @Prop  notesCount — 笔记总数
+//    @Prop  todayCount — 今日新增数
+//    onGoReview         — 点击进度环回调
+//  依赖: GradientRing (atoms), StatsBox (atoms)
+//  ============================================================================
+
 import {
   MINT, MINT_LIGHT, PURPLE_LIGHT, PINK_LIGHT,
   TEXT, TEXT_3,
