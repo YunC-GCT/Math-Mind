@@ -42,9 +42,9 @@ export class Logger {
       return msg;
     }
     const parts: string[] = [msg];
-    for (let i = 0; i < args.length; i++) {
-      parts.push(`arg${i}=${JSON.stringify(args[i])}`);
-    }
+    args.forEach((arg: Object, index: number): void => {
+      parts.push(`arg${index}=${JSON.stringify(arg)}`);
+    });
     return parts.join(' | ');
   }
 }
