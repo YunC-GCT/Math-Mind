@@ -93,8 +93,10 @@ export struct AgentFloatWindow {
       if (typeof fullReply !== "string" || fullReply.trim().length === 0) {
         this.fillLast("（AI 返回了空内容，请重试）"); return
       }
-      placeholder.content = ""
-      this.streamInto(placeholder, fullReply)
+      placeholder.content = fullReply
+      this.messages = [...this.messages]
+      this.busy = false
+      this.scroller.scrollEdge(Edge.Bottom)
     } catch (e) {
       const errMsg: string = (e as Error).message ?? "AI 回复异常"
       placeholder.content = errMsg
@@ -103,16 +105,6 @@ export struct AgentFloatWindow {
     }
   }
 
-  private streamInto(target: ChatMsg, fullText: string): void {
-    let pos = 0
-    const total = fullText.length
-    const t = setInterval((): void => {
-      pos = Math.min(pos + 4, total)
-      target.content = fullText.substring(0, pos)
-      this.messages = [...this.messages]
-      if (pos >= total) { clearInterval(t); this.busy = false; this.scroller.scrollEdge(Edge.Bottom) }
-    }, 20)
-  }
 
   private fillLast(text: string): void {
     const last = this.messages[this.messages.length - 1]
