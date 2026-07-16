@@ -10,7 +10,6 @@
 //  ============================================================================
 
 import {
-  MINT, MINT_LIGHT, PURPLE_LIGHT, PINK_LIGHT,
   BG_DARK, TEXT, TEXT_3,
   S_2, S_3, S_4, S_5,
   F_XS, F_BASE, F_MD,
