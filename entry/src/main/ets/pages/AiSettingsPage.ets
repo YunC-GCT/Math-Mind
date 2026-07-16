@@ -176,4 +176,4 @@ struct AiSettingsPage {
       if (desc.length > 0) { Text(desc).fontSize(F_XS).fontColor(TEXT_4).margin({ top: 2 }) }
     }.alignItems(HorizontalAlign.Start).width("100%").padding({ left: 20, right: S_2, top: 20, bottom: 8 })
   }
-
+}
