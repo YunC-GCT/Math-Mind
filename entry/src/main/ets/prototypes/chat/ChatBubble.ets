@@ -1,4 +1,4 @@
-﻿// chat/ChatBubble.ets — 聊天气泡 + LaTeX 视觉区分
+// chat/ChatBubble.ets — 聊天气泡 + LaTeX 兜底
 import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT,
   TEXT, TEXT_2, TEXT_4, S_1, S_2, S_3, R_MD, F_XS, F_SM, W_SEMIBOLD,
 } from "common"
@@ -6,8 +6,20 @@ import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT,
 interface ChatMsg { id: number; role: string; content: string; ts: number }
 
 function formatLatex(raw: string): string {
-  return raw.replace(/\$\$(.+?)\$\$/g, "\n[ \u2710 $1 ]\n")
-            .replace(/\$(.+?)\$/g, " { \u00B7 $1 \u00B7 } ")
+  let r = raw
+  while (r.indexOf("$$") >= 0) {
+    const s = r.indexOf("$$") + 2; const e = r.indexOf("$$", s)
+    if (e < 0) break
+    const f = r.substring(s, e)
+    r = r.substring(0, s-2) + "\n\u2523 " + f + " \u252B\n" + r.substring(e+2)
+  }
+  while (r.indexOf("$") >= 0) {
+    const s = r.indexOf("$") + 1; const e = r.indexOf("$", s)
+    if (e < 0) break
+    const f = r.substring(s, e)
+    r = r.substring(0, s-1) + " \u3008" + f + "\u3009 " + r.substring(e+1)
+  }
+  return r
 }
 
 @Component
