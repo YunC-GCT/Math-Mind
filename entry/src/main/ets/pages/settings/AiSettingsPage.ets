@@ -7,10 +7,10 @@ import { BG_DARK, BORDER } from "common"
 import { KeyboardAvoidMode } from "@kit.ArkUI"
 import { LlmConfig, LlmClient } from "common"
 import { promptAction } from "@kit.ArkUI"
-import { SettingsTopBar } from "../../atoms/SettingsTopBar"
-import { SettingsStatus } from "./SettingsStatus"
-import { SettingsSection } from "./SettingsSection"
-import { SettingsActionBar } from "./SettingsActionBar"
+import { PageHeader } from "../../atoms/PageHeader"
+import { ConnectionStatus } from "./ConnectionStatus"
+import { SectionHeader } from "./SectionHeader"
+import { ActionBar } from "./ActionBar"
 import { EndpointPicker, DS_ENDPOINT } from "./EndpointPicker"
 import { ModelPicker, DEFAULT_MODEL } from "./ModelPicker"
 import { KeyInput } from "./KeyInput"
@@ -68,24 +68,24 @@ struct AiSettingsPage {
   build() {
     Column() {
       Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
-      SettingsTopBar({ title: "模型配置" })
+      PageHeader({ title: "模型配置" })
       Row().width("100%").height(0.5).backgroundColor(BORDER)
       Scroll() {
         Column() {
-          SettingsStatus({ configured: this.configured, statusText: this.statusText })
-          SettingsSection({ title: "服务端点", desc: "DeepSeek 官方或自定义" })
+          ConnectionStatus({ configured: this.configured, statusText: this.statusText })
+          SectionHeader({ title: "服务端点", desc: "DeepSeek 官方或自定义" })
           EndpointPicker({ useCustom: this.useCustomEP, customText: this.customEP,
             onToggle: (v: boolean): void => { this.useCustomEP = v },
             onCustomChange: (v: string): void => { this.customEP = v } })
-          SettingsSection({ title: "模型", desc: "DeepSeek-V3 或自定义" })
+          SectionHeader({ title: "模型", desc: "DeepSeek-V3 或自定义" })
           ModelPicker({ useCustom: this.useCustomMD, customText: this.customMD,
             onToggle: (v: boolean): void => { this.useCustomMD = v },
             onCustomChange: (v: string): void => { this.customMD = v } })
-          SettingsSection({ title: "API Key", desc: "从 DeepSeek 获取的密钥" })
+          SectionHeader({ title: "API Key", desc: "从 DeepSeek 获取的密钥" })
           KeyInput({ apiKey: this.apiKey, testing: this.testing,
             onChange: (v: string): void => { this.apiKey = v },
             onTest: (): void => { this.handleTest() } })
-          SettingsActionBar({ onReset: (): void => { this.handleReset() }, onSave: (): void => { this.handleSave() } })
+          ActionBar({ onReset: (): void => { this.handleReset() }, onSave: (): void => { this.handleSave() } })
           Blank().height(40)
         }.width("100%")
       }.layoutWeight(1)
