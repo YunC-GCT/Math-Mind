@@ -1,7 +1,7 @@
 ﻿// 设置页 · 底部按钮组
 import { MINT, BG_DARK, TEXT_3, F_SM, R_MD, S_2 } from "common"
 @Component
-export struct SettingsActionBar {
+export struct ActionBar {
   onReset?: () => void
   onSave?: () => void
   build() {

@@ -1,7 +1,7 @@
 ﻿// 设置页 · 分组标题
 import { TEXT, TEXT_4, F_XS, F_SM, W_SEMIBOLD, S_2 } from "common"
 @Component
-export struct SettingsSection {
+export struct SectionHeader {
   @Prop title: string = ""
   @Prop desc: string = ""
   build() {

@@ -1,7 +1,7 @@
 ﻿// 设置页 · 连接状态行
 import { MINT, BG_CARD, TEXT, TEXT_3, TEXT_4, F_XS, F_BASE, W_SEMIBOLD, S_4, R_LG } from "common"
 @Component
-export struct SettingsStatus {
+export struct ConnectionStatus {
   @Prop configured: boolean = false
   @Prop statusText: string = "未配置"
   build() {

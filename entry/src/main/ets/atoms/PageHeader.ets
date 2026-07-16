@@ -6,7 +6,7 @@ import { MINT, TEXT, F_SM, F_MD, W_SEMIBOLD, S_2, S_3 } from "common"
 import { router } from "@kit.ArkUI"
 
 @Component
-export struct SettingsTopBar {
+export struct PageHeader {
   @Prop title: string = "设置"
   build() {
     Row() {
