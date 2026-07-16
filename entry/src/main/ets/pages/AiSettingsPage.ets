@@ -17,6 +17,7 @@ import { ParamRow } from "../atoms/ParamRow"
 import { SettingsActionBar } from "../atoms/SettingsActionBar"
 import { EndpointPicker, EP_PRESETS } from "../molecules/EndpointPicker"
 import { ModelPicker, ModelPreset, SF_MODELS, DS_MODELS } from "../molecules/ModelPicker"
+import { KeyInput } from "../molecules/KeyInput"
 
 @Entry
 @Component
@@ -118,14 +119,11 @@ struct AiSettingsPage {
             onCustom: (): void => { this.useCustomMD = true },
           })
           SectionHeader({ title: "API Key", desc: "从模型服务商获取的密钥" })
-          Row() {
-            TextInput({ text: this.apiKey, placeholder: "sk-..." }).type(InputType.Password)
-              .layoutWeight(1).height(42).fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4).backgroundColor("transparent")
-              .onChange((v: string): void => { this.apiKey = [redacted] })
-            Button(this.testing ? "..." : "测试").fontSize(F_XS).fontColor(BG_DARK)
-              .height(44).borderRadius(R_MD).backgroundColor(MINT).enabled(!this.testing).margin({ left: 8 })
-              .onClick((): void => { this.handleTest() })
-          }.width("100%").padding({ left: 16, right: 16, top: 8, bottom: 8 }).borderRadius(R_LG).backgroundColor(BG_CARD).margin({ left: S_2, right: S_2 })
+          KeyInput({
+            apiKey: [redacted], testing: this.testing,
+            onChange: (v: string): void => { this.apiKey = [redacted] },
+            onTest: (): void => { this.handleTest() },
+          })
           SectionHeader({ title: "请求参数", desc: "" })
           Column() {
             ParamRow({ label: "温度", value: this.tempText, hint: "0-2", onChange: (v: string): void => { this.tempText = v } })

@@ -3,12 +3,13 @@
 //  来源: AiSettingsPage API Key 行
 // ============================================================================
 
-import { MINT, BG_DARK, TEXT, TEXT_3, TEXT_4, F_XS, F_SM, R_MD, GLASS_8 } from "common"
+import { MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, TEXT_4, F_XS, F_SM, R_MD, GLASS_8 } from "common"
 
 @Component
 export struct KeyInput {
   @Link apiKey: string
   @Prop testing: boolean = false
+  onChange?: (v: string) => void
   onTest?: () => void
 
   @State showKey: boolean = false
@@ -31,6 +32,6 @@ export struct KeyInput {
         .onClick((): void => { if (this.onTest) { this.onTest() } })
     }
     .width("100%").padding({ left: 16, right: 16, top: 8, bottom: 8 })
-    .borderRadius(12).backgroundColor("#FF10131A")
+    .borderRadius(12).backgroundColor(BG_CARD)
   }
 }
