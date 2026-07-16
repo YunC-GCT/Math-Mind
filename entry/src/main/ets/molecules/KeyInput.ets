@@ -16,13 +16,11 @@
 // ============================================================================// ============================================================================
 //  molecules/KeyInput.ets — API Key 输入行
 //  来源: AiSettingsPage API Key 行
-// ============================================================================
-
 import { MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, TEXT_4, F_XS, F_SM, R_MD, GLASS_8 } from "common"
 
 @Component
 export struct KeyInput {
-  @Link apiKey: string
+  @Prop apiKey: [redacted] = ''
   @Prop testing: boolean = false
   onChange?: (v: string) => void
   onTest?: () => void
@@ -39,7 +37,7 @@ export struct KeyInput {
         .layoutWeight(1).height(42)
         .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
         .backgroundColor("transparent")
-        .onChange((v: string): void => { this.apiKey = v })
+        .onChange((v: string): void => { if (this.onChange) { this.onChange(v) } })
 
       Button(this.testing ? "..." : "测试").fontSize(F_XS).fontColor(BG_DARK)
         .height(44).borderRadius(R_MD).backgroundColor(MINT)

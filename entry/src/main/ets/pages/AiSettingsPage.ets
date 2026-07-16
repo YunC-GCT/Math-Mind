@@ -82,7 +82,7 @@ struct AiSettingsPage {
     const ep = c.getEndpoint()
     let epM = -1
     for (let i = 0; i < EP_PRESETS.length; i++) { if (ep === EP_PRESETS[i]) { epM = i; break } }
-    if (epM >= 0) { this.endpointIdx = epM; this.useCustomEP = false; this.onEndpointChange() }
+    if (epM >= 0) { this.endpointIdx = epM; this.useCustomEP = false }
     else { this.endpointCustom = ep; this.useCustomEP = true }
     const m = c.getModel()
     let mM = -1
@@ -114,7 +114,8 @@ struct AiSettingsPage {
   async handleTest(): Promise<void> {
     if (this.apiKey.trim().length === 0) { promptAction.showToast({ message: "请先输入 API Key", duration: 1500 }); return }
     await LlmConfig.getInstance().setApiKey(this.apiKey.trim())
-    await LlmConfig.getInstance().saveAll(this.ep(), this.md(), this.temperature, this.maxTokens, this.timeoutMs)
+    const tp2 = parseFloat(this.tempText); const mt2 = parseInt(this.maxTokensText); const to2 = parseInt(this.timeoutText)
+    await LlmConfig.getInstance().saveAll(this.ep(), this.md(), isNaN(tp2) ? 0.1 : tp2, isNaN(mt2) ? 256 : mt2, isNaN(to2) ? 5000 : to2)
     this.testing = true
     try { await new LlmClient().call([{ role: "system", content: "Reply OK." }, { role: "user", content: "OK" }])
       promptAction.showToast({ message: "连接成功", duration: 1500 }); this.statusText = "已配置 · 连接正常"
