@@ -118,7 +118,7 @@ export struct MePage {
           MenuItemRow({
             icon: "🤖",
             label: "模型",
-            onTap: (): void => { router.pushUrl({ url: "pages/AiSettingsPage" }) },
+            onTap: (): void => { router.pushUrl({ url: "pages/settings/AiSettingsPage" }) },
           })
           MenuItemRow({
             icon: "🚪",
