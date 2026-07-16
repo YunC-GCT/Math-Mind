@@ -45,10 +45,7 @@ struct AiSettingsPage {
     const c = LlmConfig.getInstance()
     const key = await c.getApiKey()
     if (key !== null && key.length > 0) { this.apiKey = key; this.configured = true; this.statusText = "已配置" }
-    const ep = c.getEndpoint()
-    if (ep !== DS_ENDPOINT) { this.customEP = ep; this.useCustomEP = true }
-    const m = c.getModel()
-    if (m !== DEFAULT_MODEL) { this.customMD = m; this.useCustomMD = true }
+    // 自定义端点/模型留空，由用户手动填写
     this.temperature = c.getTemperature(); this.maxTokens = c.getMaxTokens(); this.timeoutMs = c.getTimeoutMs()
     this.tempText = this.temperature.toString(); this.maxTText = this.maxTokens.toString(); this.toText = this.timeoutMs.toString()
   }
