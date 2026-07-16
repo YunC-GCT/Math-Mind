@@ -140,7 +140,7 @@ export struct AgentFloatWindow {
           Scroll(this.scroller) {
             Column() {
               if (this.messages.length === 0 && !this.busy) { EmptyStateHint() }
-              ForEach(this.messages, (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (): void => {}, onFeedback: (): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) }, (msg: ChatMsg): string => msg.id.toString())
+              ForEach(this.messages, (msg: ChatMsg): void => { ChatBubble({ msg: msg, onCopy: (_text: string): void => {}, onFeedback: (_msg: ChatMsg): void => {}, onRegen: (m: ChatMsg): void => { if(m.role==="ai"){const idx=this.messages.findIndex(x=>x.id===m.id);if(idx>0&&this.messages[idx-1].role==="user")this.send(this.messages[idx-1].content)}} }) }, (msg: ChatMsg): string => msg.id.toString())
               if (this.busy && this.messages.length > 0 && this.messages[this.messages.length - 1].content === "思考中...") { TypingIndicator() }
               Blank().height(S_2)
             }.width("100%").padding({ left: S_4, right: S_4, top: S_2 })
