@@ -1,4 +1,4 @@
-﻿// 设置页 · 模型选择器 (DeepSeek V4 最新)
+// 设置页 · 模型选择器 (DeepSeek V4 最新)
 import { BG_CARD, TEXT, TEXT_4, R_MD, R_LG, F_XS, F_SM, W_SEMIBOLD } from "common"
 
 export const DEFAULT_MODEL = "deepseek-v4-flash"
@@ -20,7 +20,7 @@ export struct ModelPicker {
           .onChange((v: boolean): void => { if (v && this.onSelect) { this.onSelect(0) } })
         Column() {
           Text("DeepSeek-V4-Flash").fontSize(F_SM).fontColor(TEXT).fontWeight(W_SEMIBOLD)
-          Text("1M 上下文 · 1元/3元(输入/输出)").fontSize(9).fontColor(TEXT_4).margin({ top: 1 })
+          Text("快速轻量 · 默认推荐").fontSize(9).fontColor(TEXT_4).margin({ top: 1 })
         }.alignItems(HorizontalAlign.Start).margin({ left: 8 }).layoutWeight(1)
       }.width("100%").padding({ left: 4, right: 4, top: 6, bottom: 6 })
 
@@ -30,7 +30,7 @@ export struct ModelPicker {
           .onChange((v: boolean): void => { if (v && this.onSelect) { this.onSelect(1) } })
         Column() {
           Text("DeepSeek-V4-Pro").fontSize(F_SM).fontColor(TEXT).fontWeight(W_SEMIBOLD)
-          Text("1M 上下文 · 3元/6元(输入/输出)").fontSize(9).fontColor(TEXT_4).margin({ top: 1 })
+          Text("旗舰性能 · 复杂推理").fontSize(9).fontColor(TEXT_4).margin({ top: 1 })
         }.alignItems(HorizontalAlign.Start).margin({ left: 8 }).layoutWeight(1)
       }.width("100%").padding({ left: 4, right: 4, top: 6, bottom: 6 })
 
