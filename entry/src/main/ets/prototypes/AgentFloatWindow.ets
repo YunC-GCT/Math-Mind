@@ -17,9 +17,8 @@ import { QuickSuggestions } from "./chat/QuickSuggestions"
 import { MessageInput } from "./chat/MessageInput"
 import { ChatSessionManager, sid } from "./chat/ChatSession"
 import { SessionBar } from "./chat/SessionBar"
+import { ChatMsg, ChatSession } from "./chat/ChatModels"
 
-interface ChatMsg { id: number; role: string; content: string; ts: number }
-interface Session { id: string; name: string; messages: ChatMsg[] }
 function nowId(): number { return Date.now() * 1000 + Math.floor(Math.random() * 1000) }
 
 @Component
@@ -34,7 +33,7 @@ export struct AgentFloatWindow {
   @State deepThink: boolean = false
   @State imagePreview: string = ""
   @State keyboardHeight: number = 0
-  @State sessions: Session[] = [{ id: "s1", name: "会话 1", messages: [] }]
+  @State sessions: ChatSession[] = [{ id: "s1", name: "会话 1", messages: [] }]
   @State activeSid: string = "s1"
   @State renderKey: number = 0
   @State floatHeight: number = 48
@@ -68,21 +67,21 @@ export struct AgentFloatWindow {
   }
 
   private sync(): void {
-    const session = this.sessions.find((item: Session): boolean => item.id === this.activeSid)
+    const session = this.sessions.find((item: ChatSession): boolean => item.id === this.activeSid)
     if (session !== undefined) {
       session.messages = this.messages
     }
   }
   private switchSession(sid: string): void {
     this.sync()
-    const session = this.sessions.find((item: Session): boolean => item.id === sid)
+    const session = this.sessions.find((item: ChatSession): boolean => item.id === sid)
     if (session !== undefined) {
       this.activeSid = sid
       this.messages = session.messages
     }
   }
-  private newSession(): void { this.sync(); const s: Session = { id: sid(), name: "会话 " + (this.sessions.length + 1).toString(), messages: [] }; this.sessions = [...this.sessions, s]; this.activeSid = s.id; this.messages = []; this.sm.save(this.sessions) }
-  private deleteSession(sid: string): void { if (this.sessions.length <= 1) return; const f = this.sessions.filter((s: Session): boolean => s.id !== sid); this.sessions = f; if (sid === this.activeSid) { this.activeSid = f[0].id; this.messages = f[0].messages }; this.sm.save(this.sessions) }
+  private newSession(): void { this.sync(); const s: ChatSession = { id: sid(), name: "会话 " + (this.sessions.length + 1).toString(), messages: [] }; this.sessions = [...this.sessions, s]; this.activeSid = s.id; this.messages = []; this.sm.save(this.sessions) }
+  private deleteSession(sid: string): void { if (this.sessions.length <= 1) return; const f = this.sessions.filter((s: ChatSession): boolean => s.id !== sid); this.sessions = f; if (sid === this.activeSid) { this.activeSid = f[0].id; this.messages = f[0].messages }; this.sm.save(this.sessions) }
 
   private send = (text?: string): void => {
     const msg = (text ?? this.inputText).trim()

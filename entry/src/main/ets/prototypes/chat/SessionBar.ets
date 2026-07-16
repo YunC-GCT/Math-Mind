@@ -19,32 +19,31 @@
  * ==========================================================================
  */// chat/SessionBar.ets — 会话切换栏
 import { MINT, MINT_LIGHT, TEXT_3, TEXT_4, S_1, S_2, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10 } from "common"
-
-interface Session { id: string; name: string; messages: object[] }
+import { ChatSession } from "./ChatModels"
 
 @Component
 export struct SessionBar {
-  @Prop sessions: Session[] = []
+  @Prop sessions: ChatSession[] = []
   @Prop activeSid: string = ""
-  onSwitch?: (sid: string) => void
-  onDelete?: (sid: string) => void
-  onNew?: () => void
+  onSwitch: (sid: string) => void = (_sid: string): void => {}
+  onDelete: (sid: string) => void = (_sid: string): void => {}
+  onNew: () => void = (): void => {}
 
   build() {
     Row() {
       Scroll() {
         Row() {
-          ForEach(this.sessions, (s: Session): void => {
+          ForEach(this.sessions, (s: ChatSession): void => {
             Row() {
               Text(s.id === this.activeSid ? "\u25CF " + s.name : "\u25CB " + s.name)
                 .fontSize(F_XS).fontColor(s.id === this.activeSid ? MINT : TEXT_3).fontWeight(W_MEDIUM)
-              if (this.sessions.length > 1) { Text("\u2715").fontSize(9).fontColor(TEXT_4).margin({ left: S_1 }).onClick((): void => { if (this.onDelete) { this.onDelete(s.id) } }) }
+              if (this.sessions.length > 1) { Text("\u2715").fontSize(9).fontColor(TEXT_4).margin({ left: S_1 }).onClick((): void => { this.onDelete(s.id) }) }
             }.padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 }).borderRadius(R_FULL)
              .backgroundColor(s.id === this.activeSid ? MINT_LIGHT : GLASS_10).margin({ right: S_2 })
-             .onClick((): void => { if (this.onSwitch) { this.onSwitch(s.id) } })
-          }, (s: Session): string => s.id)
+             .onClick((): void => { this.onSwitch(s.id) })
+          }, (s: ChatSession): string => s.id)
           Text("+").fontSize(F_SM).fontColor(TEXT_3).width(28).height(28).borderRadius(14).textAlign(TextAlign.Center).backgroundColor(GLASS_10)
-            .onClick((): void => { if (this.onNew) { this.onNew() } })
+            .onClick((): void => { this.onNew() })
         }.padding({ left: S_2, right: S_2 })
       }.layoutWeight(1).scrollBar(BarState.Off)
     }.width("100%").height(36).padding({ top: S_1, bottom: S_1 })
