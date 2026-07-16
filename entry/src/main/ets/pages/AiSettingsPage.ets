@@ -150,7 +150,7 @@ struct AiSettingsPage {
           SectionHeader({ title: "API Key", desc: "从模型服务商获取的密钥" })
           KeyInput({
             apiKey: this.apiKey, testing: this.testing,
-            onChange: (v: string): void => { this.apiKey = key },
+            onChange: (v: string): void => { this.apiKey = v },
             onTest: (): void => { this.handleTest() },
           })
           SectionHeader({ title: "请求参数", desc: "" })
