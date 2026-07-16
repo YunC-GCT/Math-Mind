@@ -34,9 +34,9 @@ export struct MessageInput {
     Column() {
       if (this.imagePreview.length > 0) {
         Row() {
-          Image(this.imagePreview).width(36).height(36).borderRadius(R_SM).objectFit(ImageFit.Cover)
-          Text("\u5DF2\u9009\u56FE\u7247").fontSize(F_XS).fontColor(TEXT_3).margin({ left: S_2 }).layoutWeight(1)
-          Text("\u2715").fontSize(F_XS).fontColor(TEXT_3).width(32).height(44).textAlign(TextAlign.Center)
+          Image($r("app.media.ic_camera")).width(20).height(20).fillColor(MINT)
+          Text("\u5DF2\u9644\u56FE\u7247").fontSize(F_XS).fontColor(TEXT_3).margin({ left: S_2 }).layoutWeight(1)
+          Text("\u2715").fontSize(F_SM).fontColor(TEXT_3).width(32).height(44).textAlign(TextAlign.Center)
             .onClick((): void => { if (this.onClearImage) { this.onClearImage() } })
         }.width("100%").padding({ left: S_4, right: S_4, bottom: S_1 })
       }
