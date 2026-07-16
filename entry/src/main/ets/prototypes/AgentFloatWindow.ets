@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MathMind AI 浮窗 · 装配层 (6 子组件 + 多会话持久化)
  */
 import { MINT, MINT_LIGHT, BG_DARK, TEXT, TEXT_3, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_MD, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
@@ -108,32 +108,33 @@ export struct AgentFloatWindow {
   private realReply = async (userContent: string): Promise<void> => {
     this.busy = true; this.streamBuffer = ""
     try {
-      if (!(await LlmConfig.getInstance().isConfigured())) { this.streamBuffer = "\u8BF7\u5148\u914D\u7F6E API Key"; this.finishStream(); return }
-      const sp = this.deepThink ? "\u4F60\u662F MathMind AI \u6DF1\u5EA6\u601D\u8003\u52A9\u624B\u3002\u9010\u6B65\u63A8\u7406\u3002\u6570\u5B66\u516C\u5F0F\u7528 Unicode \u7B26\u53F7\u76F4\u63A5\u8F93\u51FA\uFF0C\u5982: \u222Bsin x dx, lim(n\u2192\u221E), \u2211x\u00B2\u3002\u4E0D\u8981\u7528 $ \u6216 $$ \u5305\u88F9\u3002" : "\u4F60\u662F MathMind AI \u52A9\u624B\u3002\u7B80\u6D01\u4E2D\u6587\u56DE\u7B54\u3002\u6570\u5B66\u516C\u5F0F\u7528 Unicode \u7B26\u53F7\u76F4\u63A5\u8F93\u51FA\uFF0C\u5982: \u222Bsin x dx, lim(n\u2192\u221E), \u2211x\u00B2, \u03C0\u22483.14\u3002\u4E0D\u8981\u7528 $ \u6216 $$ \u5305\u88F9\u3002"
+      if (!(await LlmConfig.getInstance().isConfigured())) { this.addFinal("\u8BF7\u5148\u914D\u7F6E API Key"); return }
+      const sp = this.deepThink ? "\u4F60\u662F MathMind AI \u6DF1\u5EA6\u601D\u8003\u52A9\u624B\u3002\u9010\u6B65\u63A8\u7406\uFF0C\u4F7F\u7528 LaTeX\u3002" : "\u4F60\u662F MathMind AI \u52A9\u624B\uFF0C\u7B80\u6D01\u4E2D\u6587\u56DE\u7B54\uFF0C\u4F7F\u7528 LaTeX\u3002"
       const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
-      this.streamOut(fullReply)
+      this.streamShow(fullReply)
     } catch (e) {
       const err = (e as Error).message ?? ""
       const errMsg = err.indexOf("NO_API_KEY") >= 0 ? "\u8BF7\u5148\u914D\u7F6E API Key" : err.indexOf("NETWORK_ERROR") >= 0 ? "\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25" : "AI\u56DE\u590D\u5F02\u5E38"
-      this.messages = [...this.messages, { id: nowId(), role: "ai", content: errMsg, ts: Date.now() }]
-      this.busy = false; this.streamBuffer = ""
+      this.addFinal(errMsg)
     }
   }
-  private streamOut(fullText: string): void {
+  private streamShow(fullText: string): void {
     const msgId = nowId(); let pos = 0
     const timer = setInterval((): void => {
-      if (pos < fullText.length) { pos = Math.min(pos + 4, fullText.length); this.streamBuffer = fullText.substring(0, pos) }
-      else { clearInterval(timer); this.finishStream() }
+      pos = Math.min(pos + 3, fullText.length)
+      this.streamBuffer = fullText.substring(0, pos)
+      if (pos >= fullText.length) { clearInterval(timer); this.addFinal(fullText) }
     }, 25)
   }
-  private finishStream(): void {
-    if (this.streamBuffer.length > 0) { this.messages = [...this.messages, { id: nowId(), role: "ai", content: this.streamBuffer, ts: Date.now() }] }
+  private addFinal(text: string): void {
+    this.messages = [...this.messages, { id: nowId(), role: "ai", content: text, ts: Date.now() }]
     this.busy = false; this.streamBuffer = ""
+    this.forceScroll()
   }
-  private addAiMsg = (content: string): void => {
-    this.messages = [...this.messages, { id: nowId(), role: "ai", content, ts: Date.now() }]
+  private forceScroll(): void {
+    setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 150)
+    setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 350)
   }
-
   @Builder SessionBar() {
     Row() {
       Scroll() {
