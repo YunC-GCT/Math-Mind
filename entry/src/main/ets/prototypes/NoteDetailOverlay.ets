@@ -13,13 +13,12 @@
  */
 
 import {
-  MINT, MINT_GLOW,
   BG_DARK,
   TEXT, TEXT_2, TEXT_3, TEXT_4, BORDER,
   GLASS_10, OVERLAY_MASK_SOLID,
-  S_1, S_2, S_3, S_4, S_5, S_6,
+  S_1, S_2, S_5, S_6,
   R_FULL,
-  F_XS, F_SM, F_BASE, F_2XL,
+  F_XS, F_2XL,
   W_SEMIBOLD, W_BOLD,
   NoteItem, typeColor, subjectColor, recentDate,
 } from "common"
@@ -28,13 +27,11 @@ import { ConfBadge } from "../atoms/ConfBadge"
 import { AppIcon } from "../atoms/AppIcon"
 import { NoteAiCard } from "./NoteDetailOverlay/NoteAiCard"
 import { NoteActionBar } from "./NoteDetailOverlay/NoteActionBar"
+import { Section, NoteSectionView } from "./NoteDetailOverlay/NoteSection"
+import { NoteTagChip } from "./NoteDetailOverlay/NoteTagChip"
+import { NoteCloseButton } from "./NoteDetailOverlay/NoteCloseButton"
 
 // 解析 body 成章节
-interface Section {
-  title: string
-  content: string
-}
-
 function parseSections(body: string): Section[] {
   if (!body) { return [] }
   const lines: string[] = body.split("\n")
@@ -108,7 +105,7 @@ export struct NoteDetailOverlay {
 
           Blank()
 
-          this.CloseBtn()
+          NoteCloseButton({ onClose: (): void => this.onClose() })
         }
         .width("100%")
         .padding({ left: 20, right: 16, top: 4, bottom: 8 })
@@ -153,7 +150,7 @@ export struct NoteDetailOverlay {
               Row() {
                 ForEach(this.note.tags,
                   (tag: string, _idx: number): void => {
-                    this.TagChip(tag)
+                    NoteTagChip({ tag: tag })
                   },
                   (tag: string): string => tag
                 )
@@ -172,7 +169,7 @@ export struct NoteDetailOverlay {
             Column() {
               ForEach(parseSections(this.note.body),
                 (sec: Section, _idx: number): void => {
-                  this.SectionView(sec)
+                  NoteSectionView({ title: sec.title, content: sec.content })
                 },
                 (sec: Section): string => sec.title + "_" + sec.content.length.toString()
               )
@@ -203,51 +200,6 @@ export struct NoteDetailOverlay {
       .backgroundColor(BG_DARK)
     }
     .width("100%").height("100%")
-  }
-
-  // ========== 章节渲染 ==========
-  @Builder
-  SectionView(sec: Section) {
-    Column() {
-      Text(sec.title)
-        .fontSize(F_SM).fontWeight(W_BOLD)
-        .fontColor(MINT).letterSpacing(0.5)
-        .width("100%")
-        .margin({ top: S_3, bottom: S_2 })
-
-      Text(sec.content && sec.content.length > 0 ? sec.content : "—")
-        .fontSize(F_BASE)
-        .fontColor(TEXT_2)
-        .lineHeight(22)
-        .width("100%")
-    }
-    .width("100%")
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  // ========== 标签 chip ==========
-  @Builder
-  TagChip(tag: string) {
-    Text("#" + tag)
-      .fontSize(F_XS)
-      .fontColor(MINT)
-      .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
-      .borderRadius(R_FULL)
-      .backgroundColor(MINT_GLOW)
-      .margin({ right: S_2, bottom: S_2 })
-  }
-
-  // ========== 关闭按钮 ==========
-  @Builder
-  CloseBtn() {
-    Stack() {
-      AppIcon({ name: "close", iconSize: 16, color: TEXT_2, strokeWidth: 2 })
-    }
-    .width(S_4 * 2).height(S_4 * 2)
-    .borderRadius(22)
-    .backgroundColor(GLASS_10)
-    .alignContent(Alignment.Center)
-    .onClick((): void => this.onClose())
   }
 
   // ========== 行为 ==========
