@@ -1,4 +1,25 @@
-﻿// chat/MessageInput.ets — 输入栏: 图片预览 + 输入框 + 拍照 + 发送
+/**
+ * ==========================================================================
+ *  MessageInput.ets — 消息输入栏组件
+ *  ==========================================================================
+ *  职责: 图片预览 + 输入框 + 拍照按钮 + 发送按钮。
+ *
+ *  UI:
+ *    [图片预览] (有图片时)
+ *    [📷] [输入数学问题...________________] [↑]
+ *
+ *  接口:
+ *    @Prop inputText      — 输入文本 (双向: onTextChange)
+ *    @Prop imagePreview   — 图片预览 URI
+ *    @Prop busy           — AI 是否忙碌 (发送按钮禁用)
+ *    onTextChange(v)       — 文本变更回调
+ *    onSend()              — 发送回调
+ *    onCamera()            — 拍照回调
+ *    onClearImage()        — 清除图片回调
+ *
+ *  依赖: common ColorTokens + app.media.ic_camera
+ * ==========================================================================
+ */// chat/MessageInput.ets — 输入栏: 图片预览 + 输入框 + 拍照 + 发送
 import { MINT, TEXT, TEXT_3, S_1, S_2, S_4, R_SM, F_XS, F_SM, F_LG, W_BOLD, GLASS_10 } from "common"
 @Component
 export struct MessageInput {

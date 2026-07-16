@@ -1,7 +1,41 @@
 /**
- * MathMind AI 浮窗 · 装配层 (8 子组件)
- */
-import { MINT, MINT_LIGHT, BG_DARK, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
+ * ==========================================================================
+ *  AgentFloatWindow.ets — AI 对话浮窗装配层
+ *  ==========================================================================
+ *  职责: 持有全部 @State + 业务逻辑, build() 仅组装 8 个子组件。
+ *
+ *  数据流 (单向 Parent → Child):
+ *    messages/inputText/busy → @Prop → ChatBubble/MessageInput/...
+ *    子组件回调 → onChange/onSend 等 → 父更新 @State
+ *
+ *  子组件 (prototypes/chat/):
+ *    ChatHeader      — 头部: 模型名 + 深度思考 SVG 胶囊 + [+]新对话 + [✕]关闭
+ *    SessionBar      — 会话切换栏: 水平滚动 ●○ 标签 + [+]新建
+ *    ChatBubble      — 聊天气泡: 用户(右MINT) + AI(左PURPLE) + 📋↻👎操作
+ *    TypingIndicator — typing 三点动画 (ArkUI animation)
+ *    EmptyStateHint  — 空状态引导: 钻石 SVG + 文案
+ *    QuickSuggestions — 推荐快捷词: 分析错题/讲解极限/生成练习/梳理知识
+ *    MessageInput    — 输入栏: 图片预览 + 输入框 + 拍照按钮 + 发送按钮
+ *    ChatSession     — 非UI工具类: preferences 会话持久化
+ *
+ *  对接:
+ *    LlmClient.call()  — AI 调用 (DeepSeek API)
+ *    LlmConfig         — 端点/模型/Key 配置
+ *    preferences       — 会话历史持久化
+ *    Index.ets          — 父组件控制 show/onClose/onGoCamera/pendingImageUri
+ *
+ *  流式输出:
+ *    插入空占位消息 → LlmClient.call() → streamInto() 原地更新 content
+ *    → 单气泡原地增长, 无跳变, 无截断
+ *
+ *  自动滚动:
+ *    @Watch onMessagesChange → setTimeout 200ms → scrollEdge(Bottom)
+ *
+ *  会话持久化:
+ *    ChatSessionManager 封装 preferences CRUD
+ *    loadHistory() / saveHistory() / sync() 管理多会话
+ * ==========================================================================
+ */import { MINT, MINT_LIGHT, BG_DARK, TEXT_4, BORDER, S_1, S_2, S_3, S_4, S_6, R_XL, R_FULL, F_XS, F_SM, W_MEDIUM, GLASS_10, OVERLAY_MASK } from "common"
 import { LlmClient, LlmConfig } from "common"
 import { promptAction } from "@kit.ArkUI"
 import window from "@ohos.window"

@@ -1,4 +1,18 @@
-﻿// chat/TypingIndicator.ets — typing 三点动画 (ArkUI animation)
+/**
+ * ==========================================================================
+ *  TypingIndicator.ets — AI 思考中动画组件
+ *  ==========================================================================
+ *  职责: 三点跳动指示器, 纯 ArkUI animation (0 JS 线程开销)。
+ *
+ *  UI:
+ *    ● ● ● 思考中
+ *    (三点 opacity 交替, 1200ms 周期, 200ms 错位)
+ *
+ *  接口: 无 — 纯展示组件, 无需 props
+ *
+ *  依赖: common ColorTokens (PURPLE/PURPLE_LIGHT/TEXT_3)
+ * ==========================================================================
+ */// chat/TypingIndicator.ets — typing 三点动画 (ArkUI animation)
 import { PURPLE, PURPLE_LIGHT, TEXT_3, S_1, S_2, S_3, R_MD, F_XS } from "common"
 @Component
 export struct TypingIndicator {

@@ -1,4 +1,33 @@
-﻿// chat/ChatBubble.ets — 聊天气泡 + LaTeX/MD 净化
+/**
+ * ==========================================================================
+ *  ChatBubble.ets — 聊天气泡组件
+ *  ==========================================================================
+ *  职责: 渲染一条聊天消息气泡, 区分用户/AI 角色, 内嵌操作按钮。
+ *
+ *  UI:
+ *    用户消息 (右对齐, MINT_LIGHT 背景, 右下小圆角):
+ *      ┌──────────────────┐
+ *      │ 消息内容...       │
+ *      └──────────────────┘
+ *    AI 消息 (左对齐, PURPLE_LIGHT 背景, AI 标签, 📋↻👎):
+ *      AI
+ *      ┌──────────────────┐
+ *      │ 消息内容...       │  📋 ↻ 👎
+ *      └──────────────────┘
+ *
+ *  接口:
+ *    @Prop msg        — 消息对象 {id, role, content, ts}
+ *    onCopy(text)     — 复制回调 → 父 toast "已复制"
+ *    onRegen(msg)     — 重新生成 → 父重新发送上一条用户消息
+ *    onFeedback(msg)  — 反馈回调 → 父记录
+ *
+ *  MD 净化 (cleanMarkdown):
+ *    移除 **bold** / __underline__ / ### 标题
+ *    LaTeX 残量转换: \lim_{x→0} → lim(x→0), \frac{a}{b} → (a)/(b)
+ *
+ *  依赖: common ColorTokens (MINT/PURPLE/TEXT/FONT/SPACING)
+ * ==========================================================================
+ */// chat/ChatBubble.ets — 聊天气泡 + LaTeX/MD 净化
 import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT,
   TEXT, TEXT_2, TEXT_4, S_1, S_2, S_3, R_MD, F_XS, F_SM, W_SEMIBOLD,
 } from "common"

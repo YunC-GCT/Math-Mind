@@ -1,4 +1,19 @@
-﻿// chat/EmptyStateHint.ets — 空状态: 钻石 SVG + 引导文案
+/**
+ * ==========================================================================
+ *  EmptyStateHint.ets — 空状态引导组件
+ *  ==========================================================================
+ *  职责: 无消息时显示品牌钻石 SVG + 引导文案。
+ *
+ *  UI:
+ *        ◆ (钻石 SVG, MINT 渐变)
+ *     有什么数学问题?
+ *    试试下方的推荐问题，或直接输入
+ *
+ *  接口: 无 — 纯展示组件
+ *
+ *  依赖: common ColorTokens (MINT/TEXT/TEXT_3)
+ * ==========================================================================
+ */// chat/EmptyStateHint.ets — 空状态: 钻石 SVG + 引导文案
 import { MINT, TEXT, TEXT_3, S_2, S_3, S_6, F_XS, F_MD, W_SEMIBOLD } from "common"
 @Component
 export struct EmptyStateHint {

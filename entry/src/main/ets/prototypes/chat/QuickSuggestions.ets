@@ -1,4 +1,19 @@
-﻿// chat/QuickSuggestions.ets — 推荐快捷词
+/**
+ * ==========================================================================
+ *  QuickSuggestions.ets — 推荐快捷词组件
+ *  ==========================================================================
+ *  职责: 显示分组推荐问题，点击直接发送。
+ *
+ *  UI:
+ *    推荐
+ *    [分析错题] [讲解极限] [生成练习] [梳理知识]
+ *
+ *  接口:
+ *    onSelect(prompt)  — 点击快捷词回调 → 父 send(prompt)
+ *
+ *  依赖: common ColorTokens (PURPLE/PURPLE_LIGHT/TEXT_4)
+ * ==========================================================================
+ */// chat/QuickSuggestions.ets — 推荐快捷词
 import { PURPLE, PURPLE_LIGHT, TEXT_4, S_2, S_3, S_4, R_FULL, F_XS, W_SEMIBOLD } from "common"
 @Component
 export struct QuickSuggestions {
