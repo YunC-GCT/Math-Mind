@@ -53,7 +53,7 @@ export class LlmClient {
     const httpRequest = http.createHttp();
     let response: http.HttpResponse;
     try {
-      const httpCall = httpRequest.request(this.config.getEndpoint(), {
+      response = await httpRequest.request(this.config.getEndpoint(), {
         method: http.RequestMethod.POST,
         header: {
           'Content-Type': 'application/json',
@@ -63,11 +63,7 @@ export class LlmClient {
         connectTimeout: timeoutMs,
         readTimeout: timeoutMs,
       });
-      // Promise.race 兜底: 即使底层超时不生效, JS 层面也能超时
-      const timeoutPromise = new Promise<http.HttpResponse>((_resolve, reject) => {
-        setTimeout((): void => { reject(new Error('LLM timeout after ' + timeoutMs + 'ms')) }, timeoutMs + 3000)
-      });
-      response = await Promise.race([httpCall, timeoutPromise]) as http.HttpResponse;
+      response = await httpCall;
     } catch (e) {
       httpRequest.destroy();
       throw new LlmError('LLM network error: ' + ((e as Error).message ?? String(e)), 'NETWORK_ERROR');

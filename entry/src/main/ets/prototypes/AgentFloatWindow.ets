@@ -82,28 +82,22 @@ export struct AgentFloatWindow {
     this.busy = true
     const placeholder: ChatMsg = { id: nowId(), role: "ai", content: "思考中...", ts: Date.now() }
     this.messages = [...this.messages, placeholder]
-    // 超时兜底: 15 秒后如果还没结果，直接提示
-    let replied = false
-    const timeoutId = setTimeout((): void => {
-      if (!replied) { replied = true; this.fillLast("（AI 回复超时，请检查网络或 API Key 是否正确）") }
-    }, 15000)
     try {
-      if (!(await LlmConfig.getInstance().isConfigured())) { replied = true; clearTimeout(timeoutId); this.fillLast("请先配置 API Key"); return }
+      if (!(await LlmConfig.getInstance().isConfigured())) { this.fillLast("请先配置 API Key"); return }
       const sp = this.deepThink
         ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
         : "你是 MathMind AI 助手，简洁中文回答。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
       const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
-      if (replied) { return } // 已超时，不覆盖超时提示
-      replied = true; clearTimeout(timeoutId)
       if (typeof fullReply !== "string" || fullReply.trim().length === 0) {
         this.fillLast("（AI 返回了空内容，请重试）"); return
       }
       placeholder.content = ""
       this.streamInto(placeholder, fullReply)
     } catch (e) {
-      if (replied) { return }
-      replied = true; clearTimeout(timeoutId)
-      this.fillLast((e as Error).message ?? "AI 回复异常"); this.busy = false
+      const errMsg: string = (e as Error).message ?? "AI 回复异常"
+      placeholder.content = errMsg
+      this.messages = [...this.messages]
+      this.busy = false
     }
   }
 
