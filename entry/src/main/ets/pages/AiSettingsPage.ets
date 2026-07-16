@@ -6,8 +6,8 @@
 
 import {
   MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, TEXT_4, BORDER,
-  S_2, S_4, R_MD, R_LG,
-  F_XS, F_SM, F_BASE, W_SEMIBOLD,
+  S_2, S_3, S_4, R_MD, R_LG,
+  F_XS, F_SM, F_BASE, F_MD, W_SEMIBOLD,
 } from "common"
 import { LlmConfig, LlmClient } from "common"
 import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
