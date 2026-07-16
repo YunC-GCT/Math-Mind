@@ -22,8 +22,10 @@ import {
   R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL,
 } from 'common';
-import { LlmClient, LlmConfig } from 'common';
+import { KnowledgeUnit, LlmClient, LlmConfig } from 'common';
+import { AiService } from '../services/AiService';
 import { promptAction } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 import window from '@ohos.window';
 
 // 消息类型
@@ -112,6 +114,9 @@ export struct AgentFloatWindow {
     }
   }
 
+  private canSend(): boolean {
+    return !this.busy && (this.inputText.trim().length > 0 || this.imagePreview.length > 0);
+  }
   // 发送消息 (W1.2: 支持文字 + 图片一起发)
   private send = (): void => {
     const text: string = this.inputText.trim();
@@ -128,6 +133,7 @@ export struct AgentFloatWindow {
 
     // 构�?user message content (文字 + 图片)
     // user message content
+    const imageUri: string = this.imagePreview;
     const content: string = hasImage
       ? (hasText ? text : '分享了一张照片')
       : text;
@@ -138,6 +144,11 @@ export struct AgentFloatWindow {
     ];
     this.inputText = '';
     this.imagePreview = '';
+
+    if (hasImage) {
+      this.captureReply(imageUri, text);
+      return;
+    }
 
     this.realReply(content);
   };
@@ -152,6 +163,7 @@ export struct AgentFloatWindow {
     const hasImage: boolean = this.imagePreview.length > 0;
     const hasText: boolean = text.length > 0;
 
+    const imageUri: string = this.imagePreview;
     let content: string = prompt;
     if (hasText) {
       content += '\n' + text;
@@ -167,9 +179,28 @@ export struct AgentFloatWindow {
     this.inputText = '';
     this.imagePreview = '';
 
+    if (hasImage) {
+      this.captureReply(imageUri, content);
+      return;
+    }
+
     this.realReply(content);
   };
 
+  // Image capture path: photos are processed into KnowledgeUnit, not sent as plain chat.
+  private captureReply = async (imageUri: string, userText: string): Promise<void> => {
+    this.busy = true;
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const unit: KnowledgeUnit = await new AiService(ctx).capture(imageUri, userText);
+      this.addAiMsg('已识别并整理为知识点：\n' + unit.title + '\n\n' + unit.summary);
+    } catch (e) {
+      const errMsg: string = (e as Error).message ?? String(e);
+      this.addAiMsg('图片处理失败: ' + errMsg.substring(0, 120));
+    } finally {
+      this.busy = false;
+    }
+  };
   // 真实 AI 回复 (调用 LlmClient → DeepSeek)
   private realReply = async (userContent: string): Promise<void> => {
     this.busy = true;
@@ -474,11 +505,11 @@ export struct AgentFloatWindow {
               Text('➤')
                 .fontSize(15)
                 .fontWeight(700)
-                .fontColor(this.inputText.trim().length > 0 && !this.busy ? BG_DARK : TEXT_3);
+                .fontColor(this.canSend() ? BG_DARK : TEXT_3);
             }
             .width(28).height(28)
             .borderRadius(14)
-            .backgroundColor(this.inputText.trim().length > 0 && !this.busy ? MINT : '#1AFFFFFF')
+            .backgroundColor(this.canSend() ? MINT : '#1AFFFFFF')
             .alignContent(Alignment.Center)
             .margin({ left: 4 })
             .onClick(() => {
