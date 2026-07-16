@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  AiSettingsPage.ets — 大模型设置（精简版）
 //  端点: DeepSeek 官方 + 自定义
 //  模型: DeepSeek-V3 默认 + 自定义
@@ -6,8 +6,8 @@
 
 import {
   MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, TEXT_4, BORDER,
-  S_2, S_3, S_4, R_MD, R_LG,
-  F_XS, F_SM, F_BASE, F_MD, W_SEMIBOLD,
+  S_2, S_4, R_MD, R_LG,
+  F_XS, F_SM, F_BASE, W_SEMIBOLD,
 } from "common"
 import { LlmConfig, LlmClient } from "common"
 import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
@@ -72,7 +72,7 @@ struct AiSettingsPage {
     if (this.apiKey.trim().length === 0) { promptAction.showToast({ message: "请先输入 API Key", duration: 1500 }); return }
     await LlmConfig.getInstance().setApiKey(this.apiKey.trim())
     const tp = parseFloat(this.tempText); const mt = parseInt(this.maxTText); const to = parseInt(this.toText)
-    await LlmConfig.getInstance().saveAll(this.ep(), this.md(), isNaN(tp) ? 0.1 : tp, isNaN(mt) ? 256 : mt, isNaN(to) ? 5000 : to)
+    await LlmConfig.getInstance().saveAll(this.ep(), this.md(), this.temperature, this.maxTokens, this.timeoutMs)
     this.testing = true
     try { await new LlmClient().call([{ role: "system", content: "Reply OK." }, { role: "user", content: "OK" }])
       promptAction.showToast({ message: "连接成功", duration: 1500 }); this.statusText = "已配置 · 连接正常"
@@ -154,16 +154,6 @@ struct AiSettingsPage {
               .onClick((): void => { this.handleTest() })
           }.width("100%").padding({ left: 16, right: 16, top: 8, bottom: 8 }).borderRadius(R_LG).backgroundColor(BG_CARD).margin({ left: S_2, right: S_2 })
 
-          // ---- 请求参数 ----
-          this.Section("请求参数", "")
-          Column() {
-            this.Param("温度", this.tempText, "0-2", (v: string): void => { this.tempText = v })
-            Row().width("100%").height(0.5).backgroundColor(BORDER)
-            this.Param("最大 Token", this.maxTText, "1-8192", (v: string): void => { this.maxTText = v })
-            Row().width("100%").height(0.5).backgroundColor(BORDER)
-            this.Param("超时(ms)", this.toText, "1000-60000", (v: string): void => { this.toText = v })
-          }.width("100%").borderRadius(R_LG).backgroundColor(BG_CARD).margin({ left: S_2, right: S_2 })
-
           // ---- 操作按钮 ----
           Row() {
             Button("恢复默认").fontSize(F_SM).fontColor(TEXT_3).height(44).borderRadius(R_MD)
@@ -187,17 +177,3 @@ struct AiSettingsPage {
     }.alignItems(HorizontalAlign.Start).width("100%").padding({ left: 20, right: S_2, top: 20, bottom: 8 })
   }
 
-  @Builder Param(label: string, value: string, hint: string, cb: (v: string) => void) {
-    Row() {
-      Column() {
-        Text(label).fontSize(F_SM).fontColor(TEXT_3)
-        Text(hint).fontSize(10).fontColor(TEXT_4).margin({ top: 2 })
-      }.alignItems(HorizontalAlign.Start)
-      Blank()
-      TextInput({ text: value, placeholder: hint }).type(InputType.Number).width(90).height(44)
-        .fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_4)
-        .backgroundColor("#0AFFFFFF").borderRadius(R_MD).textAlign(TextAlign.Center)
-        .onChange(cb)
-    }.width("100%").padding({ left: 16, right: 16, top: 10, bottom: 10 })
-  }
-}
