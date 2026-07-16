@@ -63,20 +63,20 @@ export struct ChatBubble {
       if (this.msg.role === "user") {
         Row() { Blank()
           Column() {
-            Text(cleanMarkdown(this.msg.content)).fontSize(F_SM).fontColor(MINT_DARK).lineHeight(20)
+            Text(this.msg.content).fontSize(F_SM).fontColor(MINT_DARK).lineHeight(20)
               .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
               .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: R_MD + 4, bottomRight: S_1 })
-              .backgroundColor(MINT_LIGHT).constraintSize({ maxWidth: "78%" })
+              .backgroundColor(MINT_LIGHT).constraintSize({ maxWidth: "88%" })
           }.alignItems(HorizontalAlign.End)
         }.width("100%").margin({ top: S_2 })
       } else {
         Row() {
           Column() {
             Text("AI").fontSize(9).fontColor(TEXT_4).fontWeight(W_SEMIBOLD).margin({ bottom: S_1, left: S_1 })
-            Text(cleanMarkdown(this.msg.content)).fontSize(F_SM).fontColor(TEXT_2).lineHeight(20)
+            Text(this.msg.content).fontSize(F_SM).fontColor(TEXT_2).lineHeight(20)
               .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
               .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: S_1, bottomRight: R_MD + 4 })
-              .backgroundColor(PURPLE_LIGHT).constraintSize({ maxWidth: "85%" })
+              .backgroundColor(PURPLE_LIGHT).constraintSize({ maxWidth: "92%" })
             Row() {
               Text("\uD83D\uDCCB").fontSize(9).fontColor(TEXT_4).padding({ top: S_1, right: S_2 })
                 .onClick((): void => { if (this.onCopy) { this.onCopy(this.msg.content) } })
