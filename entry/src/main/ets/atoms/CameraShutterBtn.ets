@@ -1,11 +1,10 @@
 // ============================================================================
-//  atoms/CameraShutterBtn.ets — 相机快门按钮
+//  atoms/CameraShutterBtn.ets — 相机快门按钮 (响应式)
 //  ----------------------------------------------------------------------------
-//  职责: 双层圆形快门 (MINT 外圈 + 实心内圈)。
-//  接口: onTap — 点击回调
-//  ============================================================================
+//  尺寸: SCREEN_W/5.5 外圈, SCREEN_W/7 内圈
+// ============================================================================
 
-import { MINT, S_2, CAM_SHUTTER_OUTER, CAM_SHUTTER_INNER } from "common"
+import { MINT, S_2, SCREEN_W } from "common"
 
 @Component
 export struct CameraShutterBtn {
@@ -14,16 +13,16 @@ export struct CameraShutterBtn {
   build() {
     Stack() {
       Stack()
-        .width(CAM_SHUTTER_OUTER).height(CAM_SHUTTER_OUTER)
-        .borderRadius(CAM_SHUTTER_OUTER / 2)
+        .width(SCREEN_W / 5.5).height(SCREEN_W / 5.5)
+        .borderRadius(SCREEN_W / 11)
         .backgroundColor("transparent")
         .border({ width: S_2 * 3 / 8, color: MINT })
       Stack()
-        .width(CAM_SHUTTER_INNER).height(CAM_SHUTTER_INNER)
-        .borderRadius(CAM_SHUTTER_INNER / 2)
+        .width(SCREEN_W / 7).height(SCREEN_W / 7)
+        .borderRadius(SCREEN_W / 14)
         .backgroundColor(MINT)
     }
-    .width(CAM_SHUTTER_OUTER + S_2).height(CAM_SHUTTER_OUTER + S_2)
+    .width(SCREEN_W / 5).height(SCREEN_W / 5)
     .alignContent(Alignment.Center)
     .onClick((): void => { this.onTap() })
   }

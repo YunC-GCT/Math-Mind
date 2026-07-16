@@ -1,12 +1,11 @@
 // ============================================================================
-//  molecules/CameraCapture.ets — 相机拍摄界面
+//  molecules/CameraCapture.ets — 相机拍摄界面 (响应式)
 //  ----------------------------------------------------------------------------
-//  职责: 组装顶栏(关闭+翻转) + 取景框 + 底栏(相册+快门)。
-//  数据流: onClose/onShutter/onAlbum 回调通知父组件。
-//  依赖: CameraCloseBtn, CameraAlbumBtn, CameraShutterBtn, ViewfinderCorners
+//  尺寸策略: 基于 SCREEN_W 等比缩放, 适配各种手机。
+//  SCREEN_W=377 (Pura90 基准) → 所有尺寸 = SCREEN_W * 比例
 // ============================================================================
 
-import { F_LG, F_BASE, F_XS, W_MEDIUM, S_1, S_2, S_3, S_4, S_6, CAM_BTN_SIZE, CAM_SHUTTER_INNER, CAM_ALBUM_SIZE } from "common"
+import { F_LG, F_BASE, F_XS, W_MEDIUM, S_3, S_4, S_6, SCREEN_W } from "common"
 import { CameraCloseBtn } from "../atoms/CameraCloseBtn"
 import { CameraAlbumBtn } from "../atoms/CameraAlbumBtn"
 import { CameraShutterBtn } from "../atoms/CameraShutterBtn"
@@ -20,39 +19,37 @@ export struct CameraCapture {
 
   build() {
     Column() {
-      // 顶栏: 关闭 + 翻转
       Row() {
         CameraCloseBtn({ onTap: (): void => { this.onClose() } })
         Blank()
         Stack() {
           Text("⟳").fontSize(F_LG).fontWeight(W_MEDIUM).fontColor("rgba(255,255,255,0.6)")
         }
-        .width(CAM_BTN_SIZE).height(CAM_BTN_SIZE).borderRadius(CAM_BTN_SIZE / 2 - 2)
+        .width(SCREEN_W / 8).height(SCREEN_W / 8)
+        .borderRadius(SCREEN_W / 16)
         .backgroundColor("rgba(255,255,255,0.05)").alignContent(Alignment.Center)
       }
-      .width("100%").padding({ left: S_3, right: S_3, top: S_4, bottom: S_2 })
+      .width("100%").padding({ left: S_4, right: S_4, top: S_4, bottom: S_4 })
 
-      // 预览区 + 取景框
       Stack() {
         Column() {
           Image($r("app.media.ic_camera"))
-            .width(CAM_SHUTTER_INNER).height(CAM_SHUTTER_INNER)
+            .width(SCREEN_W / 7).height(SCREEN_W / 7)
             .fillColor("rgba(255,255,255,0.35)")
           Text("将题目对准框内").fontSize(F_BASE).fontColor("rgba(255,255,255,0.5)").margin({ top: S_4 })
-          Text("点击下方快门拍摄").fontSize(F_XS).fontColor("rgba(255,255,255,0.35)").margin({ top: S_2 })
+          Text("点击下方快门拍摄").fontSize(F_XS).fontColor("rgba(255,255,255,0.35)").margin({ top: S_3 })
         }.alignItems(HorizontalAlign.Center)
         ViewfinderCorners()
       }
-      .layoutWeight(1).width("100%").backgroundColor("#FF000000").margin({ top: S_2 })
+      .layoutWeight(1).width("100%").backgroundColor("#FF000000")
 
-      // 底栏: 相册 + 快门 + 对称占位
       Row() {
         CameraAlbumBtn({ onTap: (): void => { this.onAlbum() } })
         CameraShutterBtn({ onTap: (): void => { this.onShutter() } })
-        Column().width(CAM_ALBUM_SIZE)
+        Column().width(SCREEN_W / 7)
       }
       .width("100%")
-      .padding({ left: S_4, right: S_4, top: S_4, bottom: S_4 })
+      .padding({ left: S_4, right: S_4, top: S_4, bottom: S_6 })
       .justifyContent(FlexAlign.SpaceBetween).alignItems(VerticalAlign.Center)
     }
     .width("100%").height("100%")

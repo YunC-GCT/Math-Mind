@@ -1,11 +1,10 @@
 // ============================================================================
-//  atoms/CameraConfirmBtn.ets — 确认按钮 (✓ 使用)
+//  atoms/CameraConfirmBtn.ets — 确认按钮 (响应式)
 //  ----------------------------------------------------------------------------
-//  职责: 绿色圆角确认按钮，支持 loading 态。
-//  接口: @Prop busy; onTap — 点击回调
-//  ============================================================================
+//  尺寸: SCREEN_W/8 高, 圆角 SCREEN_W/16
+// ============================================================================
 
-import { MINT, BG_DARK, F_BASE, F_XL, CAM_CONFIRM_H } from "common"
+import { MINT, BG_DARK, F_BASE, F_XL, SCREEN_W } from "common"
 
 @Component
 export struct CameraConfirmBtn {
@@ -21,8 +20,8 @@ export struct CameraConfirmBtn {
       }
     }
     .layoutWeight(1)
-    .height(CAM_CONFIRM_H)
-    .borderRadius(CAM_CONFIRM_H / 2)
+    .height(SCREEN_W / 8)
+    .borderRadius(SCREEN_W / 16)
     .backgroundColor(MINT)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)

@@ -1,11 +1,10 @@
 // ============================================================================
-//  atoms/CameraBackBtn.ets — 返回按钮 (‹)
+//  atoms/CameraBackBtn.ets — 返回按钮 (响应式)
 //  ----------------------------------------------------------------------------
-//  职责: 预览模式下返回相机拍摄界面。
-//  接口: onTap — 点击回调
-//  ============================================================================
+//  尺寸: SCREEN_W/8 圆形
+// ============================================================================
 
-import { TEXT_2, F_3XL, F_LG, CAM_BTN_SIZE } from "common"
+import { TEXT_2, F_3XL, SCREEN_W } from "common"
 
 @Component
 export struct CameraBackBtn {
@@ -15,7 +14,7 @@ export struct CameraBackBtn {
     Stack() {
       Text("‹").fontSize(F_3XL - 2).fontWeight(500).fontColor(TEXT_2)
     }
-    .width(CAM_BTN_SIZE).height(CAM_BTN_SIZE)
+    .width(SCREEN_W / 8).height(SCREEN_W / 8)
     .borderRadius(F_LG)
     .alignContent(Alignment.Center)
     .onClick((): void => { this.onTap() })

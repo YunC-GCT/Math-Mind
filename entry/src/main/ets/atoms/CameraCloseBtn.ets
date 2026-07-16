@@ -1,11 +1,10 @@
 // ============================================================================
-//  atoms/CameraCloseBtn.ets — 关闭按钮 (✕)
+//  atoms/CameraCloseBtn.ets — 关闭按钮 (响应式)
 //  ----------------------------------------------------------------------------
-//  职责: 半透明圆形关闭按钮。
-//  接口: onTap — 点击回调
-//  ============================================================================
+//  尺寸: SCREEN_W/8 圆形
+// ============================================================================
 
-import { F_LG, W_MEDIUM, CAM_BTN_SIZE } from "common"
+import { F_LG, W_MEDIUM, SCREEN_W } from "common"
 
 @Component
 export struct CameraCloseBtn {
@@ -15,8 +14,8 @@ export struct CameraCloseBtn {
     Stack() {
       Text("✕").fontSize(F_LG).fontWeight(W_MEDIUM).fontColor("rgba(255,255,255,0.8)")
     }
-    .width(CAM_BTN_SIZE).height(CAM_BTN_SIZE)
-    .borderRadius(CAM_BTN_SIZE / 2 - 2)
+    .width(SCREEN_W / 8).height(SCREEN_W / 8)
+    .borderRadius(SCREEN_W / 16)
     .backgroundColor("rgba(255,255,255,0.08)")
     .border({ width: 1, color: "rgba(255,255,255,0.1)" })
     .alignContent(Alignment.Center)
