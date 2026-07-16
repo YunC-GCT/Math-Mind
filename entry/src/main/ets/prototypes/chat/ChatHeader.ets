@@ -1,14 +1,14 @@
-﻿// chat/ChatHeader.ets — 头部: 模型名 + 深度思考胶囊 + 关闭
+// chat/ChatHeader.ets — 头部: 模型名 + 深度思考胶囊 + 关闭
 import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT, BG_DARK,
   TEXT, TEXT_2, TEXT_3, TEXT_4, S_1, S_2, S_3, S_4, S_6,
-  R_FULL, F_XS, F_SM, F_BASE, F_MD, W_MEDIUM, W_SEMIBOLD, W_BOLD,
+  R_FULL, F_XS, F_SM, F_BASE, F_MD, F_MD, W_MEDIUM, W_SEMIBOLD, W_BOLD,
 } from "common"
 
 @Component
 export struct ChatHeader {
   @Prop modelName: string = "DeepSeek-V4"
   @Prop deepThink: boolean = false
-  onToggleThink?: () => void
+  onToggleThink?: () => void; onNewChat?: () => void
   onClose?: () => void
   build() {
     Row() {
@@ -27,6 +27,8 @@ export struct ChatHeader {
       .border({ width: 1, color: this.deepThink ? MINT : TEXT_4 })
       .backgroundColor(this.deepThink ? MINT_LIGHT : BG_DARK).margin({ left: S_4 })
       .onClick((): void => { if (this.onToggleThink) { this.onToggleThink() } })
+      Text("+").fontSize(F_MD).fontColor(TEXT_3).width(32).height(44).textAlign(TextAlign.Center)
+        .onClick((): void => { if (this.onNewChat) { this.onNewChat() } })
       Blank()
       Stack() {
         Path().width(14).height(14).commands("M18 6 L6 18 M6 6 L18 18")
