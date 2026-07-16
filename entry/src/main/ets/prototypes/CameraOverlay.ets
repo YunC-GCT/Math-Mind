@@ -77,7 +77,7 @@ export struct CameraOverlay {
       if (result !== undefined && result.resultUri.length > 0) {
         this.capturedUri = result.resultUri; this.capturedSrc = "camera"; this.state = "preview"; return
       }
-    } catch (e) { promptAction.showToast({ message: "模拟器不支持相机，已使用模拟图片", duration: 2000 }) }
+    } catch (e) { try { promptAction.showToast({ message: "模拟器不支持相机，已使用模拟图片", duration: 2000 }) } catch (_e) {} }
     finally { this.busy = false }
     this.capturedUri = mockCaptureUri("camera"); this.capturedSrc = "camera"; this.state = "preview"
   }
