@@ -26,6 +26,7 @@ struct Index {
   @State showCamera: boolean = false
   @State pendingImageUri: string = ""
   @State showAgentFloat: boolean = false
+  @State lastContentIndex: number = 0
   private tc: TabsController = new TabsController()
 
   aboutToAppear(): void {
@@ -78,8 +79,14 @@ struct Index {
         .layoutWeight(1)
         .scrollable(false)
         .onChange((i: number): void => {
+          if (i === 2) {
+            this.showAgentFloat = true
+            this.cur = this.lastContentIndex
+            this.tc.changeIndex(this.lastContentIndex)
+            return
+          }
           this.cur = i
-          if (i === 2) { this.showAgentFloat = true }
+          this.lastContentIndex = i
         })
 
         // TabBar
