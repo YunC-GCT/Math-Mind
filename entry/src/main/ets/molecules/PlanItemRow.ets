@@ -7,7 +7,7 @@
 //  ArkTS 1.1 strict: @Prop 仅接收原始类型（string/boolean/number），避免 class 浅拷贝导致 UI 不更新。
 //  ============================================================================
 
-import { MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, DANGER, WARNING, S_1, S_3, S_5, F_XL, F_MD, F_XS, F_SM, R_MD } from "common"
+import { MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, DANGER, WARNING, S_1, S_3, S_5, F_MD, F_XS, R_MD } from "common"
 import { PriorityBadge } from "../atoms/PriorityBadge"
 import { AppIcon } from "../atoms/AppIcon"
 
@@ -25,7 +25,7 @@ export struct PlanItemRow {
   onDelete?: () => void
 
   build() {
-    Stack({ alignContent: Alignment.Start }) {
+    Stack({ alignContent: Alignment.End }) {
       Row() {
         this.ActionButton("修改", TEXT_3, (): void => {
           this.revealOffset = 0
@@ -46,25 +46,12 @@ export struct PlanItemRow {
 
       Row({ space: S_3 }) {
         // ---- 完成状态图标 ----
-        Stack() {
-          if (this.isDone) {
-            Circle({ width: F_XL, height: F_XL }).fill(MINT)
-            Text("✓")
-              .fontSize(F_SM)
-              .fontColor(BG_DARK)
-              .fontWeight(700)
-          } else {
-            Circle({ width: F_XL, height: F_XL })
-              .fill(Color.Transparent)
-              .stroke(TEXT_3)
-              .strokeWidth(2)
-          }
-        }
-        .width(F_XL).height(F_XL)
-        .alignContent(Alignment.Center)
-        .onClick((): void => {
-          if (this.onToggle) { this.onToggle() }
-        })
+        Checkbox()
+          .select(this.isDone)
+          .selectedColor(MINT)
+          .onChange((_checked: boolean): void => {
+            if (this.onToggle) { this.onToggle() }
+          })
 
         // ---- 标题 + 关联笔记 ----
         Column({ space: S_1 / 2 }) {
@@ -105,10 +92,10 @@ export struct PlanItemRow {
           })
           .onActionUpdate((event: GestureEvent): void => {
             const next: number = this.dragStartX + event.offsetX
-            this.revealOffset = Math.max(0, Math.min(168, next))
+            this.revealOffset = Math.max(-168, Math.min(0, next))
           })
           .onActionEnd((): void => {
-            this.revealOffset = this.revealOffset > 72 ? 168 : 0
+            this.revealOffset = this.revealOffset < -72 ? -168 : 0
           })
       )
     }
