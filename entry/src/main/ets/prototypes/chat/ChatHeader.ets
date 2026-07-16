@@ -1,7 +1,7 @@
 // chat/ChatHeader.ets — 头部: 模型名 + 深度思考胶囊 + 关闭
 import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT, BG_DARK,
   TEXT, TEXT_2, TEXT_3, TEXT_4, S_1, S_2, S_3, S_4, S_6,
-  R_FULL, F_XS, F_SM, F_BASE, F_MD, F_MD, W_MEDIUM, W_SEMIBOLD, W_BOLD,
+  R_FULL, F_XS, F_SM, F_BASE, F_MD, W_MEDIUM, W_SEMIBOLD, W_BOLD,
 } from "common"
 
 @Component
