@@ -109,7 +109,7 @@ export struct AgentFloatWindow {
     this.busy = true; this.streamBuffer = ""
     try {
       if (!(await LlmConfig.getInstance().isConfigured())) { this.streamBuffer = "\u8BF7\u5148\u914D\u7F6E API Key"; this.finishStream(); return }
-      const sp = this.deepThink ? "\u4F60\u662F MathMind AI \u6DF1\u5EA6\u601D\u8003\u52A9\u624B\u3002\u9010\u6B65\u63A8\u7406\uFF0C\u4F7F\u7528 LaTeX\u3002" : "\u4F60\u662F MathMind AI \u52A9\u624B\uFF0C\u7B80\u6D01\u4E2D\u6587\u56DE\u7B54\uFF0C\u4F7F\u7528 LaTeX\u3002"
+      const sp = this.deepThink ? "\u4F60\u662F MathMind AI \u6DF1\u5EA6\u601D\u8003\u52A9\u624B\u3002\u9010\u6B65\u63A8\u7406\u3002\u6570\u5B66\u516C\u5F0F\u7528 Unicode \u7B26\u53F7\u76F4\u63A5\u8F93\u51FA\uFF0C\u5982: \u222Bsin x dx, lim(n\u2192\u221E), \u2211x\u00B2\u3002\u4E0D\u8981\u7528 $ \u6216 $$ \u5305\u88F9\u3002" : "\u4F60\u662F MathMind AI \u52A9\u624B\u3002\u7B80\u6D01\u4E2D\u6587\u56DE\u7B54\u3002\u6570\u5B66\u516C\u5F0F\u7528 Unicode \u7B26\u53F7\u76F4\u63A5\u8F93\u51FA\uFF0C\u5982: \u222Bsin x dx, lim(n\u2192\u221E), \u2211x\u00B2, \u03C0\u22483.14\u3002\u4E0D\u8981\u7528 $ \u6216 $$ \u5305\u88F9\u3002"
       const fullReply = await new LlmClient().call([{ role: "system", content: sp }, { role: "user", content: userContent }])
       this.streamOut(fullReply)
     } catch (e) {
