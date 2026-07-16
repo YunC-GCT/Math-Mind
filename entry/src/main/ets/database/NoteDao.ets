@@ -1,13 +1,13 @@
-// MathMind - NoteDao (ÖªÊ¶µ¥ÔªÊı¾İ·ÃÎÊ²ã)
-// ÈÎÎñ±àºÅ: A1
-// ÔğÈÎ: Z
-// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´
-//
-// ½Ó¿Ú:
-//   insert(unit: KnowledgeUnit): Promise<number>        // ·µ»Ø rowId
-//   queryById(id: string): Promise<KnowledgeUnit | null> // °´Ö÷¼ü²éÑ¯
-//
-// ÑéÖ¤·½Ê½: insert ¡ú ·µ»Ø rowId ¡ú queryById ²é»Ø
+// ============================================================================
+//  database/NoteDao.ets â€” çŸ¥è¯†å•å…ƒæ•°æ®è®¿é—®å±‚
+//  ----------------------------------------------------------------------------
+//  èŒè´£: RDB CRUD æ“ä½œï¼ŒKnowledgeUnit ä¸ ValuesBucket äº’è½¬ã€‚
+//  æ¥å£:
+//    insert(unit): Promise<number>        â€” æ’å…¥ï¼Œè¿”å› rowId
+//    queryById(id): Promise<KnowledgeUnit | null> â€” æŒ‰ id æŸ¥è¯¢
+//    rowToUnit(rs): KnowledgeUnit         â€” ResultSet â†’ KnowledgeUnit
+//  éªŒè¯æ–¹å¼: insert â†’ æ£€æŸ¥ rowId â†’ queryById éªŒè¯
+//  ============================================================================
 
 import { relationalStore } from '@kit.ArkData';
 import { KnowledgeUnit, DifficultyLevel, ReviewStatus } from 'common';
@@ -19,7 +19,7 @@ export class NoteDao {
     this.store = store;
   }
 
-  // ²åÈëÖªÊ¶µ¥Ôª, ·µ»Ø rowId
+  // æ’å…¥çŸ¥è¯†å•å…ƒ, è¿”å› rowId
   async insert(unit: KnowledgeUnit): Promise<number> {
     const valueBucket: relationalStore.ValuesBucket = {
       'id': unit.id,
@@ -54,7 +54,7 @@ export class NoteDao {
     });
   }
 
-  // °´ id ²éÑ¯
+  // æŒ‰ id æŸ¥è¯¢
   async queryById(id: string): Promise<KnowledgeUnit | null> {
     const predicates = new relationalStore.RdbPredicates('knowledge_unit');
     predicates.equalTo('id', id);
@@ -77,7 +77,7 @@ export class NoteDao {
     });
   }
 
-  // ½« RDB ĞĞ×ªÎª KnowledgeUnit
+  // ResultSet è½¬ä¸º KnowledgeUnit
   static rowToUnit(rs: relationalStore.ResultSet): KnowledgeUnit {
     return {
       id: rs.getString(rs.getColumnIndex('id')),
@@ -103,18 +103,10 @@ export class NoteDao {
   }
 
   private static parseArray(json: string): string[] {
-    try {
-      return JSON.parse(json) as string[];
-    } catch (e) {
-      return [];
-    }
+    try { return JSON.parse(json) as string[]; } catch (e) { return []; }
   }
 
   private static parseNumberArray(json: string): number[] {
-    try {
-      return JSON.parse(json) as number[];
-    } catch (e) {
-      return [];
-    }
+    try { return JSON.parse(json) as number[]; } catch (e) { return []; }
   }
 }

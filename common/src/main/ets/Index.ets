@@ -1,10 +1,10 @@
-// common HSP - public API 入口
-// W1 �?3: 暴露�?Agent 业务所需的最小集(Dispatcher �?
+// common HSP - public API 鍏ュ彛
+// W1 锟?3: 鏆撮湶锟?Agent 涓氬姟鎵€闇€鐨勬渶灏忛泦(Dispatcher 锟?
 
-// ========== 设计 Token (颜色 / 尺寸 / 字号) ==========
+// ========== 璁捐 Token (棰滆壊 / 灏哄 / 瀛楀彿) ==========
 export {
   MINT, MINT_DARK, MINT_LIGHT, MINT_GLOW, MINT_BORDER,
-  PURPLE, PURPLE_DARK, PURPLE_LIGHT, PINK, AMBER,
+  PURPLE, PURPLE_DARK, PURPLE_LIGHT, PINK, PINK_LIGHT, AMBER,
   BG_DARK, BG_CARD,
   SUBJECT_COLORS, TYPE_COLORS,
   TEXT, TEXT_2, TEXT_3, TEXT_4,
@@ -13,15 +13,24 @@ export {
   R_SM, R_MD, R_LG, R_XL, R_2XL, R_FULL,
   F_XS, F_SM, F_BASE, F_MD, F_LG, F_XL, F_2XL, F_3XL,
   SCREEN_W, SCREEN_H,
+  HEADER_H, FAB_SIZE, HERO_RING_SIZE, NOTE_ICON_SIZE, DOT_SIZE, AVATAR_SIZE, AI_SETTINGS_BTN_H, CAM_SHUTTER_OUTER, CAM_SHUTTER_INNER, CAM_BTN_SIZE, CAM_ALBUM_SIZE, CAM_CONFIRM_H,
+  TAB_BAR_HEIGHT, TAB_ICON_SIZE, TAB_BTN_RADIUS, AI_BTN_SIZE, AI_ICON_SIZE,
+  DANGER, DANGER_BRIGHT, WARNING, SUCCESS,
+  GLASS_8, GLASS_10, GLASS_14, CAM_OVERLAY_BG, CAM_PREVIEW_BG, CAM_MASK,
+  OVERLAY_MASK, OVERLAY_MASK_SOLID,
+  W_NORMAL, W_MEDIUM, W_SEMIBOLD, W_BOLD,
+  LH_TIGHT, LH_BASE, LH_COMFORT, LH_LOOSE, LH_HEADING,
+  SHADOW_FAB, SHADOW_GLOW_MINT, SHADOW_AI_BTN,
+  DUR_FAST, DUR_NORMAL, DUR_SLOW, DUR_BREATH,
 } from './constants/ColorTokens';
 
-// ========== Mock 笔记数据 (UI 开发期) ==========
+// ========== Mock 绗旇鏁版嵁 (UI 寮€鍙戞湡) ==========
 export {
   NoteItem, NOTES, stripMD, recentDate,
   typeChar, typeColor, subjectColor,
 } from './data/MockNotes';
 
-// ========== �?Agent 共享类型 (Dispatcher �? ==========
+// ========== 锟?Agent 鍏变韩绫诲瀷 (Dispatcher 锟? ==========
 export {
   KnowledgeUnit,
   ReviewRecord,
@@ -38,7 +47,7 @@ export {
   ApiError,
 } from './models/CommonTypes';
 
-// ========== D1 拍照链类�?(�?Agent 业务) ==========
+// ========== D1 鎷嶇収閾剧被锟?(锟?Agent 涓氬姟) ==========
 export {
   ClassificationInput,
   ClassificationResult,
@@ -52,7 +61,7 @@ export {
 } from './models/CaptureChain';
 export type { ApiCode, DispatchPayload, ImagePayload, TextPayload, FilePayload } from './models/CaptureChain';
 
-// ========== 统一日志 (Dispatcher �? ==========
+// ========== 缁熶竴鏃ュ織 (Dispatcher 锟? ==========
 export {
   LogLevel,
   Logger,
@@ -60,15 +69,17 @@ export {
   getLogger,
 } from './utils/logger';
 
-// ========== LLM 共享基础设施 (Z 2026-07-14) ==========
-//   LlmConfig:  单例,preferences 持久�?API key,UI 输入/读取入口
-//   LlmClient:  OpenAI 兼容 HTTP 客户�?所�?agent 统一调用
-//   LlmError:   统一错误类型,�?kind 分类(NO_API_KEY / NETWORK_ERROR / API_ERROR / ...)
+// ========== LLM 鍏变韩鍩虹璁炬柦 (Z 2026-07-14) ==========
+//   LlmConfig:  鍗曚緥,preferences 鎸佷箙锟?API key,UI 杈撳叆/璇诲彇鍏ュ彛
+//   LlmClient:  OpenAI 鍏煎 HTTP 瀹㈡埛锟?鎵€锟?agent 缁熶竴璋冪敤
+//   LlmError:   缁熶竴閿欒绫诲瀷,锟?kind 鍒嗙被(NO_API_KEY / NETWORK_ERROR / API_ERROR / ...)
 //   LlmTypes:   ChatMessage / LlmCallOptions / LlmErrorKind
 export { LlmConfig } from './llm/LlmConfig';
 export { LlmClient } from './llm/LlmClient';
 export { LlmError } from './llm/LlmTypes';
 export type { ChatMessage, LlmCallOptions, LlmErrorKind } from './llm/LlmTypes';
-// ========== ���ݿ� (����������) ==========
+// ========== 锟斤拷锟捷匡拷 (锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷) ==========
 export { DatabaseHelper } from './DatabaseHelper';
 
+// ========== 学习计划模型 ==========
+export { StudyPlanItem } from './models/StudyPlan';
