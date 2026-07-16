@@ -4,7 +4,7 @@
 //  尺寸: SCREEN_W/8 圆形
 // ============================================================================
 
-import { TEXT_2, F_3XL, SCREEN_W } from "common"
+import { TEXT_2, F_3XL, F_LG, SCREEN_W } from "common"
 
 @Component
 export struct CameraBackBtn {
