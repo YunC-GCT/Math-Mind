@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  AiSettingsPage.ets — AI 大模型设置页面（装配层）
 //  ----------------------------------------------------------------------------
 //  职责: 仅持有 @State + 生命周期方法 + build() 组件堆叠。零内联模板。
@@ -88,8 +88,8 @@ struct AiSettingsPage {
     let mM = -1
     for (let i = 0; i < this.currentPresets.length; i++) { if (m === this.currentPresets[i].value) { mM = i; break } }
     if (mM >= 0) { this.modelIdx = mM; this.useCustomMD = false } else { this.modelCustom = m; this.useCustomMD = true }
-    this.temperature = c.getTemperature(); this.maxTokens = c.ge********ns(); this.timeoutMs = c.getTimeoutMs()
-    this.tempText = this.temperature.toString(); this.maxTokensText = this*****************ng(); this.timeoutText = this.timeoutMs.toString()
+    this.temperature = c.getTemperature(); this.maxTokens = c.getMaxTokens(); this.timeoutMs = c.getTimeoutMs()
+    this.tempText = this.temperature.toString(); this.maxTokensText = this.maxTokens.toString(); this.timeoutText = this.timeoutMs.toString()
   }
 
   async handleSave(): Promise<void> {
