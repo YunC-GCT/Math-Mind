@@ -36,6 +36,7 @@ export struct AgentFloatWindow {
   @State keyboardHeight: number = 0
   @State sessions: Session[] = [{ id: "s1", name: "会话 1", messages: [] }]
   @State activeSid: string = "s1"
+  @State renderKey: number = 0
   private mainWindow: window.Window | null = null
   private scroller: Scroller = new Scroller()
   private sm: ChatSessionManager = new ChatSessionManager()
@@ -93,15 +94,18 @@ export struct AgentFloatWindow {
       if (typeof fullReply !== "string" || fullReply.trim().length === 0) {
         this.fillLast("（AI 返回了空内容，请重试）"); return
       }
-      const idx = this.messages.length - 1
-      this.messages = [...this.messages.slice(0, idx), { id: placeholder.id, role: "ai", content: fullReply, ts: placeholder.ts }]
       this.busy = false
-      this.scroller.scrollEdge(Edge.Bottom)
+      const replyMsg: ChatMsg = { id: placeholder.id, role: "ai", content: fullReply, ts: placeholder.ts }
+      const idx = this.messages.length - 1
+      this.messages = [...this.messages.slice(0, idx), replyMsg]
+      this.renderKey++
+      setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom) }, 100)
     } catch (e) {
+      this.busy = false
       const errMsg: string = (e as Error).message ?? "AI 回复异常"
       const idx2 = this.messages.length - 1
       this.messages = [...this.messages.slice(0, idx2), { id: placeholder.id, role: "ai", content: errMsg, ts: placeholder.ts }]
-      this.busy = false
+      this.renderKey++
     }
   }
 
