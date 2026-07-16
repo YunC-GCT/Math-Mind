@@ -83,7 +83,9 @@ export struct AgentFloatWindow {
     const placeholder: ChatMsg = { id: nowId(), role: "ai", content: "思考中...", ts: Date.now() }
     this.messages = [...this.messages, placeholder]
     try {
-      if (!(await LlmConfig.getInstance().isConfigured())) { this.fillLast("请先配置 API Key"); return }
+      let configured = false
+      try { configured = await LlmConfig.getInstance().isConfigured() } catch (_e) { /* init 未完成 */ }
+      if (!configured) { this.fillLast("请先在设置中配置 API Key"); return }
       const sp = this.deepThink
         ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
         : "你是 MathMind AI 助手，简洁中文回答。数学用 Unicode 直接输出如 ∫sin x dx, lim(n→∞), Σx²。不用 $ 或 $$ 包裹。"
