@@ -142,7 +142,7 @@ export struct HomePage {
       // FAB
       FloatingButton({
         onTap: (): void => {
-          promptAction.showToast({ message: "用户自定义笔记开发中", duration: 1500 })
+          try { promptAction.showToast({ message: "用户自定义笔记开发中", duration: 1500 }) } catch (e) {}
         },
       })
 
