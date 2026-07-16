@@ -1,4 +1,4 @@
-// chat/ChatBubble.ets — 聊天气泡 + LaTeX/MD 净化
+﻿// chat/ChatBubble.ets — 聊天气泡 + LaTeX/MD 净化
 import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT,
   TEXT, TEXT_2, TEXT_4, S_1, S_2, S_3, R_MD, F_XS, F_SM, W_SEMIBOLD,
 } from "common"
@@ -31,7 +31,6 @@ export struct ChatBubble {
   onFeedback?: (msg: ChatMsg) => void
 
   build() {
-    const display = cleanMarkdown(this.msg.content)
     Column() {
       if (this.msg.role === "user") {
         Row() { Blank()
