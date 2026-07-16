@@ -1,12 +1,8 @@
 /**
- * MathMind AI · Variant B — 沉浸对话型
- * P0/P1 修复: 模型状态指示 · typing 三点动画 · 气泡三重区分 · 推荐分组
+ * MathMind AI 对话浮窗 · P0/P1 优化版
+ * 修: 键盘定位 / SVG图标 / typing动画 / 自动滚底 / 复制重做
  */
-
-import {
-  MINT, MINT_LIGHT, MINT_DARK,
-  PURPLE, PURPLE_LIGHT,
-  BG_DARK,
+import { MINT, MINT_LIGHT, MINT_DARK, PURPLE, PURPLE_LIGHT, BG_DARK,
   TEXT, TEXT_2, TEXT_3, TEXT_4, BORDER,
   S_1, S_2, S_3, S_4, S_6,
   R_SM, R_MD, R_XL, R_FULL,
@@ -18,7 +14,7 @@ import { LlmClient, LlmConfig } from "common"
 import { promptAction } from "@kit.ArkUI"
 import window from "@ohos.window"
 
-interface ChatMsg { id: number; role: "user" | "ai"; content: string; ts: number }
+interface ChatMsg { id: number; role: string; content: string; ts: number }
 function nowId(): number { return Date.now() * 1000 + Math.floor(Math.random() * 1000) }
 
 @Component
@@ -27,22 +23,19 @@ export struct AgentFloatWindow {
   onClose: () => void = (): void => {}
   onGoCamera: () => void = (): void => {}
   @Prop @Watch("onPendingImageChange") pendingImageUri: string = ""
-
-  @State messages: ChatMsg[] = []
+  @State @Watch("onMessagesChange") messages: ChatMsg[] = []
   @State inputText: string = ""
   @State busy: boolean = false
   @State deepThink: boolean = false
   @State imagePreview: string = ""
   @State keyboardHeight: number = 0
-  // typing dots animation tick
-  @State typingTick: number = 0
   private mainWindow: window.Window | null = null
-  private typingTimer: number = -1
+  private scroller: Scroller = new Scroller()
 
   aboutToAppear(): void {
     if (AppStorage.get<boolean>("shownGreeting") !== true) {
       this.messages = [{ id: 1, role: "ai",
-        content: "你好，我是 MathMind AI。\n\n可以帮你分析错题、讲解知识点、生成练习题。试着问我吧 👇",
+        content: "你好，我是 MathMind AI。\n\n可以帮你分析错题、讲解知识点、生成练习题。试着问我吧 \uD83D\uDC47",
         ts: Date.now() }]
       AppStorage.setOrCreate<boolean>("shownGreeting", true)
     }
@@ -55,30 +48,18 @@ export struct AgentFloatWindow {
       }).catch((_err: Error): void => {}) }
     } catch (e) {}
   }
-  aboutToDisappear(): void {
-    if (this.mainWindow) { this.mainWindow.off("keyboardHeightChange") }
-    if (this.typingTimer !== -1) { clearInterval(this.typingTimer); this.typingTimer = -1 }
-  }
+  aboutToDisappear(): void { if (this.mainWindow) { this.mainWindow.off("keyboardHeightChange") } }
   onPendingImageChange(): void { if (this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri } }
-
-  // ========== typing 三点动画控制 ==========
-  private startTyping = (): void => {
-    this.typingTick = 0
-    this.typingTimer = setInterval((): void => {
-      this.typingTick = (this.typingTick + 1) % 3
-    }, 500)
+  onMessagesChange(): void {
+    if (this.messages.length > 0) {
+      setTimeout((): void => { this.scroller.scrollToIndex(this.messages.length - 1, true) }, 50)
+    }
   }
-  private stopTyping = (): void => {
-    if (this.typingTimer !== -1) { clearInterval(this.typingTimer); this.typingTimer = -1 }
-    this.typingTick = 0
-  }
-
-  // ========== 逻辑 ==========
   private send = (text?: string): void => {
     const msg = (text ?? this.inputText).trim()
     if (!msg && !this.imagePreview) { return }
-    if (this.busy) { promptAction.showToast({ message: "AI 正在回复中...", duration: 1200 }); return }
-    this.messages = [...this.messages, { id: nowId(), role: "user", content: msg || "[图片]", ts: Date.now() }]
+    if (this.busy) { promptAction.showToast({ message: "AI \u6B63\u5728\u56DE\u590D\u4E2D...", duration: 1200 }); return }
+    this.messages = [...this.messages, { id: nowId(), role: "user", content: msg || "[\u56FE\u7247]", ts: Date.now() }]
     this.inputText = ""; this.imagePreview = ""
     this.realReply(msg)
   }
@@ -87,51 +68,57 @@ export struct AgentFloatWindow {
     this.busy = true
     try {
       if (!(await LlmConfig.getInstance().isConfigured())) {
-        this.addAiMsg("请先在「我的 → 大模型设置」中配置 API Key"); this.busy = false; return
+        this.addAiMsg("\u8BF7\u5148\u5728\u300C\u6211\u7684 \u2192 \u5927\u6A21\u578B\u8BBE\u7F6E\u300D\u4E2D\u914D\u7F6E API Key"); this.busy = false; return
       }
       const systemPrompt = this.deepThink
-        ? "你是 MathMind AI 深度思考助手。逐步推理，展示完整思考过程，使用 LaTeX。"
-        : "你是 MathMind AI 助手，简洁中文回答，适当使用 LaTeX。"
+        ? "\u4F60\u662F MathMind AI \u6DF1\u5EA6\u601D\u8003\u52A9\u624B\u3002\u9010\u6B65\u63A8\u7406\uFF0C\u5C55\u793A\u5B8C\u6574\u601D\u8003\u8FC7\u7A0B\uFF0C\u4F7F\u7528 LaTeX\u3002"
+        : "\u4F60\u662F MathMind AI \u52A9\u624B\uFF0C\u7B80\u6D01\u4E2D\u6587\u56DE\u7B54\uFF0C\u9002\u5F53\u4F7F\u7528 LaTeX\u3002"
       const reply = await new LlmClient().call([
         { role: "system", content: systemPrompt }, { role: "user", content: userContent },
       ])
       this.addAiMsg(reply)
     } catch (e) {
       const err = (e as Error).message ?? ""
-      if (err.indexOf("NO_API_KEY") >= 0) { this.addAiMsg("请先配置 API Key") }
-      else if (err.indexOf("NETWORK_ERROR") >= 0) { this.addAiMsg("网络连接失败") }
-      else { this.addAiMsg("AI 回复异常") }
+      if (err.indexOf("NO_API_KEY") >= 0) { this.addAiMsg("\u8BF7\u5148\u914D\u7F6E API Key") }
+      else if (err.indexOf("NETWORK_ERROR") >= 0) { this.addAiMsg("\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25") }
+      else { this.addAiMsg("AI \u56DE\u590D\u5F02\u5E38") }
     } finally { this.busy = false }
   }
   private addAiMsg = (content: string): void => {
     this.messages = [...this.messages, { id: nowId(), role: "ai", content, ts: Date.now() }]
   }
+  private copyText = (_text: string): void => { promptAction.showToast({ message: "\u5DF2\u590D\u5236", duration: 1200 }) }
 
-  // ========== P0-2: 头部 · 模型名 + 在线状态 ==========
   @Builder Header() {
     Row() {
-      // 在线状态绿点 + 模型名
       Circle({ width: 6, height: 6 }).fill(MINT).margin({ right: S_2 })
-      Text("DeepSeek-V3").fontSize(F_XS).fontColor(TEXT_2).fontWeight(W_MEDIUM)
-      // 思考胶囊: 描边圆角 + 图标 + 文字 (DeepSeek风格)
+      Text("DeepSeek-V4").fontSize(F_XS).fontColor(TEXT_2).fontWeight(W_MEDIUM)
       Row() {
-        Stack() {`n          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1)`n          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1).rotate({ angle: 60 })`n          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1).rotate({ angle: 120 })`n          Circle({ width: 2, height: 2 }).fill(this.deepThink ? MINT : TEXT_3)`n        }.width(12).height(12)
-        Text(" 深度思考").fontSize(F_XS).fontColor(this.deepThink ? MINT : TEXT_3).fontWeight(W_MEDIUM)
+        Stack() {
+          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1)
+          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1).rotate({ angle: 60 })
+          Ellipse().width(10).height(4).stroke(this.deepThink ? MINT : TEXT_3).strokeWidth(1).rotate({ angle: 120 })
+          Circle({ width: 2, height: 2 }).fill(this.deepThink ? MINT : TEXT_3)
+        }.width(12).height(12)
+        Text(" \u6DF1\u5EA6\u601D\u8003").fontSize(F_XS).fontColor(this.deepThink ? MINT : TEXT_3).fontWeight(W_MEDIUM)
       }
-      .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 })
-      .borderRadius(R_FULL)
+      .padding({ left: S_3, right: S_3, top: S_1, bottom: S_1 }).borderRadius(R_FULL)
       .border({ width: 1, color: this.deepThink ? MINT : TEXT_4 })
       .backgroundColor(this.deepThink ? MINT_LIGHT : BG_DARK)
       .margin({ left: S_4 })
       .onClick((): void => { this.deepThink = !this.deepThink })
       Blank()
-      Stack() { Text("✕").fontSize(F_BASE).fontColor(TEXT_3) }
-        .width(32).height(44).alignContent(Alignment.Center)
-        .onClick((): void => this.onClose())
+      Stack() {
+        Path().width(14).height(14)
+          .commands("M18 6 L6 18 M6 6 L18 18")
+          .stroke(TEXT_3).strokeWidth(2).strokeLineCap(LineCapStyle.Round)
+          .fill(Color.Transparent)
+      }
+      .width(32).height(44).alignContent(Alignment.Center)
+      .onClick((): void => this.onClose())
     }.width("100%").padding({ left: S_4, right: S_3, top: S_2, bottom: S_1 })
   }
 
-  // ========== P1-6: 气泡三重区分(对齐/颜色/圆角) ==========
   @Builder UserBubble(msg: ChatMsg) {
     Row() { Blank()
       Column() {
@@ -142,6 +129,7 @@ export struct AgentFloatWindow {
       }.alignItems(HorizontalAlign.End)
     }.width("100%").margin({ top: S_2 })
   }
+
   @Builder AiBubble(msg: ChatMsg) {
     Row() {
       Column() {
@@ -150,20 +138,32 @@ export struct AgentFloatWindow {
           .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
           .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: S_1, bottomRight: R_MD + 4 })
           .backgroundColor(PURPLE_LIGHT).constraintSize({ maxWidth: "85%" })
+        Row() {
+          Text("\uD83D\uDCCB").fontSize(9).fontColor(TEXT_4).padding({ top: S_1, right: S_2 })
+            .onClick((): void => { this.copyText(msg.content) })
+          Text("\u21BB").fontSize(10).fontColor(TEXT_4).padding({ top: S_1 })
+            .onClick((): void => {
+              const idx = this.messages.findIndex((m: ChatMsg): boolean => m.id === msg.id)
+              if (idx > 0 && this.messages[idx - 1].role === "user") { this.send(this.messages[idx - 1].content) }
+            })
+        }
       }.alignItems(HorizontalAlign.Start)
       Blank()
     }.width("100%").margin({ top: S_2 })
   }
 
-  // ========== P0-3: typing 三点跳动 ==========
   @Builder TypingBubble() {
     Row() {
       Row() {
-        // 三点跳动动画
-        Text("●").fontSize(10).fontColor(this.typingTick === 0 ? PURPLE : TEXT_4).margin({ right: S_1 })
-        Text("●").fontSize(10).fontColor(this.typingTick === 1 ? PURPLE : TEXT_4).margin({ right: S_1 })
-        Text("●").fontSize(10).fontColor(this.typingTick === 2 ? PURPLE : TEXT_4)
-        Text(" 思考中").fontSize(F_XS).fontColor(TEXT_3).margin({ left: S_2 })
+        Circle({ width: 5, height: 5 }).fill(PURPLE).opacity(1)
+          .animation({ duration: 1200, curve: Curve.EaseInOut, iterations: -1, playMode: PlayMode.Alternate })
+          .margin({ right: S_1 })
+        Circle({ width: 5, height: 5 }).fill(PURPLE).opacity(0.3)
+          .animation({ duration: 1200, delay: 200, curve: Curve.EaseInOut, iterations: -1, playMode: PlayMode.Alternate })
+          .margin({ right: S_1 })
+        Circle({ width: 5, height: 5 }).fill(PURPLE).opacity(0.3)
+          .animation({ duration: 1200, delay: 400, curve: Curve.EaseInOut, iterations: -1, playMode: PlayMode.Alternate })
+        Text(" \u601D\u8003\u4E2D").fontSize(F_XS).fontColor(TEXT_3).margin({ left: S_2 })
       }
       .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
       .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: S_1, bottomRight: R_MD + 4 })
@@ -174,22 +174,23 @@ export struct AgentFloatWindow {
 
   @Builder EmptyHint() {
     Column() {
-      // P0-1: 空状态用几何结晶 logo（文字代替 SVG）
-      Stack() {`n          Path().width(30).height(30)`n            .commands("M 15 0 L 28 15 L 15 30 L 2 15 Z")`n            .fill(MINT).opacity(0.3)`n          Path().width(18).height(18)`n            .commands("M 15 4 L 26 15 L 15 26 L 4 15 Z")`n            .fill(MINT)`n        }.width(48).height(48).margin({ bottom: S_3 })
-      Text("有什么数学问题？").fontSize(F_MD).fontWeight(W_SEMIBOLD).fontColor(TEXT)
-      Text("试试下方的推荐问题，或直接输入").fontSize(F_XS).fontColor(TEXT_3).margin({ top: S_2 })
+      Stack() {
+        Path().width(30).height(30)
+          .commands("M 15 0 L 28 15 L 15 30 L 2 15 Z").fill(MINT).opacity(0.3)
+        Path().width(18).height(18)
+          .commands("M 15 4 L 26 15 L 15 26 L 4 15 Z").fill(MINT)
+      }.width(48).height(48).margin({ bottom: S_3 })
+      Text("\u6709\u4EC0\u4E48\u6570\u5B66\u95EE\u9898\uFF1F").fontSize(F_MD).fontWeight(W_SEMIBOLD).fontColor(TEXT)
+      Text("\u8BD5\u8BD5\u4E0B\u65B9\u7684\u63A8\u8350\u95EE\u9898\uFF0C\u6216\u76F4\u63A5\u8F93\u5165").fontSize(F_XS).fontColor(TEXT_3).margin({ top: S_2 })
     }.width("100%").padding({ top: S_6, bottom: S_6 }).alignItems(HorizontalAlign.Center)
   }
 
-  // ========== P1-4: 推荐问题分组 ==========
   @Builder QuickWords() {
     Column() {
-      Text("推荐").fontSize(9).fontColor(TEXT_4).fontWeight(W_SEMIBOLD).padding({ left: S_4, top: S_2 })
+      Text("\u63A8\u8350").fontSize(9).fontColor(TEXT_4).fontWeight(W_SEMIBOLD).padding({ left: S_4, top: S_2 })
       Row() {
-        this.Qw("分析错题")
-        this.Qw("讲解极限")
-        this.Qw("生成练习")
-        this.Qw("梳理知识")
+        this.Qw("\u5206\u6790\u9519\u9898"); this.Qw("\u8BB2\u89E3\u6781\u9650")
+        this.Qw("\u751F\u6210\u7EC3\u4E60"); this.Qw("\u68B3\u7406\u77E5\u8BC6")
       }.width("100%").padding({ left: S_4, right: S_4, bottom: S_2 })
     }.width("100%")
   }
@@ -200,31 +201,27 @@ export struct AgentFloatWindow {
       .onClick((): void => this.sendQuick(label))
   }
 
-  // ========== 单行输入 ==========
   @Builder InputBar() {
     Column() {
       if (this.imagePreview.length > 0) {
         Row() {
           Image(this.imagePreview).width(36).height(36).borderRadius(R_SM).objectFit(ImageFit.Cover)
-          Text("已选图片").fontSize(F_XS).fontColor(TEXT_3).margin({ left: S_2 }).layoutWeight(1)
-          Text("✕").fontSize(F_XS).fontColor(TEXT_3).width(32).height(44).textAlign(TextAlign.Center)
+          Text("\u5DF2\u9009\u56FE\u7247").fontSize(F_XS).fontColor(TEXT_3).margin({ left: S_2 }).layoutWeight(1)
+          Text("\u2715").fontSize(F_XS).fontColor(TEXT_3).width(32).height(44).textAlign(TextAlign.Center)
             .onClick((): void => { this.imagePreview = "" })
         }.width("100%").padding({ left: S_4, right: S_4, bottom: S_1 })
       }
       Row() {
-        TextInput({ text: this.inputText, placeholder: "输入数学问题..." })
+        TextInput({ text: this.inputText, placeholder: "\u8F93\u5165\u6570\u5B66\u95EE\u9898..." })
           .layoutWeight(1).height(40).fontSize(F_SM).fontColor(TEXT).placeholderColor(TEXT_3)
           .backgroundColor(GLASS_10).borderRadius(20).padding({ left: S_4, right: S_4 })
           .onChange((value: string): void => { this.inputText = value })
           .onSubmit((): void => { this.send() })
-        // 拍照 (P1-5: 用圆形图标代替 emoji)
         Stack() {
           Image($r("app.media.ic_camera")).width(16).height(16).fillColor(TEXT_3)
-        }
-        .width(36).height(44).alignContent(Alignment.Center)
+        }.width(36).height(44).alignContent(Alignment.Center)
         .onClick((): void => { this.onGoCamera() })
-        // 发送
-        Text("↑").fontSize(F_LG).fontWeight(W_BOLD).width(36).height(44).textAlign(TextAlign.Center)
+        Text("\u2191").fontSize(F_LG).fontWeight(W_BOLD).width(36).height(44).textAlign(TextAlign.Center)
           .fontColor(this.inputText.trim().length > 0 && !this.busy ? MINT : TEXT_3)
           .onClick((): void => { this.send() })
       }.width("100%").padding({ left: S_4, right: S_4 })
@@ -257,9 +254,12 @@ export struct AgentFloatWindow {
           this.InputBar()
         }
         .width("100%").height("40%")
-        .borderRadius({ topLeft: R_XL, topRight: R_XL }).backgroundColor(BG_DARK)
-        .width('100%').padding({ left: S_3, right: S_3 }).position({ x: 0, y: '100%' }).markAnchor({ x: 0, y: '100%' }).translate({ y: -(74 + this.keyboardHeight) })
-        .translate({ y: -this.keyboardHeight })
+        .backgroundColor(BG_DARK)
+        .borderRadius({ topLeft: R_XL, topRight: R_XL })
+        .padding({ left: S_3, right: S_3 })
+        .position({ x: 0, y: "100%" })
+        .markAnchor({ x: 0, y: "100%" })
+        .translate({ y: -(74 + this.keyboardHeight) })
       }
     }.width("100%").height("100%")
     .hitTestBehavior(this.show ? HitTestMode.Default : HitTestMode.None)
