@@ -12,13 +12,11 @@ import { PriorityBadge } from "../atoms/PriorityBadge"
 
 @Component
 export struct PlanItemRow {
-  @Prop planId: string = ""
   @Prop title: string = ""
   @Prop isDone: boolean = false
   @Prop priority: number = 2
   @Prop linkedNoteId: string = ""
   onToggle?: () => void
-  onDelete?: () => void
 
   build() {
     Row({ space: 12 }) {

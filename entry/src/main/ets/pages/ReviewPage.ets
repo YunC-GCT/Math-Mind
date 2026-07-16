@@ -12,7 +12,6 @@ import { router } from "@kit.ArkUI"
 @Component
 export struct ReviewPage {
   @StorageProp("statusBarHeight") sbh: number = 0
-  onGoAI: () => void = (): void => {}
 
   build() {
     Column() {

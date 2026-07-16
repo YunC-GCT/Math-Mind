@@ -1,9 +1,7 @@
 // ============================================================================
-//  pages/Index.ets — 主容器装配层
+//  pages/Index.ets 鈥?涓诲鍣ㄨ閰嶅眰
 //  ----------------------------------------------------------------------------
-//  职责: 5 Tab 导航编排，管理 CameraOverlay / AgentFloatWindow 浮层状态。
-//  数据流: @State cur → TabContent + TabBar，浮层状态由回调控制。
-//  依赖:
+//  鑱岃矗: 5 Tab 瀵艰埅缂栨帓锛岀鐞?CameraOverlay / AgentFloatWindow 娴眰鐘舵€併€?//  鏁版嵁娴? @State cur 鈫?TabContent + TabBar锛屾诞灞傜姸鎬佺敱鍥炶皟鎺у埗銆?//  渚濊禆:
 //    molecules: TabBar
 //    pages:     HomePage, NotesPage, ReviewPage, MePage
 //    prototypes: CameraOverlay, AgentFloatWindow
@@ -17,7 +15,7 @@ import { MePage } from "./MePage"
 import { TabBar } from "../molecules/TabBar"
 import { AgentFloatWindow } from "../prototypes/AgentFloatWindow"
 import { CameraOverlay } from "../prototypes/CameraOverlay"
-import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
+import { KeyboardAvoidMode } from "@kit.ArkUI"
 
 @Entry
 @Component
@@ -32,7 +30,7 @@ struct Index {
     try {
       this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE)
     } catch (e) {
-      // 降级: 键盘避让失败不影响主流程
+      // 闄嶇骇: 閿洏閬胯澶辫触涓嶅奖鍝嶄富娴佺▼
     }
   }
 
@@ -53,11 +51,9 @@ struct Index {
   build() {
     Stack() {
       Column() {
-        // 内容区
-        Tabs({ index: this.cur, controller: this.tc }) {
+        // 鍐呭鍖?        Tabs({ index: this.cur, controller: this.tc }) {
           TabContent() {
             HomePage({
-              onGoCamera: (): void => { this.showCamera = true },
               onGoReview: (): void => { this.cur = 3; this.tc.changeIndex(3) },
             })
           }
@@ -66,11 +62,7 @@ struct Index {
             Column().width("100%").height("100%").backgroundColor(BG_DARK)
           }
           TabContent() {
-            ReviewPage({
-              onGoAI: (): void => {
-                promptAction.showToast({ message: "AI 对话功能开发中", duration: 1500 })
-              }
-            })
+            ReviewPage()
           }
           TabContent() { MePage() }
         }

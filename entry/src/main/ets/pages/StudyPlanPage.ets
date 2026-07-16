@@ -135,13 +135,11 @@ export struct StudyPlanPage {
         (item: StudyPlanItem, _idx: number): void => {
           ListItem() {
             PlanItemRow({
-              planId: item.id,
               title: item.title,
               isDone: item.isDone,
               priority: item.priority,
               linkedNoteId: item.linkedNoteId,
               onToggle: (): void => { this.vm.toggleItem(item) },
-              onDelete: (): void => { this.vm.deleteItem(item) },
             })
           }
 

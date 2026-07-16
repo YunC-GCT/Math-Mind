@@ -49,7 +49,6 @@ export struct HomePage {
   @State today: number = 0
   @State selectedNote: NoteItem | null = null
 
-  onGoCamera: () => void = (): void => {}
   onGoReview: () => void = (): void => {}
 
   aboutToAppear(): void {
