@@ -41,6 +41,7 @@ export class StudyPlanDao {
   async queryAll(): Promise<StudyPlanItem[]> {
     const predicates: relationalStore.RdbPredicates =
       new relationalStore.RdbPredicates("study_plan")
+    predicates.orderByDesc("created_at")
 
     return new Promise<StudyPlanItem[]>((resolve, reject) => {
       this.store.query(predicates, ["*"], (err: Error, rs: relationalStore.ResultSet) => {
@@ -73,6 +74,46 @@ export class StudyPlanDao {
       this.store.update(bucket, predicates, (err: Error, _rows: number) => {
         if (err) {
           reject(new Error("StudyPlanDao.updateDone failed: " + err.message))
+          return
+        }
+        resolve()
+      })
+    })
+  }
+
+  // ---- 更新标题 ----
+  async updateTitle(id: string, title: string): Promise<void> {
+    const bucket: relationalStore.ValuesBucket = {
+      "title": title,
+    }
+    const predicates: relationalStore.RdbPredicates =
+      new relationalStore.RdbPredicates("study_plan")
+    predicates.equalTo("id", id)
+
+    return new Promise<void>((resolve, reject) => {
+      this.store.update(bucket, predicates, (err: Error, _rows: number) => {
+        if (err) {
+          reject(new Error("StudyPlanDao.updateTitle failed: " + err.message))
+          return
+        }
+        resolve()
+      })
+    })
+  }
+
+  // ---- 置顶：复用 created_at 做排序锚点 ----
+  async updateCreatedAt(id: string, createdAt: number): Promise<void> {
+    const bucket: relationalStore.ValuesBucket = {
+      "created_at": createdAt,
+    }
+    const predicates: relationalStore.RdbPredicates =
+      new relationalStore.RdbPredicates("study_plan")
+    predicates.equalTo("id", id)
+
+    return new Promise<void>((resolve, reject) => {
+      this.store.update(bucket, predicates, (err: Error, _rows: number) => {
+        if (err) {
+          reject(new Error("StudyPlanDao.updateCreatedAt failed: " + err.message))
           return
         }
         resolve()

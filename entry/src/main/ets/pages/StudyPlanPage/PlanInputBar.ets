@@ -9,11 +9,11 @@ export struct PlanInputBar {
   build() {
     Row({ space: 8 }) {
       TextInput({
-        placeholder: "新增学习计划...",
+        placeholder: this.vm.isEditing ? "修改学习计划..." : "新增学习计划...",
         text: this.vm.newTitle,
       })
       .onChange((value: string): void => { this.vm.newTitle = value })
-      .onSubmit((): void => { this.vm.addItem() })
+      .onSubmit((): void => { this.vm.submitInput() })
       .layoutWeight(1)
       .height(44)
       .borderRadius(R_FULL)
@@ -23,10 +23,10 @@ export struct PlanInputBar {
       .placeholderColor(TEXT_3)
 
       Button() {
-        AppIcon({ name: "plus", iconSize: 22, color: MINT, strokeWidth: 2.2 })
+        AppIcon({ name: this.vm.isEditing ? "check" : "plus", iconSize: 22, color: MINT, strokeWidth: 2.2 })
       }
       .backgroundColor(GLASS_8)
-      .onClick((): void => { this.vm.addItem() })
+      .onClick((): void => { this.vm.submitInput() })
       .enabled(this.vm.newTitle.trim().length > 0)
     }
     .width("100%")

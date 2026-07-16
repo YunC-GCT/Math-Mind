@@ -17,6 +17,9 @@ export struct PlanListView {
               priority: item.priority,
               linkedNoteId: item.linkedNoteId,
               onToggle: (): void => { this.vm.toggleItem(item) },
+              onEdit: (): void => { this.vm.beginEdit(item) },
+              onPin: (): void => { this.vm.pinItem(item) },
+              onDelete: (): void => { this.vm.deleteItem(item) },
             })
           }
         },

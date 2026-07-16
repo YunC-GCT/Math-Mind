@@ -7,7 +7,7 @@
 //  ArkTS 1.1 strict: @Prop 仅接收原始类型（string/boolean/number），避免 class 浅拷贝导致 UI 不更新。
 //  ============================================================================
 
-import { MINT, TEXT, TEXT_3, S_1, S_3, S_5, F_XL, F_MD, F_XS } from "common"
+import { MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, DANGER, WARNING, S_1, S_3, S_5, F_XL, F_MD, F_XS, F_SM, R_MD } from "common"
 import { PriorityBadge } from "../atoms/PriorityBadge"
 import { AppIcon } from "../atoms/AppIcon"
 
@@ -17,52 +17,115 @@ export struct PlanItemRow {
   @Prop isDone: boolean = false
   @Prop priority: number = 2
   @Prop linkedNoteId: string = ""
+  @State revealOffset: number = 0
+  private dragStartX: number = 0
   onToggle?: () => void
+  onEdit?: () => void
+  onPin?: () => void
+  onDelete?: () => void
 
   build() {
-    Row({ space: S_3 }) {
-      // ---- 完成状态图标 ----
-      AppIcon({
-        name: this.isDone ? "check" : "circle",
-        iconSize: F_XL,
-        color: this.isDone ? MINT : TEXT_3,
-        strokeWidth: 2,
-      })
-        .onClick((): void => {
-          if (this.onToggle) {
-            this.onToggle()
-          }
+    Stack({ alignContent: Alignment.Start }) {
+      Row() {
+        this.ActionButton("修改", TEXT_3, (): void => {
+          this.revealOffset = 0
+          if (this.onEdit) { this.onEdit() }
         })
+        this.ActionButton("置顶", WARNING, (): void => {
+          this.revealOffset = 0
+          if (this.onPin) { this.onPin() }
+        })
+        this.ActionButton("删除", DANGER, (): void => {
+          this.revealOffset = 0
+          if (this.onDelete) { this.onDelete() }
+        })
+      }
+      .height(64)
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor(BG_DARK)
 
-      // ---- 标题 + 关联笔记 ----
-      Column({ space: S_1 / 2 }) {
-        Text(this.title)
-          .fontSize(F_MD)
-          .fontColor(this.isDone ? TEXT_3 : TEXT)
-          .decoration(this.isDone
-            ? { type: TextDecorationType.LineThrough, color: TEXT_3 }
-            : { type: TextDecorationType.None })
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-        if (this.linkedNoteId.length > 0) {
-          Row({ space: S_1 }) {
-            AppIcon({ name: "paperclip", iconSize: F_XS + 2, color: TEXT_3, strokeWidth: 1.4 })
-            Text("关联笔记: " + this.linkedNoteId)
-              .fontSize(F_XS)
-              .fontColor(TEXT_3)
-              .maxLines(1)
+      Row({ space: S_3 }) {
+        // ---- 完成状态图标 ----
+        Stack() {
+          if (this.isDone) {
+            Circle({ width: F_XL, height: F_XL }).fill(MINT)
+            Text("✓")
+              .fontSize(F_SM)
+              .fontColor(BG_DARK)
+              .fontWeight(700)
+          } else {
+            Circle({ width: F_XL, height: F_XL })
+              .fill(Color.Transparent)
+              .stroke(TEXT_3)
+              .strokeWidth(2)
           }
         }
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
+        .width(F_XL).height(F_XL)
+        .alignContent(Alignment.Center)
+        .onClick((): void => {
+          if (this.onToggle) { this.onToggle() }
+        })
 
-      // ---- 优先级标签 ----
-      PriorityBadge({ priority: this.priority })
+        // ---- 标题 + 关联笔记 ----
+        Column({ space: S_1 / 2 }) {
+          Text(this.title)
+            .fontSize(F_MD)
+            .fontColor(this.isDone ? TEXT_3 : TEXT)
+            .decoration(this.isDone
+              ? { type: TextDecorationType.LineThrough, color: TEXT_3 }
+              : { type: TextDecorationType.None })
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+          if (this.linkedNoteId.length > 0) {
+            Row({ space: S_1 }) {
+              AppIcon({ name: "paperclip", iconSize: F_XS + 2, color: TEXT_3, strokeWidth: 1.4 })
+              Text("关联笔记: " + this.linkedNoteId)
+                .fontSize(F_XS)
+                .fontColor(TEXT_3)
+                .maxLines(1)
+            }
+          }
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        // ---- 优先级标签 ----
+        PriorityBadge({ priority: this.priority })
+      }
+      .width("100%")
+      .padding({ top: S_3 + 2, bottom: S_3 + 2, left: S_5, right: S_5 })
+      .backgroundColor(BG_DARK)
+      .height(64)
+      .translate({ x: this.revealOffset })
+      .gesture(
+        PanGesture({ direction: PanDirection.Horizontal })
+          .onActionStart((): void => {
+            this.dragStartX = this.revealOffset
+          })
+          .onActionUpdate((event: GestureEvent): void => {
+            const next: number = this.dragStartX + event.offsetX
+            this.revealOffset = Math.max(0, Math.min(168, next))
+          })
+          .onActionEnd((): void => {
+            this.revealOffset = this.revealOffset > 72 ? 168 : 0
+          })
+      )
     }
     .width("100%")
-    .padding({ top: S_3 + 2, bottom: S_3 + 2, left: S_5, right: S_5 })
+  }
 
+  @Builder
+  ActionButton(label: string, color: ResourceColor, action: () => void) {
+    Text(label)
+      .fontSize(F_XS)
+      .fontColor(color)
+      .width(56)
+      .height(44)
+      .textAlign(TextAlign.Center)
+      .backgroundColor(BG_CARD)
+      .borderRadius(R_MD)
+      .margin({ left: 4 })
+      .onClick((): void => action())
   }
 }

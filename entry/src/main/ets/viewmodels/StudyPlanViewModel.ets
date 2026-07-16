@@ -20,6 +20,7 @@ import { StudyPlanDao } from "../database/StudyPlanDao"
 export class StudyPlanViewModel {
   items: StudyPlanItem[] = []
   newTitle: string = ""
+  editingId: string = ""
   isLoading: boolean = false
   initError: boolean = false
   private dao: StudyPlanDao | null = null
@@ -54,6 +55,18 @@ export class StudyPlanViewModel {
     return this.items.length
   }
 
+  get isEditing(): boolean {
+    return this.editingId.length > 0
+  }
+
+  async submitInput(): Promise<void> {
+    if (this.isEditing) {
+      await this.saveEditing()
+    } else {
+      await this.addItem()
+    }
+  }
+
   // ---- 新增 ----
   async addItem(): Promise<void> {
     const trimmed: string = this.newTitle.trim()
@@ -71,6 +84,39 @@ export class StudyPlanViewModel {
     }
     this.items.push(item)
     this.items = this.items.slice(0)
+    this.newTitle = ""
+  }
+
+  // ---- 开始修改 ----
+  beginEdit(item: StudyPlanItem): void {
+    this.editingId = item.id
+    this.newTitle = item.title
+  }
+
+  // ---- 保存修改 ----
+  async saveEditing(): Promise<void> {
+    const trimmed: string = this.newTitle.trim()
+    if (trimmed.length === 0 || this.editingId.length === 0) {
+      return
+    }
+    const idx: number = this.items.findIndex((i: StudyPlanItem): boolean => i.id === this.editingId)
+    if (idx < 0) {
+      this.editingId = ""
+      this.newTitle = ""
+      return
+    }
+
+    this.items[idx].title = trimmed
+    this.items = this.items.slice(0)
+
+    if (this.dao !== null) {
+      try {
+        await this.dao.updateTitle(this.editingId, trimmed)
+      } catch (e) {
+        console.error("[StudyPlanViewModel.saveEditing] " + (e as Error).message)
+      }
+    }
+    this.editingId = ""
     this.newTitle = ""
   }
 
@@ -107,6 +153,35 @@ export class StudyPlanViewModel {
         await this.dao.deleteById(item.id)
       } catch (e) {
         console.error("[StudyPlanViewModel.deleteItem] " + (e as Error).message)
+      }
+    }
+  }
+
+  // ---- 置顶 ----
+  async pinItem(item: StudyPlanItem): Promise<void> {
+    const idx: number = this.items.findIndex((i: StudyPlanItem): boolean => i.id === item.id)
+    if (idx <= 0) {
+      return
+    }
+    const pinned: StudyPlanItem = this.items[idx]
+    pinned.createdAt = Date.now()
+    const newItems: StudyPlanItem[] = [pinned]
+    for (const candidate of this.items) {
+      if (candidate.id !== item.id) {
+        newItems.push(candidate)
+      }
+    }
+    this.items = newItems
+    if (this.editingId === item.id) {
+      this.editingId = ""
+      this.newTitle = ""
+    }
+
+    if (this.dao !== null) {
+      try {
+        await this.dao.updateCreatedAt(item.id, pinned.createdAt)
+      } catch (e) {
+        console.error("[StudyPlanViewModel.pinItem] " + (e as Error).message)
       }
     }
   }
