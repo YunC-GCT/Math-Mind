@@ -1,13 +1,12 @@
-// MathMind - AiService (拍照/调用 Dispatcher 胶水层 + 入库)
-// 任务编号: E1
-// 责任: Z
-// 状态: 实现完成(2026-07-14) — 精简拍照链
+// MathMind - AiService
 //
-// 流程:
-//   imageUri → Dispatcher.dispatch()
-//     → TypeClassifier.classify() → LlmClient 分类
-//     → KnowledgeModel.structure() → LlmClient 结构化 + 真值检验
-//   ← KnowledgeUnit → NoteDao.insert() → RDB 写入
+// Semantic contract:
+// - capture(imageUri, userText?) is the app entry for a photo/album image
+//   that should be processed into a KnowledgeUnit.
+// - It is not a plain chat call. The image path always enters the capture
+//   pipeline: Dispatcher -> image/OCR/MCP recognition -> classification ->
+//   knowledge structuring -> local persistence.
+// - UI code should call capture() whenever the user sends an image.
 
 import {
   KnowledgeUnit,
@@ -17,33 +16,47 @@ import {
   Logger,
 } from 'common';
 import { Dispatcher } from 'agents';
+import { common } from '@kit.AbilityKit';
+import { ImageUriResolver, ResolvedImageFile } from './ImageUriResolver';
 import { NoteDao } from '../database/NoteDao';
 import { DatabaseHelper } from 'common';
 
 const log: Logger = new Logger('AiService');
 
 export class AiService {
-  // 拍照入口
+  private context?: common.UIAbilityContext;
+
+  constructor(context?: common.UIAbilityContext) {
+    this.context = context;
+  }
+
+  // Photo/album image entry: process the image into a persisted KnowledgeUnit.
   async capture(imageUri: string, userText?: string): Promise<KnowledgeUnit> {
     log.info('capture start, imageUri=' + imageUri);
-    return this.dispatchAndInsert({
+    if (this.context === undefined) {
+      throw new Error('AiService.capture requires UIAbilityContext to prepare image file');
+    }
+
+    const resolved: ResolvedImageFile = await new ImageUriResolver(this.context).resolve(imageUri);
+    log.info('capture image prepared, localPath=' + resolved.localPath);
+
+    return this.processAndPersist({
       kind: 'image',
-      imageUri: imageUri,
+      imageUri: resolved.localPath,
       userText: userText,
     });
   }
 
-  // 文本入口
+  // Text entry: same knowledge-ingestion contract, without image recognition.
   async captureText(text: string): Promise<KnowledgeUnit> {
     log.info('captureText start, len=' + text.length.toString());
-    return this.dispatchAndInsert({
+    return this.processAndPersist({
       kind: 'text',
       text: text,
     });
   }
 
-  // 通用: dispatch → 校验 → 入库
-  private async dispatchAndInsert(payload: DispatchPayload): Promise<KnowledgeUnit> {
+  private async processAndPersist(payload: DispatchPayload): Promise<KnowledgeUnit> {
     const req: DispatchRequest = { source: 'app', payload };
     const dispatcher = new Dispatcher();
     const result: DispatchResult = await dispatcher.dispatch(req);
