@@ -87,7 +87,7 @@ export struct AgentFloatWindow {
   private send = (text?: string): void => {
     const msg = (text ?? this.inputText).trim()
     if (!msg && !this.imagePreview) { return }
-    if (this.busy) { promptAction.showToast({ message: "AI 正在回复", duration: 1200 }); return }
+    if (this.busy) { try { promptAction.showToast({ message: "AI 正在回复", duration: 1200 }) } catch (e) {}; return }
     this.messages = [...this.messages, { id: nowId(), role: "user", content: msg || "[图片]", ts: Date.now() }]
     this.inputText = ""; this.imagePreview = ""
     this.realReply(msg)

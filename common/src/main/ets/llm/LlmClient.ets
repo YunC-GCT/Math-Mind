@@ -14,35 +14,24 @@
 //   - 端点 / model / temperature / max_tokens / timeout 全部从 LlmConfig 单例读
 //   - 单次调用可用 opts 覆盖默认
 //   - 错误统一抛 LlmError(kind: NO_API_KEY / NETWORK_ERROR / API_ERROR / PARSE_ERROR / EMPTY_RESPONSE)
-//
-// ArkTS 1.1 严格语法:
-//   - 无 any / unknown
-//   - 显式类型
-//   - 不抛 Record<string, T>
+//   - 双重超时: connectTimeout/readTimeout + Promise.race 兜底
 
 import { http } from '@kit.NetworkKit';
 import { LlmConfig } from './LlmConfig';
 import {
-  ChatMessage,
-  LlmRequestBody,
-  LlmResponse,
-  LlmResponseChoice,
-  LlmCallOptions,
-  LlmError,
+  ChatMessage, LlmRequestBody, LlmResponse, LlmResponseChoice, LlmCallOptions, LlmError,
 } from './LlmTypes';
 
 export class LlmClient {
   private config: LlmConfig;
 
-  constructor() {
-    this.config = LlmConfig.getInstance();
-  }
+  constructor() { this.config = LlmConfig.getInstance(); }
 
   // 主入口:发 chat completion 请求,返回首条 message.content 字符串
   public async call(messages: ChatMessage[], opts?: LlmCallOptions): Promise<string> {
     // 1. 校验 API key
     const apiKey: string | null = await this.config.getApiKey();
-    if (apiKey === null) {
+    if (apiKey === null || apiKey.length === 0) {
       throw new LlmError('API key not configured. Set it in Settings first.', 'NO_API_KEY');
     }
 
@@ -60,75 +49,63 @@ export class LlmClient {
       stream: false,
     };
 
-    // 3. 发 HTTP POST
+    // 3. 发 HTTP POST（双重超时: connectTimeout/readTimeout + Promise.race 兜底）
     const httpRequest = http.createHttp();
     let response: http.HttpResponse;
     try {
-      response = await httpRequest.request(this.config.getEndpoint(), {
+      const httpCall = httpRequest.request(this.config.getEndpoint(), {
         method: http.RequestMethod.POST,
         header: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': 'Bearer ' + apiKey,
         },
         extraData: JSON.stringify(body),
         connectTimeout: timeoutMs,
         readTimeout: timeoutMs,
       });
+      // Promise.race 兜底: 即使底层超时不生效, JS 层面也能超时
+      const timeoutPromise = new Promise<http.HttpResponse>((_resolve, reject) => {
+        setTimeout((): void => { reject(new Error('LLM timeout after ' + timeoutMs + 'ms')) }, timeoutMs + 3000)
+      });
+      response = await Promise.race([httpCall, timeoutPromise]) as http.HttpResponse;
     } catch (e) {
       httpRequest.destroy();
-      throw new LlmError(`LLM network error: ${(e as Error).message ?? String(e)}`, 'NETWORK_ERROR');
+      throw new LlmError('LLM network error: ' + ((e as Error).message ?? String(e)), 'NETWORK_ERROR');
     }
     httpRequest.destroy();
 
     // 4. 状态码校验
     if (response.responseCode !== 200) {
       const errBody: string = (response.result as string) ?? '';
-      throw new LlmError(`LLM API error ${response.responseCode}: ${errBody}`, 'API_ERROR');
+      throw new LlmError('LLM API error ' + response.responseCode + ': ' + errBody, 'API_ERROR');
     }
 
     // 5. 解析 JSON
     const raw: string = response.result as string;
     let parsed: LlmResponse;
-    try {
-      parsed = JSON.parse(raw) as LlmResponse;
-    } catch (e) {
-      throw new LlmError(`LLM response parse error: ${(e as Error).message ?? String(e)}`, 'PARSE_ERROR');
-    }
+    try { parsed = JSON.parse(raw) as LlmResponse; }
+    catch (e) { throw new LlmError('LLM response parse error: ' + ((e as Error).message ?? String(e)), 'PARSE_ERROR'); }
 
     // 6. 提取 content
     return this.extractContent(parsed);
   }
 
-  // ===== 内部 =====
-
   private extractContent(parsed: LlmResponse): string {
-    if (parsed.choices.length === 0) {
-      throw new LlmError('LLM returned empty choices', 'EMPTY_RESPONSE');
-    }
+    if (parsed.choices.length === 0) { throw new LlmError('LLM returned empty choices', 'EMPTY_RESPONSE'); }
     const first: LlmResponseChoice = parsed.choices[0];
-    if (first.message === undefined || first.message === null) {
-      throw new LlmError('LLM returned empty message', 'EMPTY_RESPONSE');
-    }
+    if (first.message === undefined || first.message === null) { throw new LlmError('LLM returned empty message', 'EMPTY_RESPONSE'); }
     const content: string = first.message.content;
-    if (content === undefined || content === null || content.length === 0) {
-      throw new LlmError('LLM returned empty content', 'EMPTY_RESPONSE');
-    }
+    if (content === undefined || content === null || content.length === 0) { throw new LlmError('LLM returned empty content', 'EMPTY_RESPONSE'); }
     return content;
   }
 
-  // opts?.xxx 返回 string | undefined,转回 string 或用默认
   private pickStr(v: string | undefined, fallback: string): string {
-    if (v === undefined || v === null || v.length === 0) {
-      return fallback;
-    }
+    if (v === undefined || v === null || v.length === 0) { return fallback; }
     return v;
   }
 
-  // opts?.xxx 返回 number | undefined,转回 number 或用默认
   private pickNum(v: number | undefined, fallback: number): number {
-    if (v === undefined || v === null) {
-      return fallback;
-    }
+    if (v === undefined || v === null) { return fallback; }
     return v;
   }
 }
