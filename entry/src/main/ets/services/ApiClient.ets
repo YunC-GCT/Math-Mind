@@ -1,17 +1,16 @@
-// MathMind - ApiClient (HTTP ¿Í»§¶Ë)
-// ÈÎÎñ±àºÅ: A2
-// ÔğÈÎ: Z
-// ×´Ì¬: ÊµÏÖÍê³É(2026-07-14) ¡ª ¾«¼òÅÄÕÕÁ´
-//
-// ½Ó¿Ú:
-//   request<T>(method, path, options?): Promise<ApiResponse<T>>
-//     - method: 'GET' | 'POST' | 'PUT' | 'DELETE'
-//     - path: ºó¶ËÂ·¾¶, ÀıÈç '/agents/dispatch'
-//     - options.body / options.headers / options.timeout
-//   ×Ô¶¯×¢Èë JWT (Authorization: Bearer <token>)
-//   401 Ê±³¢ÊÔÒ»´Î token Ë¢ĞÂºóÖØÊÔ
-//
-// ÑéÖ¤·½Ê½: curl ´òºó¶Ë /health ¶Ëµã·µ»Ø 200
+// ============================================================================
+//  services/ApiClient.ets â€” HTTP å®¢æˆ·ç«¯
+//  ----------------------------------------------------------------------------
+//  èŒè´£: ç»Ÿä¸€ HTTP è¯·æ±‚å°è£…ï¼Œè‡ªåŠ¨ JWT è®¤è¯ + 401 è‡ªåŠ¨åˆ·æ–°é‡è¯•ã€‚
+//  æ¥å£:
+//    request<T>(method, path, options?): Promise<ApiResponse<T>>
+//      - method: 'GET' | 'POST' | 'PUT' | 'DELETE'
+//      - path: ç›¸å¯¹è·¯å¾„, å¦‚ '/agents/dispatch'
+//      - options.body / options.headers / options.timeout
+//    è‡ªåŠ¨æ³¨å…¥ JWT (Authorization: Bearer <token>)
+//    401 æ—¶å°è¯•ä¸€æ¬¡ token åˆ·æ–°åé‡è¯•
+//  éªŒè¯æ–¹å¼: curl è°ƒç”¨ /health ç«¯ç‚¹è¿”å› 200
+//  ============================================================================
 
 import { http } from '@kit.NetworkKit';
 import { preferences } from '@kit.ArkData';
@@ -21,7 +20,7 @@ const PREF_STORE = 'auth_config';
 const KEY_JWT = 'jwt_token';
 const KEY_REFRESH = 'refresh_token';
 
-// ÇëÇóÑ¡Ïî
+// è¯·æ±‚é€‰é¡¹
 interface RequestOptions {
   body?: Object;
   headers?: Record<string, string>;
@@ -31,37 +30,28 @@ interface RequestOptions {
 export class ApiClient {
   private baseUrl: string = '';
 
-  constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl ?? '';
-  }
+  constructor(baseUrl?: string) { this.baseUrl = baseUrl ?? ''; }
 
-  // Ö÷Èë¿Ú
+  // é€šç”¨è¯·æ±‚
   async request<T>(method: string, path: string, opts?: RequestOptions): Promise<ApiResponse<T>> {
     const url: string = this.baseUrl + path;
     const timeout: number = opts?.timeout ?? 10000;
 
-    // ¶Á JWT
+    // è¯» JWT
     const jwt: string = await this.loadJwt();
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (jwt.length > 0) {
-      headers['Authorization'] = 'Bearer ' + jwt;
-    }
-    // ºÏ²¢×Ô¶¨Òå headers
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt.length > 0) { headers['Authorization'] = 'Bearer ' + jwt; }
+    // åˆå¹¶è‡ªå®šä¹‰ headers
     if (opts?.headers) {
       const custom: Record<string, string> = opts.headers;
       const keys: string[] = Object.keys(custom);
-      for (let i = 0; i < keys.length; i++) {
-        headers[keys[i]] = custom[keys[i]];
-      }
+      for (let i = 0; i < keys.length; i++) { headers[keys[i]] = custom[keys[i]]; }
     }
 
-    // Ê×´ÎÇëÇó
+    // é¦–æ¬¡è¯·æ±‚
     let resp: http.HttpResponse = await this.doHttp(method, url, headers, opts?.body, timeout);
 
-    // 401 ¡ú ³¢ÊÔË¢ĞÂ token ºóÖØÊÔÒ»´Î
+    // 401 â†’ å°è¯•åˆ·æ–° token åé‡è¯•ä¸€æ¬¡
     if (resp.responseCode === 401) {
       const refreshed: boolean = await this.refreshToken();
       if (refreshed) {
@@ -74,69 +64,48 @@ export class ApiClient {
     return this.parseResponse<T>(resp);
   }
 
-  // ÄÚ²¿ HTTP µ÷ÓÃ
+  // å†…éƒ¨ HTTP è¯·æ±‚
   private async doHttp(
-    method: string,
-    url: string,
-    headers: Record<string, string>,
-    body: Object | undefined,
-    timeout: number,
+    method: string, url: string, headers: Record<string, string>,
+    body: Object | undefined, timeout: number,
   ): Promise<http.HttpResponse> {
     const httpReq = http.createHttp();
     try {
       const resp: http.HttpResponse = await httpReq.request(url, {
-        method: this.toMethod(method),
-        header: headers,
+        method: this.toMethod(method), header: headers,
         extraData: body ? JSON.stringify(body) : undefined,
-        connectTimeout: timeout,
-        readTimeout: timeout,
+        connectTimeout: timeout, readTimeout: timeout,
       });
       httpReq.destroy();
       return resp;
     } catch (e) {
       httpReq.destroy();
-      throw {
-        code: -1,
-        message: 'Network error: ' + JSON.stringify(e),
-        retryable: true,
-      } as ApiError;
+      throw { code: -1, message: 'Network error: ' + JSON.stringify(e), retryable: true } as ApiError;
     }
   }
 
-  // ½âÎöÏìÓ¦
+  // è§£æå“åº”
   private parseResponse<T>(resp: http.HttpResponse): ApiResponse<T> {
     const code: number = resp.responseCode;
     if (code >= 200 && code < 300) {
       try {
         const raw: string = resp.result as string;
-        const parsed: ApiResponse<T> = JSON.parse(raw) as ApiResponse<T>;
-        return parsed;
+        return JSON.parse(raw) as ApiResponse<T>;
       } catch (e) {
-        return {
-          code: -2,
-          message: 'Parse error: ' + JSON.stringify(e),
-          success: false,
-        } as ApiResponse<T>;
+        return { code: -2, message: 'Parse error: ' + JSON.stringify(e), success: false } as ApiResponse<T>;
       }
     }
-    return {
-      code: code,
-      message: 'HTTP ' + code,
-      success: false,
-    } as ApiResponse<T>;
+    return { code: code, message: 'HTTP ' + code, success: false } as ApiResponse<T>;
   }
 
-  // ===== JWT ¹ÜÀí =====
+  // ===== JWT æŒä¹…åŒ– =====
 
   private async loadJwt(): Promise<string> {
     try {
       const ctx = getContext();
       const store: preferences.Preferences = await preferences.getPreferences(ctx, PREF_STORE);
-      const token: string = await store.get(KEY_JWT, '') as string;
-      return token;
-    } catch (e) {
-      return '';
-    }
+      return await store.get(KEY_JWT, '') as string;
+    } catch (e) { return ''; }
   }
 
   private async refreshToken(): Promise<boolean> {
@@ -144,27 +113,17 @@ export class ApiClient {
       const ctx = getContext();
       const store: preferences.Preferences = await preferences.getPreferences(ctx, PREF_STORE);
       const refresh: string = await store.get(KEY_REFRESH, '') as string;
-      if (refresh.length === 0) {
-        return false;
-      }
-      // MVP: refresh token µÄÊµ¼Ê HTTP µ÷ÓÃÓÉ AuthService Íê³É
-      // ´Ë´¦½ö×ö±ê¼Ç£¬²»Êµ¼Êµ÷ÓÃË¢ĞÂ¶Ëµã
+      if (refresh.length === 0) { return false; }
+      // MVP: refresh token æœªå®ç° HTTP è°ƒç”¨ AuthService
+      // æ­¤å¤„ä½œä¸ºå ä½ï¼Œå¾…å®é™…è°ƒç”¨åˆ·æ–°ç«¯ç‚¹
       return true;
-    } catch (e) {
-      return false;
-    }
+    } catch (e) { return false; }
   }
 
   private toMethod(m: string): http.RequestMethod {
-    if (m === 'POST') {
-      return http.RequestMethod.POST;
-    }
-    if (m === 'PUT') {
-      return http.RequestMethod.PUT;
-    }
-    if (m === 'DELETE') {
-      return http.RequestMethod.DELETE;
-    }
+    if (m === 'POST') { return http.RequestMethod.POST; }
+    if (m === 'PUT') { return http.RequestMethod.PUT; }
+    if (m === 'DELETE') { return http.RequestMethod.DELETE; }
     return http.RequestMethod.GET;
   }
 }
