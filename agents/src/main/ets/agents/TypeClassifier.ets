@@ -38,7 +38,10 @@ export class TypeClassifier {
 
     const client = new LlmClient();
     try {
-      const raw: string = await client.call(messages);
+      const raw: string = await client.call(messages, {
+        maxTokens: 128,
+        timeoutMs: 3000,
+      });
       return this.parseResult(raw, cleaned);
     } catch (e) {
       if (e instanceof LlmError && e.kind === 'NO_API_KEY') {

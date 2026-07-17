@@ -1,16 +1,23 @@
+import { textRecognition } from '@kit.CoreVisionKit';
+import { image } from '@kit.ImageKit';
 import { http } from '@kit.NetworkKit';
 
-// OCR 识别结果接口：对外暴露的统一返回格式
 export interface OcrRecognitionResult {
-  success: boolean;      // 识别是否成功
-  formulas: string[];    // 识别出的 LaTeX 公式列表
-  textLines: string[];   // 按行分割的文本行
-  text: string;          // 完整识别文本（所有文本行拼接）
-  message: string;       // 错误或状态提示信息
+  success: boolean;
+  formulas: string[];
+  textLines: string[];
+  text: string;
+  message: string;
 }
 
-// OCR API 原始响应接口：与后端 /ocr/recognize 返回的 JSON 结构一一对应
-interface OcrResponse {
+interface FormulaResponse {
+  success: boolean;
+  count: number;
+  formulas: string[];
+  message: string;
+}
+
+interface CombinedOcrResponse {
   success: boolean;
   formula_count: number;
   formulas: string[];
@@ -20,115 +27,221 @@ interface OcrResponse {
   message: string;
 }
 
+interface OcrError {
+  code?: number;
+  message?: string;
+}
+
 /**
- * OCR 工具类：将图片发送至后端 OCR 服务进行文字与公式识别。
- * 支持自动重试、文件路径规范化、MIME 类型推断及结果格式化。
+ * Hybrid image recognition:
+ * - HarmonyOS CoreVisionKit recognizes ordinary text on supported devices.
+ * - The local FormulaNet HTTP service recognizes formulas as LaTeX.
+ * - Devices without CoreVisionKit fall back to the combined OCR endpoint.
  */
 export class OcrTool {
-  // OCR 服务端点地址，默认指向本地开发服务
-  private endpoint: string;
+  private formulaEndpoint: string;
+  private fallbackOcrEndpoint: string;
 
-  constructor(endpoint?: string) {
-    this.endpoint = endpoint ?? 'http://127.0.0.1:8000/api/v1/ocr/recognize';
+  constructor(formulaEndpoint?: string, fallbackOcrEndpoint?: string) {
+    this.formulaEndpoint = formulaEndpoint ??
+      'http://10.0.2.2:8000/api/v1/formula/recognize';
+    this.fallbackOcrEndpoint = fallbackOcrEndpoint ??
+      'http://10.0.2.2:8000/api/v1/ocr/recognize';
   }
 
-  /**
-   * 执行 OCR 识别，返回格式化后的 prompt 文本。
-   * @param imageUri 图片 URI（支持 file:// 协议或普通文件路径）
-   * @returns 拼接好的识别结果字符串（文本 + LaTeX 公式）
-   */
   async recognize(imageUri: string): Promise<string> {
     const result: OcrRecognitionResult = await this.recognizeImage(imageUri);
-    return this.toPromptText(result);
+    if (!result.success) {
+      throw new Error('OCR failed: ' + result.message);
+    }
+
+    const promptText: string = this.toPromptText(result);
+    if (promptText.trim().length === 0) {
+      throw new Error('OCR returned empty text');
+    }
+    return promptText;
   }
 
-  /**
-   * 调用 OCR 服务识别图片，返回结构化识别结果。
-   * @param imageUri 图片 URI
-   * @returns OcrRecognitionResult 结构，包含文本、公式等信息
-   */
   async recognizeImage(imageUri: string): Promise<OcrRecognitionResult> {
-    // 发起带重试的 HTTP 请求，获取原始响应
-    const resp: OcrResponse = await this.requestWithRetry(imageUri);
-    const formulas: string[] = resp.formulas ?? [];
-    const textLines: string[] = resp.text_lines ?? [];
-    // 若服务端未返回统一 text，则用所有文本行拼接
-    const text: string = resp.text ?? textLines.join(' ');
+    const filePath: string = this.normalizeFilePath(imageUri);
+    let textLines: string[] = [];
+    let formulas: string[] = [];
+    let textError: string = '';
+    let formulaError: string = '';
+    let usedServerFallback: boolean = false;
+
+    try {
+      textLines = await this.recognizeLocalText(filePath);
+    } catch (e) {
+      textError = this.errorText(e as OcrError);
+    }
+
+    if (textError.length > 0) {
+      try {
+        const fallback: CombinedOcrResponse = await this.requestCombinedWithRetry(filePath);
+        if (fallback.success) {
+          textLines = fallback.text_lines ?? [];
+          if (textLines.length === 0 && fallback.text.trim().length > 0) {
+            textLines.push(fallback.text.trim());
+          }
+          formulas = fallback.formulas ?? [];
+          textError = '';
+          usedServerFallback = true;
+        } else {
+          formulaError = fallback.message;
+        }
+      } catch (e) {
+        formulaError = this.errorText(e as OcrError);
+      }
+    } else {
+      try {
+        const response: FormulaResponse = await this.requestFormulaWithRetry(filePath);
+        if (response.success) {
+          formulas = response.formulas ?? [];
+        } else {
+          formulaError = response.message;
+        }
+      } catch (e) {
+        formulaError = this.errorText(e as OcrError);
+      }
+    }
+
+    const text: string = textLines.join('\n');
+    const success: boolean = text.trim().length > 0 || formulas.length > 0;
+    const messages: string[] = [];
+    if (textError.length > 0) {
+      messages.push('Local text OCR: ' + textError);
+    }
+    if (formulaError.length > 0) {
+      messages.push('Formula OCR: ' + formulaError);
+    }
+    if (messages.length === 0) {
+      const mode: string = usedServerFallback ? 'server fallback' : 'on-device text OCR';
+      messages.push('Recognized ' + textLines.length.toString() +
+        ' text lines and ' + formulas.length.toString() + ' formulas using ' + mode);
+    }
 
     return {
-      success: resp.success,
+      success: success,
       formulas: formulas,
       textLines: textLines,
       text: text,
-      message: resp.message ?? '',
+      message: messages.join('; '),
     };
   }
 
-  /**
-   * 带重试的请求封装：最多尝试 2 次，全部失败后返回错误结果。
-   * 这样可应对网络瞬时抖动，避免上层因单次超时就彻底失败。
-   */
-  private async requestWithRetry(imageUri: string): Promise<OcrResponse> {
-    let lastError: string = '';
-    for (let i = 0; i < 2; i++) {
-      try {
-        return await this.postImage(imageUri);
-      } catch (e) {
-        lastError = e instanceof Error ? e.message : String(e);
-      }
+  private async recognizeLocalText(filePath: string): Promise<string[]> {
+    if (!canIUse('SystemCapability.AI.OCR.TextRecognition')) {
+      throw new Error('CoreVisionKit text OCR is not supported on this device');
     }
-    // 所有重试均失败，返回统一错误结构，保持接口契约一致
-    return {
-      success: false,
-      formula_count: 0,
-      formulas: [],
-      text_line_count: 0,
-      text_lines: [],
-      text: '',
-      message: 'OCR request failed: ' + lastError,
-    };
-  }
 
-  /**
-   * 通过 HTTP multipart/form-data 将图片文件上传至 OCR 服务。
-   * 使用 HarmonyOS http 模块完成 POST 请求，请求完成后销毁 http 实例释放资源。
-   */
-  private async postImage(imageUri: string): Promise<OcrResponse> {
-    const filePath: string = this.normalizeFilePath(imageUri);
-    const fileName: string = this.fileNameFromUri(filePath);
-    const httpReq = http.createHttp();
+    const source: image.ImageSource = image.createImageSource(filePath);
+    let pixelMap: image.PixelMap | undefined = undefined;
+    let serviceInitialized: boolean = false;
 
     try {
-      const resp: http.HttpResponse = await httpReq.request(this.endpoint, {
+      pixelMap = await source.createPixelMap({
+        editable: false,
+        desiredPixelFormat: image.PixelMapFormat.RGBA_8888,
+      });
+
+      serviceInitialized = await textRecognition.init();
+      if (!serviceInitialized) {
+        throw new Error('CoreVisionKit initialization failed');
+      }
+
+      const result: textRecognition.TextRecognitionResult =
+        await textRecognition.recognizeText({ pixelMap: pixelMap });
+      return this.extractTextLines(result);
+    } finally {
+      if (serviceInitialized) {
+        await textRecognition.release();
+      }
+      if (pixelMap !== undefined) {
+        await pixelMap.release();
+      }
+      await source.release();
+    }
+  }
+
+  private extractTextLines(result: textRecognition.TextRecognitionResult): string[] {
+    const lines: string[] = [];
+    for (let blockIndex = 0; blockIndex < result.blocks.length; blockIndex++) {
+      const block: textRecognition.TextBlock = result.blocks[blockIndex];
+      for (let lineIndex = 0; lineIndex < block.lines.length; lineIndex++) {
+        const value: string = block.lines[lineIndex].value.trim();
+        if (value.length > 0) {
+          lines.push(value);
+        }
+      }
+    }
+
+    const fullText: string = result.value.trim();
+    if (lines.length === 0 && fullText.length > 0) {
+      lines.push(fullText);
+    }
+    return lines;
+  }
+
+  private async requestFormulaWithRetry(filePath: string): Promise<FormulaResponse> {
+    let lastError: string = '';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const responseText: string = await this.postImage(this.formulaEndpoint, filePath);
+        return JSON.parse(responseText) as FormulaResponse;
+      } catch (e) {
+        lastError = this.errorText(e as OcrError);
+      }
+    }
+    throw new Error('Formula request failed: ' + lastError);
+  }
+
+  private async requestCombinedWithRetry(filePath: string): Promise<CombinedOcrResponse> {
+    let lastError: string = '';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const responseText: string = await this.postImage(this.fallbackOcrEndpoint, filePath);
+        return JSON.parse(responseText) as CombinedOcrResponse;
+      } catch (e) {
+        lastError = this.errorText(e as OcrError);
+      }
+    }
+    throw new Error('Fallback OCR request failed: ' + lastError);
+  }
+
+  private async postImage(endpoint: string, filePath: string): Promise<string> {
+    const fileName: string = this.fileNameFromUri(filePath);
+    const httpReq: http.HttpRequest = http.createHttp();
+
+    try {
+      const response: http.HttpResponse = await httpReq.request(endpoint, {
         method: http.RequestMethod.POST,
+        header: {
+          'Content-Type': 'multipart/form-data',
+        },
         multiFormDataList: [
           {
             name: 'file',
-            contentType: this.mimeFromName(fileName),  // 根据后缀自动推断 MIME
+            contentType: this.mimeFromName(fileName),
             filePath: filePath,
             remoteFileName: fileName,
           },
         ],
-        connectTimeout: 5000,   // 连接超时 5 秒
-        readTimeout: 30000,     // 读取超时 30 秒（图片上传可能较慢）
+        expectDataType: http.HttpDataType.STRING,
+        connectTimeout: 5000,
+        readTimeout: 300000,
       });
 
-      // 非 2xx 状态码视为请求失败
-      if (resp.responseCode < 200 || resp.responseCode >= 300) {
-        throw new Error('HTTP ' + resp.responseCode.toString() + ': ' + ((resp.result as string) ?? ''));
+      if (response.responseCode < 200 || response.responseCode >= 300) {
+        throw new Error('HTTP ' + response.responseCode.toString() + ': ' +
+          (response.result as string));
       }
-
-      return JSON.parse(resp.result as string) as OcrResponse;
+      return response.result as string;
     } finally {
-      // 无论成功失败，确保释放 HTTP 连接资源
       httpReq.destroy();
     }
   }
 
-  /**
-   * 将结构化识别结果格式化为可嵌入 prompt 的文本。
-   * 格式：普通文本（如有） + 空行 + LaTeX 公式列表。
-   */
   private toPromptText(result: OcrRecognitionResult): string {
     const parts: string[] = [];
     const text: string = result.text.trim();
@@ -141,9 +254,14 @@ export class OcrTool {
     return parts.join('\n\n');
   }
 
-  /**
-   * 规范化文件路径：去掉 file:// 协议前缀，得到可直接使用的本地路径。
-   */
+  private errorText(error: OcrError): string {
+    const message: string = error.message ?? 'Unknown error';
+    if (error.code === undefined) {
+      return message;
+    }
+    return 'code=' + error.code.toString() + ', message=' + message;
+  }
+
   private normalizeFilePath(imageUri: string): string {
     if (imageUri.startsWith('file://')) {
       return imageUri.substring('file://'.length);
@@ -151,25 +269,17 @@ export class OcrTool {
     return imageUri;
   }
 
-  /**
-   * 从 URI 路径中提取文件名（去除查询参数后取最后一段）。
-   * 兼容正斜杠 / 和反斜杠 \ 两种路径分隔符（Windows 与 Unix 风格）。
-   */
   private fileNameFromUri(uri: string): string {
-    const clean: string = uri.split('?')[0];           // 去除 ? 后的查询参数
+    const clean: string = uri.split('?')[0];
     const slash: number = clean.lastIndexOf('/');
     const backslash: number = clean.lastIndexOf('\\');
-    const index: number = Math.max(slash, backslash);  // 取最末级分隔符位置
+    const index: number = Math.max(slash, backslash);
     if (index >= 0 && index + 1 < clean.length) {
       return clean.substring(index + 1);
     }
-    return 'upload.png';  // 兜底：无法解析时使用默认文件名
+    return 'upload.png';
   }
 
-  /**
-   * 根据文件名后缀推断 MIME 类型，用于 multipart 上传时设置 Content-Type。
-   * 默认返回 image/png。
-   */
   private mimeFromName(fileName: string): string {
     const lower: string = fileName.toLowerCase();
     if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {

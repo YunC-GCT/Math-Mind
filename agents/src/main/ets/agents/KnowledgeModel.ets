@@ -91,7 +91,10 @@ export class KnowledgeModel {
     const client = new LlmClient();
     let content: string;
     try {
-      content = await client.call(messages);
+      content = await client.call(messages, {
+        maxTokens: 256,
+        timeoutMs: 5000,
+      });
     } catch (e) {
       // LLM ������ʱʹ��ԭʼ�ı� + ģ��ռλ
       content = this.fallbackContent(type, ocrText);
