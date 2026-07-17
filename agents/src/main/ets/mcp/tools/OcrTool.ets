@@ -119,8 +119,10 @@ export class OcrTool {
       try {
         return await this.postImage(imageUri);
       } catch (e) {
-        lastError = e instanceof Error ? e.message : String(e);
-        console.warn('[OcrTool] request attempt ' + (i + 1).toString() + '/' + '2' + ' failed: ' + lastError);
+        const detail: string = e instanceof Error ? e.message
+          : (typeof e === 'string' ? e : JSON.stringify(e));
+        lastError = detail;
+        console.warn('[OcrTool] request attempt ' + (i + 1).toString() + '/' + '2' + ' failed: ' + detail);
       }
     }
     // 所有重试均失败，返回统一错误结构，保持接口契约一致
