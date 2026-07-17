@@ -1,3 +1,22 @@
+// ============================================================================
+//  prototypes/chat/ChatTextSanitizer.ets — AI 消息文本清理工具
+//  ----------------------------------------------------------------------------
+//  职责: 把 AI 返回的 markdown/LaTeX 文本转换成可读纯文本。
+//
+//  处理步骤:
+//    1) 去掉加粗标记 (** 和 __)
+//    2) 简化 \lim_{x} → lim{x}
+//    3) \to → ->
+//    4) \frac{a}{b} → (a)/(b)
+//    5) 去掉残留的 \LaTeX 命令
+//    6) 去掉花括号 { }
+//    7) 去掉 # 标题前缀
+//
+//  对外接口:
+//    cleanMarkdown(raw: string): string  入口
+//  ============================================================================
+
+// 去掉成对标记(如 **加粗**)
 function stripPair(raw: string, marker: string): string {
   let result: string = raw
   while (result.indexOf(marker) >= 0) {
@@ -12,6 +31,7 @@ function stripPair(raw: string, marker: string): string {
   return result
 }
 
+// 单行 markdown 标题处理(# 开头 → 去掉 # + 空格)
 function stripMarkdownHeading(line: string): string {
   let cursor: number = 0
   while (cursor < line.length && cursor < 3 && line[cursor] === "#") {
@@ -23,6 +43,7 @@ function stripMarkdownHeading(line: string): string {
   return line
 }
 
+// 多行 markdown 标题处理
 function stripMarkdownHeadings(raw: string): string {
   const lines: string[] = raw.split("\n")
   const cleaned: string[] = []
@@ -32,6 +53,7 @@ function stripMarkdownHeadings(raw: string): string {
   return cleaned.join("\n")
 }
 
+// \lim_{x} → lim{x}
 function cleanLimit(raw: string): string {
   let result: string = raw
   while (result.indexOf("\\lim_{") >= 0) {
@@ -47,6 +69,7 @@ function cleanLimit(raw: string): string {
   return result
 }
 
+// \frac{a}{b} → (a)/(b)
 function cleanFraction(raw: string): string {
   let result: string = raw
   while (result.indexOf("\\frac{") >= 0) {
@@ -66,6 +89,7 @@ function cleanFraction(raw: string): string {
   return result
 }
 
+// 去掉所有 LaTeX 命令(\ 开头的,直到空格/花括号/换行)
 function stripLatexCommands(raw: string): string {
   let result: string = raw
   while (result.indexOf("\\") >= 0) {
@@ -79,6 +103,7 @@ function stripLatexCommands(raw: string): string {
   return result
 }
 
+// 入口:综合清理 markdown/LaTeX 文本
 export function cleanMarkdown(raw: string): string {
   let result: string = raw
   result = stripPair(result, "**")
