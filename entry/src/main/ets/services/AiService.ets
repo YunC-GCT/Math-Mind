@@ -30,6 +30,7 @@ import {
 } from 'common';
 import { Dispatcher } from 'agents';
 import { common } from '@kit.AbilityKit';
+import { relationalStore } from '@kit.ArkData';
 import { ImageUriResolver, ResolvedImageFile } from './ImageUriResolver';
 import { NoteDao } from '../database/NoteDao';
 import { DatabaseHelper } from 'common';
@@ -105,14 +106,21 @@ export class AiService {
   }
 
   // 内部: 入库(RDB)
+  // P0 修复: 旧版调 DatabaseHelper.getStore() 在 init 未完成时永远 null, 静默吞掉。
+  // 现在: 拿不到 store 就主动 await init(context) 兜底, init 失败抛错而不是静默跳过。
   private async insertNote(unit: KnowledgeUnit): Promise<void> {
+    if (this.context === undefined) {
+      throw new Error('AiService.insertNote 需要 UIAbilityContext');
+    }
     try {
-      const rdb = DatabaseHelper.getStore();
-      if (rdb !== null) {
-        const dao: NoteDao = new NoteDao(rdb);
-        const rowId: number = await dao.insert(unit);
-        log.info('NoteDao.insert 成功,rowId=' + rowId.toString());
+      let rdb: relationalStore.RdbStore | null = DatabaseHelper.getStore();
+      if (rdb === null) {
+        log.warn('DatabaseHelper 尚未初始化,主动 await init(context) 兜底');
+        rdb = await DatabaseHelper.init(this.context);
       }
+      const dao: NoteDao = new NoteDao(rdb);
+      const rowId: number = await dao.insert(unit);
+      log.info('NoteDao.insert 成功,rowId=' + rowId.toString());
     } catch (e) {
       log.error('NoteDao.insert 失败: ' + JSON.stringify(e));
       throw new Error('保存笔记失败: ' + JSON.stringify(e));
