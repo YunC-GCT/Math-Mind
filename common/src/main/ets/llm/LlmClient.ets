@@ -112,6 +112,9 @@ export class LlmClient {
     }
     const content: string = first.message.content;
     if (content === undefined || content === null || content.length === 0) {
+      // deepseek-v4-flash 推理模型: 实际内容在 reasoning_content
+      const reasoning: string = (first.message as Record<string, string>)['reasoning_content'] ?? '';
+      if (reasoning.length > 0) { return reasoning; }
       throw new LlmError('LLM returned empty content', 'EMPTY_RESPONSE');
     }
     return content;
