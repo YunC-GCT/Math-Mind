@@ -255,23 +255,22 @@ export class KnowledgeModel {
   // === Build AI Prompt ===
 
   buildPrompt(ocrText: string): string {
-    return `你是数学知识整理专家。分析输入的数学内容，返回 JSON：
+    return `你是数学知识整理专家。分析数学内容，输出简洁 JSON：
 
 - category: 概念|定理|公式|证明题|计算题
-- title: 严谨名称 (如"拉格朗日中值定理") 或题目概括
-- tags: 2~5 个关键词标签
-- difficulty: 1~5 (1=简单 5=困难)
+- title: 标题(≤20字)
+- tags: 2~3个关键词
+- difficulty: 1~5
 - importance: 1~5
-- fields: 结构化字段数组 [{key, label, value}]
+- fields: 结构化字段 [{key, label, value}] (每字段value≤100字)
 
-概念: definition/properties/examples/related_concepts
-定理: statement/conditions/conclusion/proof_sketch/applications
-公式: expression/parameters/applicable_range/derivation/notes
-证明题: proposition/given/proof_process/key_insight/conclusion
-计算题: problem/steps/answer/method_summary/common_mistakes
+概念: definition/properties
+定理: statement/conclusion
+公式: expression/parameters
+证明题: proposition/proof_process
+计算题: problem/answer
 
-返回纯 JSON，不要 markdown。`;
-  }
+输出纯JSON，不要markdown。`;
   /**
    * 合并标签：AI 返回的标签 + 最小类名，去重
    *
