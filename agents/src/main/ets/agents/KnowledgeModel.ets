@@ -271,6 +271,7 @@ export class KnowledgeModel {
 计算题: problem/steps/answer/method_summary/common_mistakes
 
 返回纯JSON，不要markdown。`;
+  }
   /**
    * 合并标签：AI 返回的标签 + 最小类名，去重
    *
