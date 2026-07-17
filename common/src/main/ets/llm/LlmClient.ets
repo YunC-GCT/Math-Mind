@@ -96,6 +96,7 @@ export class LlmClient {
     }
 
     // 6. 提取 content
+    console.info('[LlmClient] raw response: ' + JSON.stringify(parsed).substring(0, 300));
     return this.extractContent(parsed);
   }
 
