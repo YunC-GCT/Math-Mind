@@ -17,7 +17,9 @@ import { ProfilePage } from "./Profile/ProfilePage"
 import { TabBar } from "../molecules/TabBar"
 import { AgentFloatWindow } from "../prototypes/AgentFloatWindow"
 import { CameraOverlay } from "../prototypes/CameraOverlay"
+import { AiService } from "../services/AiService"
 import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
+import { common } from "@kit.AbilityKit"
 
 @Entry
 @Component
@@ -37,11 +39,26 @@ struct Index {
     }
   }
 
-  private onCameraConfirm = (uri: string, _src: "camera" | "album"): void => {
+  // 拍照/选图完成 → 触发整链 + 回 AI 浮窗
+  // 整链: imageUri → AiService.capture() → Dispatcher → OcrTool → TypeClassifier → KnowledgeModel → NoteDao.insert()
+  private onCameraConfirm = async (uri: string, _src: "camera" | "album"): Promise<void> => {
     this.showCamera = false
     this.showAgentFloat = true
     this.pendingImageUri = uri
     setTimeout((): void => { this.pendingImageUri = "" }, 100)
+
+    try {
+      const ctx = getContext(this) as common.UIAbilityContext
+      const unit = await new AiService(ctx).capture(uri)
+      try {
+        promptAction.showToast({ message: "笔记已生成: " + unit.title, duration: 2000 })
+      } catch (e) { /* toast 失败忽略 */ }
+    } catch (e) {
+      const errMsg: string = (e as Error).message ?? String(e)
+      try {
+        promptAction.showToast({ message: "处理失败: " + errMsg.substring(0, 80), duration: 2500 })
+      } catch (e) { /* toast 失败忽略 */ }
+    }
   }
 
   private closeAgentFloat = (): void => { this.showAgentFloat = false }
