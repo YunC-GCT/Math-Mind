@@ -1,4 +1,4 @@
-// MathMind - LLM HTTP 客户端(OpenAI 兼容协议)
+﻿// MathMind - LLM HTTP 客户端(OpenAI 兼容协议)
 // 位置: common/src/main/ets/llm/LlmClient.ets
 // 责任: Z (Mavis)
 // 创建: 2026-07-14 — 主 Agent 业务 LLM 调用基础设施
@@ -113,7 +113,7 @@ export class LlmClient {
     const content: string = first.message.content;
     if (content === undefined || content === null || content.length === 0) {
       // deepseek-v4-flash 推理模型: 实际内容在 reasoning_content
-      const reasoning: string = (first.message as Record<string, string>)['reasoning_content'] ?? '';
+      const reasoning: string = first.message.reasoning_content ?? '';
       if (reasoning.length > 0) { return reasoning; }
       throw new LlmError('LLM returned empty content', 'EMPTY_RESPONSE');
     }
