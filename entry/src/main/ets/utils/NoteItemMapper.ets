@@ -1,11 +1,33 @@
+/**
+ * NoteItemMapper.ets — KnowledgeUnit → NoteItem 视图层转换
+ *
+ * 路径: entry/src/main/ets/utils/NoteItemMapper.ets
+ * 职责: 把 common 模块的 KnowledgeUnit (持久化/业务模型) 转换成 UI 用的
+ *       NoteItem 视图模型，供 NotesPage / NotesList 渲染。
+ * 依赖: common (KnowledgeUnit / NoteItem / ReviewStatus 类型)
+ *
+ * 数据流:
+ *   KnowledgeUnit (DB/AI 产出)
+ *     → unitToNoteItem(unit)
+ *       → stableNumericId(unit.id)         // 字符串 ID → 32 位整数 (UI 列表 key 用)
+ *       → confidence(unit.reviewStatus)     // ReviewStatus → 0-1 掌握度
+ *       → dateText(unit.createdAt)         // 时间戳 → yyyy-MM-dd
+ *     → NoteItem (UI 直接渲染)
+ *
+ * ReviewStatus → 掌握度映射:
+ *   GRADUATED 0.95 | REVIEW 0.86 | LEARNING 0.72 | LAPSED 0.45 | 默认 0.64
+ *
+ * ArkTS 1.1 strict 适配:
+ *   - stableNumericId 用 for...of 替代 while + 手动 idx 递增
+ *   - JSON.parse 强转 as string[] 后逐项 typeof 检查兜底
+ *   - 无 any / unknown，错误统一 (e as Error).message
+ */
 import { KnowledgeUnit, NoteItem, ReviewStatus } from "common"
 
 function stableNumericId(id: string): number {
   let hash: number = 0
-  let idx: number = 0
-  while (idx < id.length) {
-    hash = (hash * 31 + id.charCodeAt(idx)) % 2147483647
-    idx++
+  for (const ch of id) {
+    hash = (hash * 31 + ch.charCodeAt(0)) % 2147483647
   }
   return hash
 }

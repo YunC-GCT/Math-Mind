@@ -1,11 +1,18 @@
 /**
  * DatabaseHelper.ets — RDB 数据库初始化与管理
  *
- * 任务编号: A1 配套
- * 依赖: 无
+ * 路径: entry/src/main/ets/database/DatabaseHelper.ets
+ * 职责: 管理 notes 表的创建和数据库实例（懒加载单例）。
+ * 依赖: @kit.ArkData (relationalStore)、@kit.AbilityKit (common)
  *
- * 管理 notes 表的创建和数据库实例。
- * 使用 HarmonyOS 原生 RDB（relationalStore）。
+ * 数据流:
+ *   任意调用方 → getRdbStore(context) → 懒加载 RdbStore → executeSql(CREATE_NOTES_TABLE)
+ *   → 返回 RdbStore 实例供 NoteDao/StudyPlanDao 使用
+ *
+ * ArkTS 1.1 strict 适配:
+ *   - 模块级单例变量显式类型 (relationalStore.RdbStore | null)
+ *   - 异步函数返回类型显式标注 Promise<...>
+ *   - config 对象用 StoreConfig 接口显式声明字段
  */
 import { relationalStore } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';

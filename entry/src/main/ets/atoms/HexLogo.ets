@@ -1,19 +1,28 @@
 /**
- * MathMind 6 边形 Logo — 32×32 浮空旋转 4s 循环
+ * HexLogo.ets — MathMind 6 边形 Logo
  *
- * 外六边形 (strokeWidth 1.5) + 内部 M 字一笔画 (strokeWidth 2)
- * 颜色 #5BE3B0 主题薄荷绿, 无填充, 圆角端点 + 圆角连接
+ * 路径: entry/src/main/ets/atoms/HexLogo.ets
+ * 职责: 32×32 浮空旋转 4s 循环的 6 边形品牌标识，用于 HomeTopBar 左侧。
+ * 依赖: common (MINT 主题色 token)、app.media.ic_brand_hex (SVG 资源)
  *
- * 动画 4s 循环:
- *   0%   rotate 0   ty  0
- *   30%  rotate 5°  ty -1.5
- *   60%  rotate -3° ty  1
- *   100% rotate 0   ty  0
+ * 视觉规格:
+ *   - 外六边形 strokeWidth 1.5
+ *   - 内部 M 字一笔画 strokeWidth 2
+ *   - 颜色 #5BE3B0 主题薄荷绿，无填充，圆角端点 + 圆角连接
  *
- * 链式 setTimeout: 0→30% (1200ms) + 30%→60% (1200ms) + 60%→100% (1600ms) = 4000ms
+ * 动画 4s 循环 (链式 setTimeout):
+ *   0%   rotate 0°   ty  0
+ *   30%  rotate 5°   ty -1.5
+ *   60%  rotate -3°  ty  1
+ *   100% rotate 0°   ty  0
+ *   0→30% (1200ms) + 30→60% (1200ms) + 60→100% (1600ms) = 4000ms
  *
- * ArkTS 1.1 strict 限制: struct 内禁普通方法, 全部动画逻辑放 aboutToAppear 内
- * 用 let 声明 + 立即初始化空函数 + 后续赋值, 避免 const 闭包 TDZ
+ * ArkTS 1.1 strict 适配:
+ *   - struct 内禁普通方法，全部动画逻辑放 aboutToAppear
+ *   - 状态名避开 ImageAttribute.rotate/translate (rotDeg / ty 不用 rotate/translate)
+ *   - 用字段 startCycle + 立即初始化空函数 + 后续赋值，避免 const 闭包 TDZ
+ *   - Image.rotate 接受 RotateOptions {angle} 对象，不接受 number 直接
+ *   - 删 .fillColor() 让 SVG 内部 fill="none" 生效 (ArkUI 1.1 .fillColor 会覆盖)
  */
 import { MINT } from 'common';
 

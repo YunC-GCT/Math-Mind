@@ -1,3 +1,24 @@
+/**
+ * ImageUriResolver.ets — 拍照/选图 URI → 本地沙箱文件路径解析
+ *
+ * 路径: entry/src/main/ets/services/ImageUriResolver.ets
+ * 职责: 把拍照/相册返回的 file:// URI 复制到应用 cacheDir 下，产出
+ *       后续 OCR / KnowledgeModel 可以稳定读取的本地路径 + 文件名 + MIME。
+ * 依赖: @ohos.file.fs (fileIo)、@kit.AbilityKit (common.UIAbilityContext)
+ *
+ * 数据流:
+ *   拍照/相册 → imageUri (file://xxx)
+ *     → resolve(imageUri)
+ *       → ensureDir(cacheDir/mathmind_capture)
+ *       → buildFileName(uri)  // capture_{ts}_{rand}{ext}
+ *       → fileIo.copy(imageUri, file://localPath)
+ *       → 返回 ResolvedImageFile
+ *
+ * 设计要点:
+ *   - 拒绝 mock_ 前缀: 测试夹具不能进入真实 capture pipeline
+ *   - 扩展名映射: jpg/jpeg/webp/bmp/png（其他按 png 兜底）
+ *   - MIME 自动从文件名推断（image/jpeg | image/webp | image/bmp | image/png）
+ */
 import fileIo from '@ohos.file.fs';
 import { common } from '@kit.AbilityKit';
 
