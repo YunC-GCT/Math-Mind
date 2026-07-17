@@ -1,5 +1,19 @@
-// overlays/AgentFloatWindow/AgentFloatWindow.ets — 智能体浮窗(纯 UI 装配)
-// 业务: AgentChatService | 子组件: AgentMessageList / ImagePreviewBar / AgentInputBar
+// ============================================================================
+//  overlays/AgentFloatWindow/AgentFloatWindow.ets — 智能体浮窗(纯 UI 装配层)
+//  ----------------------------------------------------------------------------
+//  职责: UI 组装 + 状态管理 + 用户交互 → 委托 AgentChatService 处理业务
+//
+//  子组件:
+//    AgentMessageList  — 消息列表 (Scroll + 气泡)
+//    ImagePreviewBar   — 图片预览行
+//    AgentInputBar     — 底部输入栏
+//
+//  业务逻辑: AgentChatService (services/AgentChatService.ets)
+//    captureReply / realReply / persistTextNote
+//
+//  Props:
+//    show / onClose / onGoCamera / pendingImageUri
+//  ============================================================================
 
 import { MINT, PURPLE, PURPLE_LIGHT, TEXT_3, BORDER, F_XS, F_SM, F_LG, W_BOLD } from 'common';
 import { promptAction } from '@kit.ArkUI';
