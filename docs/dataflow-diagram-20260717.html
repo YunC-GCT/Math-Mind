@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MathMind 数据流全景 — 时序图 + 数据格式</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+</script>
+<style>
+  code { font-family: "Cascadia Code", "Fira Code", monospace; font-size: 12px; }
+  .diagram-box { max-width: 100%; overflow-x: auto; }
+  .type-block { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 8px 0; }
+  .field { color: #334155; }
+  .field-type { color: #6366f1; }
+  .field-comment { color: #94a3b8; }
+  .section-title { border-left: 3px solid #6366f1; padding-left: 12px; }
+</style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="max-w-5xl mx-auto px-6 py-12 space-y-10">
+
+<!-- HEADER -->
+<header class="space-y-2 pb-6 border-b">
+  <h1 class="text-3xl font-bold">MathMind · 数据流全景</h1>
+  <p class="text-stone-500 text-sm">2026-07-17 · 主 Agent ↔ 子 Agent ↔ 本地 DB ↔ UI 全链路</p>
+</header>
+
+<!-- ==================== 1. 时序图 ==================== -->
+<section>
+<h2 class="section-title text-xl font-semibold mb-4">一、完整时序图 (Sequence Diagram)</h2>
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    actor U as 👤 用户
+    participant UI as AgentFloatWindow
+    participant AS as AgentChatService
+    participant AI as AiService
+    participant IR as ImageUriResolver
+    participant DP as Dispatcher
+    participant TC as TypeClassifier
+    participant OC as OcrTool
+    participant KM as KnowledgeModel
+    participant LLM as DeepSeek LLM
+    participant ND as NoteDao
+    participant RDB as RDB (knowledge_unit)
+
+    U->>UI: 选图 → 发送
+    UI->>AS: captureReply(uri, text)
+    AS->>AI: capture(uri, text)
+    AI->>IR: resolve(uri) → 沙箱复制
+    IR-->>AI: localPath
+
+    AI->>DP: dispatch({source:'app', payload:{kind:'image', imageUri, userText}})
+
+    rect rgb(240, 248, 240)
+        Note over DP,RDB: === TypeClassifier 分类阶段 ===
+        DP->>TC: classify(payload, context)
+        TC->>OC: recognize(localPath)
+        OC-->>TC: ocrText (HTTP POST multipart → OCR服务)
+        TC->>LLM: 分类请求
+        LLM-->>TC: {type, subject, confidence}
+        TC-->>DP: ClassificationResult
+    end
+
+    rect rgb(248, 240, 248)
+        Note over DP,RDB: === KnowledgeModel 知识结构化 ===
+        alt ocrText 非空
+            DP->>KM: structure(ocrText, type, subject, chapter)
+            KM->>LLM: AI 自分词 + Schema 填充
+            LLM-->>KM: AiRawResponse JSON
+            KM->>KM: truthCheck(ocrText) 真值检验
+            KM->>KM: toKnowledgeUnit(ext) 转换
+        else ocrText 为空
+            DP->>DP: buildFallbackUnit(type, subject, chapter)
+        end
+        KM-->>DP: KnowledgeUnit
+    end
+
+    DP-->>AI: DispatchResult{success, data: KnowledgeUnit}
+    AI->>ND: insert(knowledgeUnit)
+    ND->>RDB: INSERT INTO knowledge_unit
+    RDB-->>ND: rowId
+    ND-->>AI: rowId
+    AI-->>AS: KnowledgeUnit
+    AS->>UI: 回调 addAiMsg + bumpNotesVersion
+    UI->>UI: 渲染 "已识别并整理为知识点"
+    UI->>UI: AppStorage.notesVersion 通知刷新
+</pre>
+</div>
+</section>
+
+<!-- ==================== 2. 阶段数据格式 ==================== -->
+<section>
+<h2 class="section-title text-xl font-semibold mb-6">二、各阶段数据格式</h2>
+
+<!-- Stage 1: DispatchRequest -->
+<div class="type-block">
+  <h3 class="font-bold text-sm text-indigo-600 mb-2">阶段 1 · UiService.capture → Dispatcher</h3>
+  <code>
+<span class="field-type">DispatchRequest</span> {<br>
+&nbsp;&nbsp;source: <span class="field-type">'app'</span>,<br>
+&nbsp;&nbsp;payload: <span class="field-type">ImagePayload</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kind: <span class="field-comment">'image'</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;imageUri: <span class="field-comment">"/data/storage/el2/base/.../capture_xxx.png"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;userText?: <span class="field-comment">"整理成笔记"</span><br>
+&nbsp;&nbsp;}<br>
+}
+  </code>
+  <p class="text-xs text-stone-400 mt-1">ImageUriResolver 已将 file://media 复制到沙箱 cacheDir/mathmind_capture/</p>
+</div>
+
+<!-- Stage 2: OcrResponse -->
+<div class="type-block">
+  <h3 class="font-bold text-sm text-emerald-600 mb-2">阶段 2a · OcrTool HTTP POST → OCR 服务返回</h3>
+  <code>
+<span class="field-type">OcrResponse</span> {<br>
+&nbsp;&nbsp;success: <span class="field-type">boolean</span>, <span class="field-comment">// true</span><br>
+&nbsp;&nbsp;formula_count: <span class="field-type">number</span>, <span class="field-comment">// 5</span><br>
+&nbsp;&nbsp;formulas: <span class="field-type">string[]</span>, <span class="field-comment">// ["\\frac{x}{y}", "E=mc^2", ...]</span><br>
+&nbsp;&nbsp;text_line_count: <span class="field-type">number</span>, <span class="field-comment">// 10</span><br>
+&nbsp;&nbsp;text_lines: <span class="field-type">string[]</span>, <span class="field-comment">// ["已知函数 f(x)", ...]</span><br>
+&nbsp;&nbsp;text: <span class="field-type">string</span>, <span class="field-comment">// "已知函数 f(x) 求下列极限 解："</span><br>
+&nbsp;&nbsp;message: <span class="field-comment">// "识别到 5 个公式、10 行文字"</span><br>
+}
+  </code>
+  <p class="text-xs text-stone-400 mt-1">toPromptText: text + "\n\nLaTeX formulas:\n" + formulas.join('\n')</p>
+</div>
+
+<!-- Stage 3: ClassificationResult -->
+<div class="type-block">
+  <h3 class="font-bold text-sm text-amber-600 mb-2">阶段 2b · TypeClassifier.classify → Dispatcher</h3>
+  <code>
+<span class="field-type">ClassificationResult</span> {<br>
+&nbsp;&nbsp;type: <span class="field-comment">'概念' | '计算' | '证明'</span>,<br>
+&nbsp;&nbsp;subject: <span class="field-comment">'高等代数' | '数学分析' | '解析几何'</span>,<br>
+&nbsp;&nbsp;chapter?: <span class="field-comment">"微分中值定理"</span>,<br>
+&nbsp;&nbsp;confidence: <span class="field-type">number</span>, <span class="field-comment">// 0.85</span><br>
+&nbsp;&nbsp;ocrText?: <span class="field-comment">// OCR 返回的完整文本</span><br>
+}
+  </code>
+  <p class="text-xs text-stone-400 mt-1">LLM 分类失败时降级 ruleFallback (关键词匹配: 证明/求证→证明, 求/计算→计算, 默认→概念)</p>
+</div>
+
+<!-- Stage 4: AiRawResponse -->
+<div class="type-block">
+  <h3 class="font-bold text-sm text-purple-600 mb-2">阶段 3a · KnowledgeModel LLM 调用返回</h3>
+  <code>
+<span class="field-type">AiRawResponse</span> {<br>
+&nbsp;&nbsp;category: <span class="field-type">KnowledgeCategory</span>, <span class="field-comment">// '概念'|'定理'|'公式'|'证明题'|'计算题'</span><br>
+&nbsp;&nbsp;title: <span class="field-type">string</span>, <span class="field-comment">// "拉格朗日中值定理"</span><br>
+&nbsp;&nbsp;tags: <span class="field-type">string[]</span>, <span class="field-comment">// ["概念", "中值定理", "微分"]</span><br>
+&nbsp;&nbsp;difficulty: <span class="field-type">number</span>, <span class="field-comment">// 3 (1~5)</span><br>
+&nbsp;&nbsp;importance: <span class="field-type">number</span>, <span class="field-comment">// 4 (1~5)</span><br>
+&nbsp;&nbsp;fields: <span class="field-type">StructuredField[]</span> [<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{ key: <span class="field-comment">"definition"</span>, label: <span class="field-comment">"定义"</span>, value: <span class="field-comment">"..."</span> },<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{ key: <span class="field-comment">"properties"</span>, label: <span class="field-comment">"性质"</span>, value: <span class="field-comment">"..."</span> },<br>
+&nbsp;&nbsp;]<br>
+}
+  </code>
+  <p class="text-xs text-stone-400 mt-1">buildPrompt: ~270 行中文 system prompt 指导 AI 按 Schema 填充结构化字段</p>
+</div>
+
+<!-- Stage 5: KnowledgeUnit -->
+<div class="type-block">
+  <h3 class="font-bold text-sm text-blue-600 mb-2">阶段 3b · KnowledgeModel → Dispatcher → AiService → NoteDao</h3>
+  <code>
+<span class="field-type">KnowledgeUnit</span> {<br>
+&nbsp;&nbsp;<span class="field">id</span>: <span class="field-comment">"KB-mrova192-b205om"</span>, &nbsp;<span class="field-comment">// uuid: KB-{ts36}-{rand6}</span><br>
+&nbsp;&nbsp;<span class="field">title</span>: <span class="field-comment">"拉格朗日中值定理"</span>,<br>
+&nbsp;&nbsp;<span class="field">content</span>: <span class="field-comment">// OCR 原始文本</span><br>
+&nbsp;&nbsp;<span class="field">summary</span>: <span class="field-comment">// fields 拼接 ≤100 字</span><br>
+&nbsp;&nbsp;<span class="field">tags</span>: <span class="field-comment">["概念", "中值定理", "微分"]</span>,<br>
+&nbsp;&nbsp;<span class="field">difficulty</span>: <span class="field-type">DifficultyLevel</span>, &nbsp;<span class="field-comment">// EASY=1/MEDIUM=2/HARD=3/EXPERT=4</span><br>
+&nbsp;&nbsp;<span class="field">source</span>: <span class="field-comment">"camera_capture"</span>,<br>
+&nbsp;&nbsp;<span class="field">createdAt</span>: <span class="field-type">number</span>, <span class="field-comment">// 1784288000000</span><br>
+&nbsp;&nbsp;<span class="field">updatedAt</span>: <span class="field-type">number</span>,<br>
+&nbsp;&nbsp;<span class="field">reviewStatus</span>: <span class="field-type">ReviewStatus</span>, &nbsp;<span class="field-comment">// NEW=0/LEARNING=1/REVIEW=2/GRADUATED=3/LAPSED=4</span><br>
+&nbsp;&nbsp;<span class="field">nextReviewAt</span>: <span class="field-type">number</span>, &nbsp;<span class="field-comment">// now + 24h</span><br>
+&nbsp;&nbsp;<span class="field">intervalDays</span>: <span class="field-comment">1</span>, &nbsp;<span class="field">easeFactor</span>: <span class="field-comment">2.5</span>, &nbsp;<span class="field">repetitions</span>: <span class="field-comment">0</span>,<br>
+&nbsp;&nbsp;<span class="field">prerequisites</span>: <span class="field-type">string[]</span>, &nbsp;<span class="field">related</span>: <span class="field-type">string[]</span>,<br>
+&nbsp;&nbsp;<span class="field">embedding</span>: <span class="field-type">number[]</span>, &nbsp;<span class="field">userId</span>: <span class="field-comment">""</span>, &nbsp;<span class="field">version</span>: <span class="field-comment">1</span><br>
+}
+  </code>
+</div>
+
+<!-- Stage 6: RDB -->
+<div class="type-block">
+  <h3 class="font-bold text-sm text-red-600 mb-2">阶段 4 · NoteDao.insert → RDB</h3>
+  <code>
+<span class="field-type">knowledge_unit 表</span> (SQLite CREATE TABLE)<br>
+&nbsp;&nbsp;id &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT PRIMARY KEY,<br>
+&nbsp;&nbsp;title &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT NOT NULL,<br>
+&nbsp;&nbsp;content &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT,<br>
+&nbsp;&nbsp;summary &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT,<br>
+&nbsp;&nbsp;tags &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT, &nbsp;<span class="field-comment">// JSON.stringify(["概念","中值定理"])</span><br>
+&nbsp;&nbsp;difficulty &nbsp;&nbsp;&nbsp;&nbsp;INTEGER,<br>
+&nbsp;&nbsp;source &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT,<br>
+&nbsp;&nbsp;created_at &nbsp;&nbsp;&nbsp;&nbsp;INTEGER,<br>
+&nbsp;&nbsp;updated_at &nbsp;&nbsp;&nbsp;&nbsp;INTEGER,<br>
+&nbsp;&nbsp;review_status &nbsp;INTEGER,<br>
+&nbsp;&nbsp;next_review_at INTEGER,<br>
+&nbsp;&nbsp;interval_days &nbsp;INTEGER,<br>
+&nbsp;&nbsp;ease_factor &nbsp;&nbsp;&nbsp;REAL,<br>
+&nbsp;&nbsp;repetitions &nbsp;&nbsp;&nbsp;INTEGER,<br>
+&nbsp;&nbsp;prerequisites &nbsp;TEXT, &nbsp;<span class="field-comment">// JSON.stringify([])</span><br>
+&nbsp;&nbsp;related &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT,<br>
+&nbsp;&nbsp;embedding &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT,<br>
+&nbsp;&nbsp;user_id &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEXT,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="field-comment">// 索引: idx_created_at, idx_review_status, idx_done</span><br>
+&nbsp;&nbsp;version &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INTEGER DEFAULT 1<br>
+  </code>
+</div>
+
+<!-- Stage 7: UI Model -->
+<div class="type-block">
+  <h3 class="font-bold text-sm text-teal-600 mb-2">阶段 5 · NoteItemMapper → UI 视图模型</h3>
+  <code>
+<span class="field-type">NoteItem</span> {<br>
+&nbsp;&nbsp;id: &nbsp;&nbsp;&nbsp;&nbsp;<span class="field-type">number</span>, &nbsp;<span class="field-comment">// stableNumericId(rawId): hash 字符串→32位整数</span><br>
+&nbsp;&nbsp;title: &nbsp;&nbsp;<span class="field-type">string</span>,<br>
+&nbsp;&nbsp;type: &nbsp;&nbsp;&nbsp;<span class="field-type">string</span>, &nbsp;<span class="field-comment">// tags[1] 或 "笔记" (分类标签)</span><br>
+&nbsp;&nbsp;subject: <span class="field-type">string</span>, &nbsp;<span class="field-comment">// tags[0] 或 "数学" (学科标签)</span><br>
+&nbsp;&nbsp;chapter: <span class="field-type">string</span>, &nbsp;<span class="field-comment">// source 或 subject</span><br>
+&nbsp;&nbsp;conf: &nbsp;&nbsp;&nbsp;<span class="field-type">number</span>, &nbsp;<span class="field-comment">// confidence(KnowledgeUnit): 0.45~0.95</span><br>
+&nbsp;&nbsp;body: &nbsp;&nbsp;&nbsp;<span class="field-type">string</span>, &nbsp;<span class="field-comment">// content 或 summary</span><br>
+&nbsp;&nbsp;tags: &nbsp;&nbsp;&nbsp;<span class="field-type">string[]</span>, <span class="field-comment">// KnowledgeUnit.tags 原样</span><br>
+&nbsp;&nbsp;date: &nbsp;&nbsp;&nbsp;<span class="field-type">string</span>, &nbsp;<span class="field-comment">// dateText(createdAt): "2026-07-17"</span><br>
+&nbsp;&nbsp;rawId: &nbsp;&nbsp;<span class="field-type">string</span>, &nbsp;<span class="field-comment">// KnowledgeUnit.id 原样 (删除/更新用)</span><br>
+}
+  </code>
+  <p class="text-xs text-stone-400 mt-1">
+    ReviewStatus→confidence 映射: GRADUATED=0.95, REVIEW=0.86, LEARNING=0.72, LAPSED=0.45, 默认=0.64
+  </p>
+</div>
+</section>
+
+<!-- ==================== 3. UI 渲染链 ==================== -->
+<section>
+<h2 class="section-title text-xl font-semibold mb-6">三、UI 渲染链</h2>
+
+<pre class="mermaid">
+flowchart TD
+    K["KnowledgeUnit (DB)"] --> M["NoteItemMapper.unitToNoteItem"]
+    M --> NI["NoteItem (UI Model)"]
+
+    NI --> HL["HomePage.showNotes\n→ ForEach → NoteCard"]
+    NI --> NL["NotesPage.notes\n→ ForEach → NoteCard"]
+    NI --> DO["NoteDetailOverlay\n点卡片打开详情"]
+
+    subgraph NoteCard["NoteCard 卡片"]
+        NC_ICON["渐变 icon (type 首字)"]
+        NC_META["type · date ··· conf%"]
+        NC_TITLE["标题 15px semibold"]
+        NC_BODY["正文预览 2行截断"]
+    end
+
+    subgraph DetailBody["NoteDetailBody 详情"]
+        DB_TITLE["标题 F_2XL"]
+        DB_TAGS["ChipTag chips"]
+        DB_SECTIONS["NoteSectionView\n章节渲染 (lineHeight:26)"]
+    end
+
+    HL --> NoteCard
+    NL --> NoteCard
+    DO --> DetailBody
+
+    style K fill:#fef2f2,stroke:#dc2626
+    style NI fill:#f0fdf4,stroke:#16a34a
+    style NoteCard fill:#eff6ff,stroke:#3b82f6
+    style DetailBody fill:#faf5ff,stroke:#9333ea
+</pre>
+
+<div class="type-block mt-4">
+  <h3 class="font-bold text-sm text-stone-600 mb-2">刷新机制</h3>
+  <p class="text-sm text-stone-500">
+    AgentFloatWindow 保存/删除笔记 → <code>AppStorage.setOrCreate('notesVersion', cur+1)</code><br>
+    HomePage/NotesPage: <code>@StorageProp('notesVersion') @Watch('onNotesVersionChange')</code> → <code>loadNotes()</code><br>
+    删除流程: confirmDelete → parent.deleteNote → await deleteById → await loadNotes → bumpVersion
+  </p>
+</div>
+</section>
+
+<!-- ==================== 4. Fallback Path ==================== -->
+<section>
+<h2 class="section-title text-xl font-semibold mb-4">四、降级/异常路径</h2>
+
+<div class="type-block">
+  <h3 class="font-bold text-sm text-red-600 mb-2">OCR 返回空 (image/file 无文字)</h3>
+  <code>
+  Dispatcher.buildFallbackUnit(type, subject, chapter) → KnowledgeUnit {<br>
+  &nbsp;&nbsp;title: "概念 · 高等代数 (待补充)",<br>
+  &nbsp;&nbsp;content: "[OCR 未识别到内容，请人工补充题目详情]",<br>
+  &nbsp;&nbsp;summary: "OCR 暂不可达，已保存框架笔记，请手动编辑补充",<br>
+  &nbsp;&nbsp;difficulty: MEDIUM, source: "camera_capture"<br>
+  }
+  </code>
+  <p class="text-xs text-stone-400 mt-1">不调 LLM，直接构造最小 KnowledgeUnit 存入 RDB</p>
+</div>
+
+<div class="type-block">
+  <h3 class="font-bold text-sm text-red-600 mb-2">KnowledgeModel LLM 返回空</h3>
+  <code>
+  KnowledgeModel.buildFallbackFromClassify(ocrText, type, subject, chapter) → KnowledgeUnit {<br>
+  &nbsp;&nbsp;title: OCR 首行 或 "笔记 · 高等代数",<br>
+  &nbsp;&nbsp;content: ocrText 原文,<br>
+  &nbsp;&nbsp;tags: [type, subject, chapter],<br>
+  &nbsp;&nbsp;difficulty: MEDIUM<br>
+  }
+  </code>
+  <p class="text-xs text-stone-400 mt-1">用 TypeClassifier 已有分类结果构造基础笔记，不丢 OCR 数据</p>
+</div>
+
+<div class="type-block">
+  <h3 class="font-bold text-sm text-amber-600 mb-2">TypeClassifier LLM 不可用</h3>
+  <code>
+  ruleFallback(ocrText, confidence) → ClassificationResult {<br>
+  &nbsp;&nbsp;type: ruleType(text), &nbsp;<span class="field-comment">// 关键词: 证明/求证→证明, 求/计算→计算, 默认→概念</span><br>
+  &nbsp;&nbsp;subject: ruleSubject(text), &nbsp;<span class="field-comment">// 关键词: 矩阵/行列式→高代, 积分/极限→数分, 曲线/向量→几何</span><br>
+  &nbsp;&nbsp;confidence: 0.4 ~ 0.5<br>
+  }
+  </code>
+</div>
+</section>
+
+<!-- ==================== 5. Type Mapping ==================== -->
+<section>
+<h2 class="section-title text-xl font-semibold mb-4">五、类型转换映射表</h2>
+
+<table class="w-full text-sm border-collapse">
+<thead>
+<tr class="bg-slate-100">
+  <th class="border p-2 text-left">阶段</th>
+  <th class="border p-2 text-left">输入类型</th>
+  <th class="border p-2 text-left">输出类型</th>
+  <th class="border p-2 text-left">转换逻辑</th>
+</tr>
+</thead>
+<tbody>
+<tr><td class="border p-2">OCR</td><td class="border p-2 font-mono text-xs">imageUri: string</td><td class="border p-2 font-mono text-xs">ocrText: string</td><td class="border p-2 text-xs">HTTP POST multipart → JSON.parse → toPromptText(resp.formulas + resp.text)</td></tr>
+<tr><td class="border p-2">分类</td><td class="border p-2 font-mono text-xs">ocrText: string</td><td class="border p-2 font-mono text-xs">ClassificationResult</td><td class="border p-2 text-xs">LLM prompt → JSON.parse → parseResult(raw) 或 ruleFallback</td></tr>
+<tr><td class="border p-2">结构化</td><td class="border p-2 font-mono text-xs">ocrText + type + subject</td><td class="border p-2 font-mono text-xs">KnowledgeUnit</td><td class="border p-2 text-xs">callAi → AiRawResponse → createUnitExt → truthCheck → toKnowledgeUnit</td></tr>
+<tr><td class="border p-2">入库</td><td class="border p-2 font-mono text-xs">KnowledgeUnit</td><td class="border p-2 font-mono text-xs">rowId: number</td><td class="border p-2 text-xs">toBucket(unit) → store.insert('knowledge_unit', bucket)</td></tr>
+<tr><td class="border p-2">UI 映射</td><td class="border p-2 font-mono text-xs">KnowledgeUnit</td><td class="border p-2 font-mono text-xs">NoteItem</td><td class="border p-2 text-xs">unitToNoteItem: id→hash, tags→type/subject, reviewStatus→confidence, createdAt→dateText</td></tr>
+</tbody>
+</table>
+</section>
+
+<footer class="pt-8 border-t text-xs text-stone-400">
+MathMind · 数据流全景 · 2026-07-17
+</footer>
+</main>
+</body>
+</html>
