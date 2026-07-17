@@ -7,10 +7,10 @@
  */
 
 import {
+  PURPLE, PURPLE_LIGHT, TEXT_3,
   F_XS, F_SM, F_BASE, F_LG, W_BOLD,
 } from 'common';
 import { ChatBubble } from '../../prototypes/chat/ChatBubble';
-import { TypingIndicator } from '../../prototypes/chat/TypingIndicator';
 import { EmptyStateHint } from '../../prototypes/chat/EmptyStateHint';
 import { ChatMsg } from '../../prototypes/chat/ChatModels';
 
@@ -36,7 +36,7 @@ export struct AgentMessageList {
         }, (msg: ChatMsg) => msg.id.toString());
 
         if (this.busy) {
-          TypingIndicator();
+          this.TypingBubble();
         }
 
         Blank().height(4);
@@ -48,5 +48,19 @@ export struct AgentMessageList {
     .width('100%')
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring);
+  }
+
+  @Builder
+  TypingBubble() {
+    Row() {
+      Row() {
+        LoadingProgress().width(12).height(12).color(PURPLE);
+        Text(' AI 思考中...').fontSize(F_XS).fontColor(TEXT_3).margin({ left: 4 });
+      }
+      .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+      .borderRadius(10).backgroundColor(PURPLE_LIGHT);
+      Blank();
+    }
+    .width('100%').margin({ top: 6 });
   }
 }
