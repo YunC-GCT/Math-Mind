@@ -140,7 +140,7 @@ export class OcrTool {
 
   /**
    * 通过 HTTP multipart/form-data 将图片文件上传至 OCR 服务。
-   * 用手动读文件 + data 字段发送 (multiFormDataList filePath 在沙箱中 upload_size=0)。
+   * 手动拼装 multipart 请求体 + extraData (multiFormDataList 两种模式都 upload_size=0)。
    */
   private async postImage(imageUri: string): Promise<OcrResponse> {
     const filePath: string = this.normalizeFilePath(imageUri);
@@ -149,38 +149,75 @@ export class OcrTool {
     const httpReq = http.createHttp();
 
     try {
-      // 手动读文件为 ArrayBuffer (multiFormDataList filePath 在沙箱不可靠)
+      // 手动读文件
       const file: fileIo.File = fileIo.openSync(filePath, fileIo.OpenMode.READ_ONLY);
       const stat: fileIo.Stat = fileIo.statSync(filePath);
-      const buf: ArrayBuffer = new ArrayBuffer(stat.size);
-      fileIo.readSync(file.fd, buf);
+      const fileBuf: ArrayBuffer = new ArrayBuffer(stat.size);
+      fileIo.readSync(file.fd, fileBuf);
       fileIo.closeSync(file);
       console.info('[OcrTool] read file, size=' + stat.size.toString() + ' bytes');
 
+      // 手动拼装 multipart/form-data 请求体
+      const boundary: string = '----MathMindOcr' + Date.now().toString();
+      const fileBytes: Uint8Array = new Uint8Array(fileBuf);
+      const bodyParts: string[] = [];
+      bodyParts.push('--' + boundary);
+      bodyParts.push('Content-Disposition: form-data; name="file"; filename="' + fileName + '"');
+      bodyParts.push('Content-Type: ' + mimeType);
+      bodyParts.push('');
+      const headerStr: string = bodyParts.join('\r\n') + '\r\n';
+      const footerStr: string = '\r\n--' + boundary + '--\r\n';
+
+      const headerBuf: Uint8Array = this.strToUtf8(headerStr);
+      const footerBuf: Uint8Array = this.strToUtf8(footerStr);
+      const totalSize: number = headerBuf.length + fileBytes.length + footerBuf.length;
+      const body: Uint8Array = new Uint8Array(totalSize);
+      body.set(headerBuf, 0);
+      body.set(fileBytes, headerBuf.length);
+      body.set(footerBuf, headerBuf.length + fileBytes.length);
+      console.info('[OcrTool] multipart body built, total=' + totalSize.toString() + ' bytes');
+
       const resp: http.HttpResponse = await httpReq.request(this.currentEndpoint, {
         method: http.RequestMethod.POST,
-        multiFormDataList: [
-          {
-            name: 'file',
-            contentType: mimeType,
-            data: buf,
-            remoteFileName: fileName,
-          },
-        ],
+        header: {
+          'Content-Type': 'multipart/form-data; boundary=' + boundary,
+        },
+        extraData: body.buffer as ArrayBuffer,
         connectTimeout: 10000,
         readTimeout: 120000,
       });
 
-      // 非 2xx 状态码视为请求失败
       if (resp.responseCode < 200 || resp.responseCode >= 300) {
         throw new Error('HTTP ' + resp.responseCode.toString() + ': ' + ((resp.result as string) ?? ''));
       }
 
       return JSON.parse(resp.result as string) as OcrResponse;
     } finally {
-      // 无论成功失败，确保释放 HTTP 连接资源
       httpReq.destroy();
     }
+  }
+
+  // 字符串转 UTF-8 Uint8Array
+  private strToUtf8(s: string): Uint8Array {
+    const buf: Uint8Array = new Uint8Array(s.length * 3);
+    let pos: number = 0;
+    for (let i: number = 0; i < s.length; i++) {
+      const cp: number = s.charCodeAt(i);
+      if (cp < 0x80) {
+        buf[pos] = cp;
+        pos = pos + 1;
+      } else if (cp < 0x800) {
+        buf[pos] = 0xC0 | (cp >> 6);
+        buf[pos + 1] = 0x80 | (cp & 0x3F);
+        pos = pos + 2;
+      } else {
+        buf[pos] = 0xE0 | (cp >> 12);
+        buf[pos + 1] = 0x80 | ((cp >> 6) & 0x3F);
+        buf[pos + 2] = 0x80 | (cp & 0x3F);
+        pos = pos + 3;
+      }
+    }
+    return buf.slice(0, pos);
   }
 
   /**
