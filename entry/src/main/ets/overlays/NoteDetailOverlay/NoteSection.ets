@@ -51,7 +51,7 @@ export struct NoteSectionView {
       Text(this.content.length > 0 ? this.content : "—")
         .fontSize(F_BASE)
         .fontColor(TEXT_2)
-        .lineHeight(22)
+        .lineHeight(26)  // v2-ui .dbody line-height loose
         .width("100%")
     }
     .width("100%")
