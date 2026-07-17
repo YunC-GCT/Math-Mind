@@ -2,26 +2,21 @@
  * overlays/NoteDetailOverlay/NoteDetailOverlay.ets — 笔记详情浮层装配层
  *
  * 路径: entry/src/main/ets/overlays/NoteDetailOverlay/NoteDetailOverlay.ets
- * 职责: 全屏笔记详情浮层的装配 + 回调处理
+ * 职责: 全屏笔记详情浮层 · 参考 AiSettingsPage 顶栏模式
  *
- * 触发: HomePage / NotesPage 点笔记卡片
- *
- * 子组件:
- *   NoteDetailHeader  — drag bar + 学科 chip + 关闭
- *   NoteDetailMeta    — 章节 / 日期 / 置信度
- *   NoteDetailBody    — 标题 + 标签 + 章节 + AI 卡
- *   NoteActionBar     — 底栏删除/编辑/分享
- *
- * 依赖: common, overlays/NoteDetailOverlay/*
+ * 顶栏模式: [状态栏占位] [✕关闭 ··· 学科·类型 ··· 占位] [分隔线]
  */
 
 import {
-  BG_DARK,
+  BG_DARK, TEXT, BORDER,
+  F_MD, S_3,
+  W_SEMIBOLD,
   OVERLAY_MASK_SOLID,
   NoteItem,
 } from 'common';
 import { promptAction } from '@kit.ArkUI';
-import { NoteDetailHeader } from './NoteDetailHeader';
+import { NoteCloseButton } from './NoteCloseButton';
+import { ChipTag } from '../../atoms/ChipTag';
 import { NoteDetailMeta } from './NoteDetailMeta';
 import { NoteDetailBody } from './NoteDetailBody';
 import { NoteActionBar } from './NoteActionBar';
@@ -29,6 +24,7 @@ import { NoteActionBar } from './NoteActionBar';
 @Component
 export struct NoteDetailOverlay {
   @Prop note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '');
+  @StorageProp('statusBarHeight') sbh: number = 0;
   onClose: () => void = (): void => {};
   onAskAi: (note: NoteItem) => void = (_note: NoteItem): void => {};
   onEdit: (id: number) => void = (_id: number): void => {};
@@ -36,64 +32,56 @@ export struct NoteDetailOverlay {
 
   build() {
     Stack() {
-      // 半透明遮罩
-      Column()
-        .width('100%').height('100%')
-        .backgroundColor(OVERLAY_MASK_SOLID)
+      Column().width('100%').height('100%').backgroundColor(OVERLAY_MASK_SOLID)
         .onClick((): void => this.onClose());
 
-      // 浮层主体
       Column() {
-        // 顶栏 (drag bar + 学科 chip + 关闭)
-        NoteDetailHeader({
-          note: this.note,
-          onClose: (): void => this.onClose(),
-        });
+        // 状态栏占位 (参考 AiSettingsPage)
+        Row().width('100%').height(this.sbh).backgroundColor(BG_DARK);
 
-        // 内容 Scroll 区
+        // 顶栏: ✕关闭 ··· title居中 ··· 占位 (参考 PageHeader)
+        Row() {
+          NoteCloseButton({ onClose: (): void => this.onClose() });
+          Blank();
+          Text(this.note.subject + ' · ' + this.note.type)
+            .fontSize(F_MD).fontWeight(W_SEMIBOLD).fontColor(TEXT);
+          Blank();
+          Row().width(32);
+        }
+        .width('100%').height(48)
+        .padding({ left: 16, right: 16 })
+        .alignItems(VerticalAlign.Center);
+
+        Row().width('100%').height(0.5).backgroundColor(BORDER);
+
         Scroll() {
           Column() {
-            // meta 行 (章节/日期/置信度)
             NoteDetailMeta({ note: this.note });
-
-            // 正文区 (标题 + 标签 + 章节 + AI卡)
-            NoteDetailBody({
-              note: this.note,
-            });
-          }
-          .width('100%');
+            NoteDetailBody({ note: this.note });
+          }.width('100%');
         }
-        .layoutWeight(1)
-        .width('100%')
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring);
+        .layoutWeight(1).width('100%')
+        .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring);
 
-        // 底部操作栏
         NoteActionBar({
           onDelete: (): void => this.confirmDelete(),
           onEdit: (): void => this.mockEdit(),
           onShare: (): void => this.mockShare(),
         });
       }
-      .width('100%').height('100%')
-      .backgroundColor(BG_DARK);
+      .width('100%').height('100%').backgroundColor(BG_DARK);
     }
     .width('100%').height('100%');
   }
-
-  // ===== 回调 =====
 
   private mockEdit = (): void => {
     promptAction.showToast({ message: '编辑功能 W2 上线', duration: 1500 });
     this.onEdit(this.note.id);
   };
-
   private mockShare = (): void => {
     promptAction.showToast({ message: '已复制笔记到剪贴板', duration: 1500 });
   };
-
   private confirmDelete = (): void => {
-    // 不在此调 onClose——由父组件 deleteNote 在 async 完成后再关浮层 + 刷新列表
     this.onDelete(this.note.rawId.length > 0 ? this.note.rawId : this.note.id.toString());
   };
 }
