@@ -66,12 +66,19 @@ export class OcrTool {
    * @returns 拼接好的识别结果字符串（文本 + LaTeX 公式）
    */
   async recognize(imageUri: string): Promise<string> {
+    console.info('[OcrTool] recognize called, uri=' + imageUri.substring(0, 60));
     // P0 修复: OCR 未启用时跳过 HTTP 调用, 返空文本让上层走 ruleFallback
-    if (!await this.isEnabled()) {
+    const enabled: boolean = await this.isEnabled();
+    if (!enabled) {
+      console.info('[OcrTool] OCR disabled in settings, skipping');
       return '';
     }
     const result: OcrRecognitionResult = await this.recognizeImage(imageUri);
-    return this.toPromptText(result);
+    const promptText: string = this.toPromptText(result);
+    console.info('[OcrTool] recognize done, textLen=' + result.text.length.toString()
+      + ', formulas=' + result.formulas.length.toString()
+      + ', promptLen=' + promptText.length.toString());
+    return promptText;
   }
 
   /**
