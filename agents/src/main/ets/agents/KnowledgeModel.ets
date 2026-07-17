@@ -268,9 +268,14 @@ Fields:
 - category: concept/theorem/formula/proof/computation
 - title: precise name or topic summary
 - tags: 2-5 keywords
-- difficulty: 1-5
-- importance: 1-5
-- fields: [{key, label, value}] (definition/properties for concept, statement/conclusion for theorem, expression/parameters for formula, proposition/proof_process for proof, problem/answer for computation)`;
+- difficulty: 1-5 (1=easy 5=hard)
+- importance: 1-5 (1=low 5=core)
+- fields: [{key, label, value}] per category:
+  concept: definition/properties/examples/related_concepts
+  theorem: statement/conditions/conclusion/proof_sketch/applications
+  formula: expression/parameters/applicable_range/derivation/notes
+  proof: proposition/given/proof_process/key_insight/conclusion
+  computation: problem/steps/answer/method_summary/common_mistakes`;
   }
   /**
    * 合并标签：AI 返回的标签 + 最小类名，去重

@@ -16,7 +16,7 @@ const KEY_TIMEOUT_MS = 'timeout_ms';
 const DEFAULT_ENDPOINT = 'https://api.siliconflow.cn/v1/chat/completions';
 const DEFAULT_MODEL = 'deepseek-ai/DeepSeek-V3';
 const DEFAULT_TEMPERATURE = 0.1;
-const DEFAULT_MAX_TOKENS = 1000000;
+const DEFAULT_MAX_TOKENS = 5000;
 const DEFAULT_TIMEOUT_MS = 5000;
 
 export class LlmConfig {
@@ -127,7 +127,7 @@ export class LlmConfig {
   public getMaxTokens(): number { return this.cachedMaxTokens; }
   public async setMaxTokens(v: number): Promise<void> {
     this.requireInited();
-    this.cachedMaxTokens = Math.max(1, Math.min(1000000, v));
+    this.cachedMaxTokens = Math.max(1, Math.min(8192, v));
     await this.store!.put(KEY_MAX_TOKENS, this.cachedMaxTokens);
     await this.store!.flush();
   }
@@ -167,7 +167,7 @@ export class LlmConfig {
     this.cachedEndpoint = endpoint.trim();
     this.cachedModel = model.trim();
     this.cachedTemperature = Math.max(0, Math.min(2, temperature));
-    this.cachedMaxTokens = Math.max(1, Math.min(1000000, maxTokens));
+    this.cachedMaxTokens = Math.max(1, Math.min(8192, maxTokens));
     this.cachedTimeoutMs = Math.max(1000, Math.min(60000, timeoutMs));
     const s = this.store!;
     await s.put(KEY_ENDPOINT, this.cachedEndpoint);
