@@ -96,6 +96,13 @@ export class AiService {
     }
 
     // 5) 持久化
+    console.info('[AiService] ====== KnowledgeUnit dump start ======');
+    console.info('[AiService] id=' + unit.id + ' title=' + unit.title);
+    console.info('[AiService] content length=' + unit.content.length.toString() + ' chars');
+    console.info('[AiService] content: ' + unit.content.substring(0, 500));
+    console.info('[AiService] summary=' + unit.summary);
+    console.info('[AiService] tags=' + JSON.stringify(unit.tags));
+    console.info('[AiService] ====== KnowledgeUnit dump end ======');
     await this.insertNote(unit);
 
     log.info('done, 笔记 id=' + unit.id

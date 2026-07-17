@@ -56,6 +56,11 @@ export function unitToNoteItem(unit: KnowledgeUnit): NoteItem {
   const chapter: string = unit.source.length > 0 ? unit.source : subject
   const body: string = unit.content.length > 0 ? unit.content : unit.summary
 
+  console.info('[NoteItemMapper] unit.id=' + unit.id + ' title=' + unit.title
+    + ' bodyLen=' + body.length.toString()
+    + ' tags=' + JSON.stringify(unit.tags)
+    + ' summaryLen=' + unit.summary.length.toString());
+
   return new NoteItem(
     stableNumericId(rawId),
     unit.title,

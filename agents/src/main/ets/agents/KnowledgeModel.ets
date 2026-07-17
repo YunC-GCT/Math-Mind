@@ -110,7 +110,13 @@ export class KnowledgeModel {
     this.markNeedsUserInput(ext, aiRaw);
 
     const unit: KnowledgeUnit = this.toKnowledgeUnit(ext, startTime);
-    console.info('[KnowledgeModel] structure complete, note.id=' + unit.id + ', category=' + ext.type);
+    console.info('[KnowledgeModel] structure done: id=' + unit.id
+      + ' title=' + unit.title
+      + ' category=' + ext.type
+      + ' tags=' + JSON.stringify(unit.tags)
+      + ' contentLen=' + unit.content.length.toString()
+      + ' summary=' + unit.summary
+      + ' aiFields=' + aiRaw.fields.length.toString());
     return unit;
   }
 
