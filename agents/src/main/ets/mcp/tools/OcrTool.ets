@@ -1,5 +1,5 @@
 import { http } from '@kit.NetworkKit';
-import { OcrConfig } from 'common';
+import { OcrConfig, fileNameFromUri, mimeFromExtension } from 'common';
 
 // OCR 识别结果接口：对外暴露的统一返回格式
 export interface OcrRecognitionResult {
@@ -132,7 +132,7 @@ export class OcrTool {
    */
   private async postImage(imageUri: string): Promise<OcrResponse> {
     const filePath: string = this.normalizeFilePath(imageUri);
-    const fileName: string = this.fileNameFromUri(filePath);
+    const fileName: string = fileNameFromUri(filePath);
     const httpReq = http.createHttp();
 
     try {
@@ -141,7 +141,7 @@ export class OcrTool {
         multiFormDataList: [
           {
             name: 'file',
-            contentType: this.mimeFromName(fileName),  // 根据后缀自动推断 MIME
+            contentType: mimeFromExtension(fileName),  // 根据后缀自动推断 MIME
             filePath: filePath,
             remoteFileName: fileName,
           },
@@ -186,38 +186,5 @@ export class OcrTool {
       return imageUri.substring('file://'.length);
     }
     return imageUri;
-  }
-
-  /**
-   * 从 URI 路径中提取文件名（去除查询参数后取最后一段）。
-   * 兼容正斜杠 / 和反斜杠 \ 两种路径分隔符（Windows 与 Unix 风格）。
-   */
-  private fileNameFromUri(uri: string): string {
-    const clean: string = uri.split('?')[0];           // 去除 ? 后的查询参数
-    const slash: number = clean.lastIndexOf('/');
-    const backslash: number = clean.lastIndexOf('\\');
-    const index: number = Math.max(slash, backslash);  // 取最末级分隔符位置
-    if (index >= 0 && index + 1 < clean.length) {
-      return clean.substring(index + 1);
-    }
-    return 'upload.png';  // 兜底：无法解析时使用默认文件名
-  }
-
-  /**
-   * 根据文件名后缀推断 MIME 类型，用于 multipart 上传时设置 Content-Type。
-   * 默认返回 image/png。
-   */
-  private mimeFromName(fileName: string): string {
-    const lower: string = fileName.toLowerCase();
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
-      return 'image/jpeg';
-    }
-    if (lower.endsWith('.webp')) {
-      return 'image/webp';
-    }
-    if (lower.endsWith('.bmp')) {
-      return 'image/bmp';
-    }
-    return 'image/png';
   }
 }

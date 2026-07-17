@@ -44,6 +44,8 @@ import {
   DispatchRequest,
   DispatchResult,
   ClassificationResult,
+  ReviewStatus,
+  DifficultyLevel,
 } from 'common';
 
 const log = new Logger('Dispatcher');
@@ -52,7 +54,8 @@ const log = new Logger('Dispatcher');
 
 export class Dispatcher {
   // 主入口(精简拍照链 D1)
-  async dispatch(req: DispatchRequest): Promise<DispatchResult> {
+  // context: 由 AiService 显式传入, 避免 agent 层调用 getContext()
+  async dispatch(req: DispatchRequest, context?: Context): Promise<DispatchResult> {
     const t0: number = Date.now();
     log.info('dispatch enter, source=' + req.source
       + ', payload.kind=' + req.payload.kind);
@@ -60,29 +63,38 @@ export class Dispatcher {
     try {
       // Step 1: 分类(图片走 OCR+分类,文本直接分类,TypeClassifier 内部判断)
       const classifier = new TypeClassifier();
-      const classification: ClassificationResult = await classifier.classify(req.payload);
+      const classification: ClassificationResult = await classifier.classify(req.payload, context);
       log.info('classification done, type=' + classification.type
         + ', subject=' + classification.subject
         + ', confidence=' + classification.confidence.toString());
 
       // Step 2: 拿 ocrText(优先用 classification 返的,fallback 到 payload.text)
-      // P0 修复: 即使 OCR 失败(空 ocrText), 也不再直接失败。
-      //   改为传 placeholder 给 KnowledgeModel, 让它能生成"待人工补充"的笔记框架。
-      //   用户体验: 拍照后即使 OCR 不通, 也能看到 AI 给的题目标题/分类, 不再"假成功"也不"假失败"。
+      // P0 修复 v2: OCR 空时不再把中文占位符传给 KnowledgeModel
+      //   改为在 Dispatcher 层直接构造 fallback KnowledgeUnit，
+      //   不调 AI——避免 LLM 把错误提示当数学题处理。
       let ocrText: string = classification.ocrText ?? '';
       if (ocrText === '') {
         if (req.payload.kind === 'text') {
           ocrText = req.payload.text;
           log.info('ocrText fallback to payload.text (text kind)');
         } else {
-          // image / file 拿到空 ocrText, 走 placeholder 兜底
-          // 让 KnowledgeModel 仍能产出一个"待补充内容"的 KnowledgeUnit 框架
-          ocrText = '[OCR 暂不可达, 请人工补充题目内容]';
-          log.warn('OCR 返回空, 使用 placeholder 兜底, payload.kind=' + req.payload.kind);
+          // image / file 拿到空 ocrText — 跳过 AI，直接返回 fallback 笔记框架
+          log.warn('OCR 返回空, 跳过 KnowledgeModel, 构造 fallback KnowledgeUnit, payload.kind=' + req.payload.kind);
+          const fallbackUnit: KnowledgeUnit = this.buildFallbackUnit(
+            classification.type,
+            classification.subject,
+            classification.chapter ?? '',
+          );
+          return {
+            success: true,
+            route: 'D1',
+            data: fallbackUnit,
+            durationMs: Date.now() - t0,
+          };
         }
       }
 
-      // Step 3: 建模 + 真值检验 + 入库(由 KnowledgeModel 内部完成)
+      // Step 3: 建模 + 真值检验(由 KnowledgeModel 内部完成)
       const model = new KnowledgeModel();
       const unit: KnowledgeUnit = await model.structure(
         ocrText,
@@ -113,7 +125,37 @@ export class Dispatcher {
   }
 
   // 兼容旧接口名(原 D 任务规划用 routeDispatch)
-  async routeDispatch(req: DispatchRequest): Promise<DispatchResult> {
-    return await this.dispatch(req);
+  async routeDispatch(req: DispatchRequest, context?: Context): Promise<DispatchResult> {
+    return await this.dispatch(req, context);
+  }
+
+  // OCR 空 fallback: 不调 AI, 直接构造最小 KnowledgeUnit 框架
+  // 避免把中文错误提示当数学题喂给 LLM
+  private buildFallbackUnit(type: string, subject: string, chapter: string): KnowledgeUnit {
+    const now: number = Date.now();
+    const title: string = (type.length > 0 ? type : '未分类题目')
+      + (subject.length > 0 ? ' · ' + subject : '')
+      + ' (待补充)';
+    return {
+      id: 'KB-FB-' + now.toString(36) + '-' + Math.random().toString(36).substring(2, 8),
+      title: title,
+      content: '[OCR 未识别到内容，请人工补充题目详情]',
+      summary: 'OCR 暂不可达，已保存框架笔记，请手动编辑补充',
+      tags: [type, subject, chapter].filter((s: string): boolean => s.length > 0),
+      difficulty: DifficultyLevel.MEDIUM,
+      source: 'camera_capture',
+      createdAt: now,
+      updatedAt: now,
+      reviewStatus: ReviewStatus.NEW,
+      nextReviewAt: now + 24 * 60 * 60 * 1000,
+      intervalDays: 1,
+      easeFactor: 2.5,
+      repetitions: 0,
+      prerequisites: [],
+      related: [],
+      embedding: [],
+      userId: '',
+      version: 1,
+    };
   }
 }

@@ -215,6 +215,14 @@ export struct AgentFloatWindow {
   private captureReply = async (imageUri: string, userText: string): Promise<void> => {
     this.busy = true;
     try {
+      // API Key 前置检查 (与 realReply 一致)
+      const configured: boolean = await LlmConfig.getInstance().isConfigured();
+      if (!configured) {
+        this.addAiMsg('⚠️ 请先在「我的 → 设置」中配置 API Key');
+        this.busy = false;
+        return;
+      }
+
       const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
       const unit: KnowledgeUnit = await new AiService(ctx).capture(imageUri, userText);
       this.addAiMsg('已识别并整理为知识点:\n' + unit.title + '\n\n' + unit.summary);
@@ -244,6 +252,9 @@ export struct AgentFloatWindow {
       ]);
 
       this.addAiMsg(reply);
+
+      // 文本也走知识管线持久化 (fire-and-forget, 不阻塞 UI)
+      this.persistTextNote(userContent);
     } catch (e) {
       const errMsg: string = (e as Error).message ?? String(e);
       if (errMsg.indexOf('NO_API_KEY') >= 0) {
@@ -255,6 +266,21 @@ export struct AgentFloatWindow {
       }
     } finally {
       this.busy = false;
+    }
+  };
+
+  // 文本持久化: 走 AiService.captureText → Dispatcher → KnowledgeModel → NoteDao
+  private persistTextNote = (content: string): void => {
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      new AiService(ctx).captureText(content).then((_unit: KnowledgeUnit): void => {
+        console.info('[AgentFloatWindow] text note persisted, id=' + _unit.id);
+      }).catch((e: Error): void => {
+        console.warn('[AgentFloatWindow] text note persist failed: ' + e.message);
+      });
+    } catch (e) {
+      // 静默失败, 不影响主流程
+      console.warn('[AgentFloatWindow] persistTextNote init failed: ' + (e as Error).message);
     }
   };
 

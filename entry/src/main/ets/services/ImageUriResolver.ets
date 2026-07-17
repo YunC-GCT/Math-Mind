@@ -21,6 +21,7 @@
  */
 import fileIo from '@ohos.file.fs';
 import { common } from '@kit.AbilityKit';
+import { extFromUri, mimeFromExtension } from 'common';
 
 export interface ResolvedImageFile {
   originalUri: string;
@@ -54,7 +55,7 @@ export class ImageUriResolver {
       originalUri: imageUri,
       localPath: localPath,
       fileName: fileName,
-      mimeType: this.mimeFromName(fileName),
+      mimeType: mimeFromExtension(fileName),
     };
   }
 
@@ -69,35 +70,7 @@ export class ImageUriResolver {
   }
 
   private buildFileName(uri: string): string {
-    const ext: string = this.extFromUri(uri);
+    const ext: string = extFromUri(uri);
     return 'capture_' + Date.now().toString() + '_' + Math.floor(Math.random() * 100000).toString() + ext;
-  }
-
-  private extFromUri(uri: string): string {
-    const clean: string = uri.split('?')[0].toLowerCase();
-    if (clean.endsWith('.jpg') || clean.endsWith('.jpeg')) {
-      return '.jpg';
-    }
-    if (clean.endsWith('.webp')) {
-      return '.webp';
-    }
-    if (clean.endsWith('.bmp')) {
-      return '.bmp';
-    }
-    return '.png';
-  }
-
-  private mimeFromName(fileName: string): string {
-    const lower: string = fileName.toLowerCase();
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
-      return 'image/jpeg';
-    }
-    if (lower.endsWith('.webp')) {
-      return 'image/webp';
-    }
-    if (lower.endsWith('.bmp')) {
-      return 'image/bmp';
-    }
-    return 'image/png';
   }
 }

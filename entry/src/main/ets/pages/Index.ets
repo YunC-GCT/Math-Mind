@@ -6,7 +6,8 @@
 //  依赖:
 //    molecules: TabBar
 //    pages:     HomePage, NotesPage, ReviewPage, ProfilePage
-//    prototypes: CameraOverlay, AgentFloatWindow
+//    prototypes: CameraOverlay
+//    overlays:   AgentFloatWindow
 //  ============================================================================
 
 import { BG_DARK } from "common"
@@ -15,7 +16,7 @@ import { NotesPage } from "./Notes/NotesPage"
 import { ReviewPage } from "./Review/ReviewPage"
 import { ProfilePage } from "./Profile/ProfilePage"
 import { TabBar } from "../molecules/TabBar"
-import { AgentFloatWindow } from "../prototypes/AgentFloatWindow"
+import { AgentFloatWindow } from "../overlays/AgentFloatWindow"
 import { CameraOverlay } from "../prototypes/CameraOverlay"
 import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
 

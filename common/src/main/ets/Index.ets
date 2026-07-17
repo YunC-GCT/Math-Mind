@@ -87,3 +87,6 @@ export { DatabaseHelper } from './DatabaseHelper';
 
 // ========== 学习计划模型 ==========
 export { StudyPlanItem } from './models/StudyPlan';
+
+// ========== 文件 URI / MIME 共享工具 (消除 ImageUriResolver/OcrTool 重复) ==========
+export { mimeFromExtension, extFromUri, fileNameFromUri } from './utils/FileUriUtils';

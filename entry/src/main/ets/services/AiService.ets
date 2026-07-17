@@ -78,9 +78,9 @@ export class AiService {
     // 1) 构造调度请求
     const req: DispatchRequest = { source: 'app', payload };
 
-    // 2) 调度 Dispatcher(类型严格 ArkTS 1.1,显式标注)
+    // 2) 调度 Dispatcher(显式传入 context, 避免 agent 层调用 getContext())
     const dispatcher: Dispatcher = new Dispatcher();
-    const result: DispatchResult = await dispatcher.dispatch(req);
+    const result: DispatchResult = await dispatcher.dispatch(req, this.context);
 
     // 3) 调度失败 → 抛错(UI 用 Toast 提示)
     if (!result.success) {

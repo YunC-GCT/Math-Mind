@@ -27,8 +27,9 @@ Classification hints:
 - prove, proof, show that, demonstrate => proof`;
 
 export class TypeClassifier {
-  async classify(payload: DispatchPayload): Promise<ClassificationResult> {
-    const ocrText: string = await this.extractText(payload);
+  // context 由 AiService 显式传入, 避免在非 @Component 类中调用 getContext()
+  async classify(payload: DispatchPayload, context?: Context): Promise<ClassificationResult> {
+    const ocrText: string = await this.extractText(payload, context);
     const cleaned: string = this.cleanText(ocrText);
 
     const messages: ChatMessage[] = [
@@ -48,24 +49,30 @@ export class TypeClassifier {
     }
   }
 
-  private async extractText(payload: DispatchPayload): Promise<string> {
+  private async extractText(payload: DispatchPayload, context?: Context): Promise<string> {
     if (payload.kind === 'text') {
       return payload.text;
     }
 
     let baseText: string = '';
     if (payload.kind === 'image') {
-      // P0 修复: 传 context 让 OcrTool 走 OcrConfig 拿 endpoint
-      const tool = new OcrTool(getContext());
+      const tool = new OcrTool(context);
       baseText = await tool.recognize(payload.imageUri);
       return this.mergeUserText(baseText, payload.userText);
     }
 
-    if (payload.mimeType.startsWith('image/')) {
-      const tool = new OcrTool(getContext());
-      baseText = await tool.recognize(payload.fileUri);
+    // kind === 'file': 明确匹配 file 类型，修复之前对 discriminated union 隐式 fall-through
+    if (payload.kind === 'file') {
+      if (payload.mimeType.startsWith('image/')) {
+        const tool = new OcrTool(context);
+        baseText = await tool.recognize(payload.fileUri);
+      }
+      // 非 image 文件: baseText 为空，仅保留 userText
+      return this.mergeUserText(baseText, payload.userText);
     }
-    return this.mergeUserText(baseText, payload.userText);
+
+    // 未知 kind：返回空 ocrText
+    return '';
   }
 
   private mergeUserText(ocrText: string, userText: string | undefined): string {
