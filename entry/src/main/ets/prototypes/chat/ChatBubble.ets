@@ -24,7 +24,6 @@ import {
   S_1, S_2, S_3, R_MD, F_SM, W_SEMIBOLD,
 } from "common"
 import { ChatMsg } from "./ChatModels"
-import { cleanMarkdown } from "./ChatTextSanitizer"
 
 @Component
 export struct ChatBubble {
