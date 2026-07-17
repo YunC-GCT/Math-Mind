@@ -58,7 +58,7 @@ export class AiService {
 
   private async processAndPersist(payload: DispatchPayload): Promise<KnowledgeUnit> {
     const req: DispatchRequest = { source: 'app', payload };
-    const dispatcher = new Dispatcher();
+    const dispatcher: Dispatcher = new Dispatcher();
     const result: DispatchResult = await dispatcher.dispatch(req);
 
     if (!result.success) {

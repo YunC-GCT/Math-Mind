@@ -2,6 +2,7 @@
   "name": "agents",
   "version": "1.0.0",
   "description": "MathMind shared agents",
+  "main": "./src/main/ets/Index.ets",
   "author": "",
   "license": "",
   "dependencies": {
