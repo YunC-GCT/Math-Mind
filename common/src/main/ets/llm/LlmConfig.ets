@@ -16,7 +16,7 @@ const KEY_TIMEOUT_MS = 'timeout_ms';
 const DEFAULT_ENDPOINT = 'https://api.siliconflow.cn/v1/chat/completions';
 const DEFAULT_MODEL = 'deepseek-ai/DeepSeek-V3';
 const DEFAULT_TEMPERATURE = 0.1;
-const DEFAULT_MAX_TOKENS = 1024;  // 2026-07-17: 256→1024 (KnowledgeModel 结构化 JSON 输出需要足够 token)
+const DEFAULT_MAX_TOKENS = 5000;  // 2026-07-18: 1024→5000 (KnowledgeModel 结构化 JSON + 长字段需要更大输出空间)
 const DEFAULT_TIMEOUT_MS = 5000;
 
 export class LlmConfig {
