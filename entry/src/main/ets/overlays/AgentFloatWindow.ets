@@ -27,11 +27,7 @@ import { AgentChatService, AgentChatCallbacks } from '../services/AgentChatServi
 import { AgentMessageList } from './AgentFloatWindow/AgentMessageList';
 import { ImagePreviewBar } from './AgentFloatWindow/ImagePreviewBar';
 import { AgentInputBar } from './AgentFloatWindow/AgentInputBar';
-
-// 消息类型
-interface ChatMsg {
-  id: number; role: 'user' | 'ai'; content: string; ts: number;
-}
+import { ChatMsg } from '../prototypes/chat/ChatModels';
 
 function nowId(): number {
   return Date.now() * 1000 + Math.floor(Math.random() * 1000);
