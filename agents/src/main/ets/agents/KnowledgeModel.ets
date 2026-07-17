@@ -233,10 +233,18 @@ export class KnowledgeModel {
     const messages: ChatMessage[] = [{ role: 'user', content: combinedContent }];
 
     console.info('[KnowledgeModel] callAi: combinedPrompt=' + combinedContent.length.toString() + ' chars');
-    const client: LlmClient = new LlmClient();
-    const rawContent: string = await client.call(messages);
+    let rawContent: string;
+    try {
+      const client: LlmClient = new LlmClient();
+      rawContent = await client.call(messages);
+      console.info('[KnowledgeModel] callAi response received, len=' + rawContent.length.toString());
+    } catch (llmErr) {
+      console.error('[KnowledgeModel] callAi LLM error: ' + (llmErr as Error).message);
+      throw llmErr;
+    }
 
     if (!rawContent || rawContent.length === 0) {
+      console.error('[KnowledgeModel] callAi empty content after 200 OK');
       throw new Error('AI 返回为空:content 为空');
     }
 
