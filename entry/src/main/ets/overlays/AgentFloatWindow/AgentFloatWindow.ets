@@ -97,7 +97,7 @@ export struct AgentFloatWindow {
     let content: string = prompt;
     if (text.length > 0) { content += '\n' + text; }
     if (hasImage) { content += '\n分享了一张照片'; }
-    this.dispatch(content, hasImage, this.imagePreview, text);
+    this.dispatch(content, hasImage, this.imagePreview, content);
   };
 
   // ===== @Builders =====

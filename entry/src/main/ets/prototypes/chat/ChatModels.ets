@@ -13,7 +13,7 @@ export interface ChatMsg {
   id: number
 
   // 角色: "user" | "ai"
-  role: string
+  role: 'user' | 'ai'
 
   // 消息内容
   content: string
