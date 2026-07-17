@@ -72,8 +72,8 @@ export struct ChatBubble {
               .fontWeight(W_SEMIBOLD)
               .margin({ bottom: S_1, left: S_1 })
 
-            // 消息内容(清理 markdown/LaTeX)
-            Text(cleanMarkdown(this.msg.content))
+            // 消息内容(保留原始 LaTeX)
+            Text(this.msg.content)
               .fontSize(F_SM)
               .fontColor(TEXT_2)
               .lineHeight(20)

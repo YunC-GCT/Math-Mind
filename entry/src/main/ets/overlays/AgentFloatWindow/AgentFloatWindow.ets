@@ -1,25 +1,18 @@
 // ============================================================================
 //  overlays/AgentFloatWindow/AgentFloatWindow.ets — 智能体浮窗(纯 UI 装配层)
 //  ----------------------------------------------------------------------------
-//  职责: UI 组装 + 状态管理 + 用户交互 → 委托 AgentChatService 处理业务
-//
-//  子组件:
-//    AgentMessageList  — 消息列表 (Scroll + 气泡)
-//    ImagePreviewBar   — 图片预览行
-//    AgentInputBar     — 底部输入栏
-//
+//  子组件: ChatHeader / AgentMessageList / QuickSuggestions / ImagePreviewBar / AgentInputBar
 //  业务逻辑: AgentChatService (services/AgentChatService.ets)
-//    captureReply / realReply / persistTextNote
-//
-//  Props:
-//    show / onClose / onGoCamera / pendingImageUri
+//  Props: show / onClose / onGoCamera / pendingImageUri
 //  ============================================================================
 
-import { MINT, PURPLE, PURPLE_LIGHT, TEXT_3, BORDER, F_XS, F_SM, F_LG, W_BOLD } from 'common';
+import { PURPLE_LIGHT, BORDER } from 'common';
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import window from '@ohos.window';
 import { AgentChatService, AgentChatCallbacks } from '../../services/AgentChatService';
+import { ChatHeader } from '../../prototypes/chat/ChatHeader';
+import { QuickSuggestions } from '../../prototypes/chat/QuickSuggestions';
 import { AgentMessageList } from './AgentMessageList';
 import { ImagePreviewBar } from './ImagePreviewBar';
 import { AgentInputBar } from './AgentInputBar';
@@ -39,15 +32,14 @@ export struct AgentFloatWindow {
   @State busy: boolean = false;
   @State imagePreview: string = '';
   @State keyboardHeight: number = 0;
+  @State deepThink: boolean = false;
   private mainWindow: window.Window | null = null;
   private service: AgentChatService | null = null;
-
-  // ===== 生命周期 =====
 
   aboutToAppear(): void {
     if (this.pendingImageUri && this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri; }
     if (AppStorage.get<boolean>('shownGreeting') !== true) {
-      this.messages = [{ id: 1, role: 'ai', content: '👋 你好我是 MathMind AI 助手\n\n点击上方 4 个快捷按钮开始对话,或直接在底部输入问题', ts: Date.now() }];
+      this.messages = [{ id: 1, role: 'ai', content: '👋 你好我是 MathMind AI 助手\n\n点击上方快捷按钮开始对话,或直接在底部输入问题', ts: Date.now() }];
       AppStorage.setOrCreate<boolean>('shownGreeting', true);
     }
     const cbs: AgentChatCallbacks = {
@@ -69,15 +61,11 @@ export struct AgentFloatWindow {
     if (this.pendingImageUri && this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri; }
   }
 
-  // ===== 交互逻辑 =====
-
   private canSend = (): boolean => !this.busy && (this.inputText.trim().length > 0 || this.imagePreview.length > 0);
 
-  // 发布消息到列表 + 触发业务
   private dispatch = (content: string, hasImage: boolean, imageUri: string, userText: string): void => {
     this.messages = [...this.messages, { id: nowId(), role: 'user', content, ts: Date.now() }];
-    this.inputText = '';
-    this.imagePreview = '';
+    this.inputText = ''; this.imagePreview = '';
     if (hasImage) { this.service?.captureReply(imageUri, userText); return; }
     this.service?.realReply(content);
   };
@@ -100,35 +88,27 @@ export struct AgentFloatWindow {
     this.dispatch(content, hasImage, this.imagePreview, content);
   };
 
-  // ===== @Builders =====
-
-  @Builder Header() {
-    Row() {
-      Text('🧠 MathMind AI').fontSize(F_SM + 1).fontWeight(700).fontColor(PURPLE); Blank();
-      Stack() { Text('✕').fontSize(14).fontWeight(500).fontColor(TEXT_3); }
-      .width(24).height(24).borderRadius(12).alignContent(Alignment.Center).onClick((): void => this.onClose());
-    }.width('100%').padding({ left: 14, right: 8, top: 8, bottom: 8 });
-  }
-
-  @Builder SugBtn(label: string, prompt: string) {
-    Text(label).fontSize(F_XS).fontColor(PURPLE)
-      .padding({ left: 10, right: 10, top: 4, bottom: 4 }).borderRadius(10).backgroundColor(PURPLE_LIGHT)
-      .onClick((): void => this.sendQuick(prompt));
-  }
-
-  // ===== build =====
+  private newSession = (): void => { this.messages = []; };
 
   build() {
     Stack() {
       if (this.show) {
         Column().width('100%').height('100%').backgroundColor('#80000000').onClick((): void => this.onClose());
         Column() {
-          this.Header(); Row().width('100%').height(0.5).backgroundColor(BORDER);
-          Row() { this.SugBtn('分析题目', '帮我分析这道题'); this.SugBtn('总结知识', '总结知识点'); this.SugBtn('出练习题', '出几道练习题'); this.SugBtn('学习路径', '推荐学习路径'); }
-          .width('100%').padding({ left: 10, right: 10, top: 6, bottom: 6 });
+          ChatHeader({
+            deepThink: this.deepThink,
+            onToggleThink: (): void => { this.deepThink = !this.deepThink; },
+            onNewChat: (): void => { this.newSession(); },
+            onClose: (): void => this.onClose(),
+          });
           Row().width('100%').height(0.5).backgroundColor(BORDER);
+
+          QuickSuggestions({ onSelect: (p: string): void => this.sendQuick(p) });
+          Row().width('100%').height(0.5).backgroundColor(BORDER);
+
           AgentMessageList({ messages: this.messages, busy: this.busy });
           Row().width('100%').height(0.5).backgroundColor(BORDER);
+
           ImagePreviewBar({ imagePreview: this.imagePreview, onClear: (): void => { this.imagePreview = ''; } });
           AgentInputBar({ inputText: this.inputText, canSend: this.canSend(), onTextChange: (v: string): void => { this.inputText = v; }, onSubmit: (): void => { this.send(); }, onCamera: (): void => { this.onGoCamera(); } });
         }
