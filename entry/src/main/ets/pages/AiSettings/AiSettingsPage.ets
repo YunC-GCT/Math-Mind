@@ -25,7 +25,7 @@ struct AiSettingsPage {
   @State mdlIdx: number = 0; @State useCustomMD: boolean = false; @State customMD: string = ""
   @State configured: boolean = false; @State testing: boolean = false
   @State statusText: string = "未配置"
-  @State temp: number = 0.1; @State maxT: number = 256; @State to: number = 5000
+  @State temp: number = 0.1; @State maxT: number = 1024; @State to: number = 5000
   // OCR 配置 (P0 修复: 端点从硬编码 127.0.0.1 改为可配置)
   @State ocrEndpoint: string = ""
   @State ocrEnabled: boolean = true
