@@ -17,28 +17,19 @@ import { ChipTag } from '../../atoms/ChipTag';
 @Component
 export struct NoteDetailHeader {
   @Prop note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '');
+  @StorageProp('statusBarHeight') sbh: number = 0;
   onClose: () => void = (): void => {};
 
   build() {
     Row() {
-      // 左: 关闭按钮
       NoteCloseButton({ onClose: (): void => this.onClose() });
-
       Blank();
-
-      // 中: 学科 · 类型 chip
-      ChipTag({
-        label: this.note.subject + ' · ' + this.note.type,
-        variant: 'chip',
-      });
-
+      ChipTag({ label: this.note.subject + ' · ' + this.note.type, variant: 'chip' });
       Blank();
-
-      // 右: 等宽占位 (对称)
       Row().width(24).height(24);
     }
     .width('100%').height(48)
-    .padding({ left: 16, right: 16 })
+    .padding({ left: 16, right: 16, top: this.sbh })
     .alignItems(VerticalAlign.Center)
     .border({ width: { bottom: 0.5 }, color: BORDER });
   }
