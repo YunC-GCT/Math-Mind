@@ -16,7 +16,7 @@ import { NotesPage } from "./Notes/NotesPage"
 import { ReviewPage } from "./Review/ReviewPage"
 import { ProfilePage } from "./Profile/ProfilePage"
 import { TabBar } from "../molecules/TabBar"
-import { AgentFloatWindow } from "../overlays/AgentFloatWindow"
+import { AgentFloatWindow } from "../overlays/AgentFloatWindow/AgentFloatWindow"
 import { CameraOverlay } from "../prototypes/CameraOverlay"
 import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
 

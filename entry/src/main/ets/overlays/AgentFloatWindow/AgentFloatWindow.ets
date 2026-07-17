@@ -23,11 +23,11 @@ import {
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import window from '@ohos.window';
-import { AgentChatService, AgentChatCallbacks } from '../services/AgentChatService';
-import { AgentMessageList } from './AgentFloatWindow/AgentMessageList';
-import { ImagePreviewBar } from './AgentFloatWindow/ImagePreviewBar';
-import { AgentInputBar } from './AgentFloatWindow/AgentInputBar';
-import { ChatMsg } from '../prototypes/chat/ChatModels';
+import { AgentChatService, AgentChatCallbacks } from '../../services/AgentChatService';
+import { AgentMessageList } from './AgentMessageList';
+import { ImagePreviewBar } from './ImagePreviewBar';
+import { AgentInputBar } from './AgentInputBar';
+import { ChatMsg } from '../../prototypes/chat/ChatModels';
 
 function nowId(): number {
   return Date.now() * 1000 + Math.floor(Math.random() * 1000);
