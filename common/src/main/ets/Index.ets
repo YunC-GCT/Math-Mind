@@ -59,7 +59,7 @@ export {
   API_CODE,
   CLASSIFY_CONFIDENCE_THRESHOLD,
 } from './models/CaptureChain';
-export type { ApiCode, DispatchPayload, ImagePayload, TextPayload, FilePayload } from './models/CaptureChain';
+export type { ApiCode, DispatchPayload, ImagePayload, TextPayload, FilePayload, NoteCategory } from './models/CaptureChain';
 
 // ========== 缁熶竴鏃ュ織 (Dispatcher 锟? ==========
 export {
