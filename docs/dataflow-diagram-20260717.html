@@ -91,6 +91,71 @@ sequenceDiagram
 </div>
 </section>
 
+<!-- ==================== 1b. 纯文本对话时序图 ==================== -->
+<section>
+<h2 class="section-title text-xl font-semibold mb-4">一-B · 纯文本对话路径 (Text-only · 两个 session)</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    actor U as 👤 用户
+    participant UI as AgentFloatWindow
+    participant AS as AgentChatService
+
+    box 会话 1: 对话主通道 (session 1)
+        participant LC as LlmClient
+        participant DS as DeepSeek
+    end
+
+    box 会话 2: 知识持久化通道 (session 2)
+        participant AI as AiService
+        participant DP as Dispatcher
+        participant ND as NoteDao
+        participant RDB as RDB
+    end
+
+    U->>UI: 输入文字 → 发送
+    UI->>AS: realReply(userContent)
+
+    par 会话 1: 对话主通道
+        AS->>LC: call([system, user])
+        LC->>DS: POST /v1/chat/completions
+        DS-->>LC: choices[0].message.content
+        LC-->>AS: reply: string
+        AS->>UI: 回调 addAiMsg(reply)
+        UI->>UI: 渲染 AI 气泡
+    and 会话 2: 知识持久化 (fire-and-forget)
+        AS->>AI: captureText(userContent)
+        AI->>DP: dispatch({kind:'text', text:userContent})
+        DP->>DP: TypeClassifier.classify(文本分类)
+        DP->>DP: KnowledgeModel.structure(ocrText)
+        DP-->>AI: KnowledgeUnit
+        AI->>ND: insert(unit)
+        ND->>RDB: INSERT
+        RDB-->>ND: rowId
+        AI->>AS: 完成 (静默)
+        AS->>UI: bumpNotesVersion (通知刷新)
+    end
+
+    Note over UI,RDB: 用户无需等待会话 2 完成即可看到 AI 回复
+</pre>
+</div>
+
+<div class="type-block mt-4">
+  <h3 class="font-bold text-sm text-stone-600 mb-2">两条 Session 的区别</h3>
+  <table class="w-full text-sm border-collapse">
+  <thead><tr class="bg-slate-100"><th class="border p-2"></th><th class="border p-2">Session 1: 对话</th><th class="border p-2">Session 2: 持久化</th></tr></thead>
+  <tbody>
+  <tr><td class="border p-2 font-bold">入口</td><td class="border p-2 font-mono text-xs">LlmClient.call(messages)</td><td class="border p-2 font-mono text-xs">AiService.captureText(text)</td></tr>
+  <tr><td class="border p-2 font-bold">LLM 调用</td><td class="border p-2 text-xs">✅ DeepSeek → 聊天回复</td><td class="border p-2 text-xs">✅ DeepSeek → 分类 + 结构化</td></tr>
+  <tr><td class="border p-2 font-bold">RDB 写入</td><td class="border p-2 text-xs">❌ 不写库</td><td class="border p-2 text-xs">✅ NoteDao.insert → knowledge_unit</td></tr>
+  <tr><td class="border p-2 font-bold">用户感知</td><td class="border p-2 text-xs">立即看到 AI 回复</td><td class="border p-2 text-xs">静默（笔记列表自动刷新）</td></tr>
+  <tr><td class="border p-2 font-bold">执行方式</td><td class="border p-2 text-xs">await（阻塞 UI 直到回复）</td><td class="border p-2 text-xs">fire-and-forget（不阻塞）</td></tr>
+  </tbody>
+  </table>
+</div>
+</section>
+
 <!-- ==================== 2. 阶段数据格式 ==================== -->
 <section>
 <h2 class="section-title text-xl font-semibold mb-6">二、各阶段数据格式</h2>
