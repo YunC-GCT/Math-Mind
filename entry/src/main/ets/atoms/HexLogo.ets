@@ -3,7 +3,7 @@
  *
  * 路径: entry/src/main/ets/atoms/HexLogo.ets
  * 职责: 32×32 浮空旋转 4s 循环的 6 边形品牌标识，用于 HomeTopBar 左侧。
- * 依赖: common (MINT 主题色 token)、app.media.ic_brand_hex (SVG 资源)
+ * 依赖: common (MINT / DUR_SLOWEST / DUR_SLOWER / DUR_BREATH)
  *
  * 视觉规格:
  *   - 外六边形 strokeWidth 1.5
@@ -24,7 +24,7 @@
  *   - Image.rotate 接受 RotateOptions {angle} 对象，不接受 number 直接
  *   - 删 .fillColor() 让 SVG 内部 fill="none" 生效 (ArkUI 1.1 .fillColor 会覆盖)
  */
-import { MINT } from 'common';
+import { MINT, DUR_SLOWEST, DUR_SLOWER, DUR_BREATH } from 'common';
 
 @Component
 export struct HexLogo {
@@ -39,19 +39,19 @@ export struct HexLogo {
   aboutToAppear(): void {
     this.startCycle = (): void => {
       // 0% → 30%: rotate 0→5°, ty 0→-1.5
-      animateTo({ duration: 1200, curve: Curve.EaseInOut }, () => {
+      animateTo({ duration: DUR_SLOWEST, curve: Curve.EaseInOut }, () => {
         this.rotDeg = 5;
         this.ty = -1.5;
       });
       // 30% → 60%: rotate 5°→-3°, ty -1.5→1
       this.timer = setTimeout(() => {
-        animateTo({ duration: 1200, curve: Curve.EaseInOut }, () => {
+        animateTo({ duration: DUR_SLOWEST, curve: Curve.EaseInOut }, () => {
           this.rotDeg = -3;
           this.ty = 1;
         });
         // 60% → 100%: rotate -3°→0, ty 1→0
         this.timer = setTimeout(() => {
-          animateTo({ duration: 1600, curve: Curve.EaseInOut }, () => {
+          animateTo({ duration: DUR_SLOWER, curve: Curve.EaseInOut }, () => {
             this.rotDeg = 0;
             this.ty = 0;
           });

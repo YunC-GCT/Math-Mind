@@ -159,12 +159,26 @@ export function SHADOW_GLOW_MINT(alpha: number): ShadowPreset {
 }
 
 // ========================================================================
-//  动画时长 (ms)
+//  动画时长 (ms) — 对齐 v2-ui motion.css
 // ========================================================================
-export const DUR_FAST: number    = 200
-export const DUR_NORMAL: number  = 400
-export const DUR_SLOW: number    = 1200
+export const DUR_INSTANT: number = 80     // 微交互 (hover/tap 反馈)
+export const DUR_FAST: number    = 150    // 快过渡 (开关/显隐)
+export const DUR_BASE: number    = 250    // 默认 (入场/切换/浮层)
+export const DUR_SLOW: number    = 400    // 慢过渡 (展开/折叠)
+export const DUR_SLOWER: number  = 600    // 更慢 (页面转场)
+export const DUR_SLOWEST: number = 1200   // 最慢 (复杂动画)
 export const DUR_BREATH: number  = 3000   // 光晕呼吸周期
+
+// ========================================================================
+//  缓动曲线 — 对齐 v2-ui motion.css
+//  使用: 组件的 animation({ curve: Curve.FastOutSlowIn }) 等处
+//  ArkTS 内置曲线对照:
+//    EASE_SPRING  → Curve.FastOutSlowIn       (cubic-bezier(.2,.8,.3,1))
+//    EASE_OUT     → Curve.LinearOutSlowIn      (cubic-bezier(.16,1,.3,1))
+//    EASE_IN      → Curve.FastOutLinearIn      (cubic-bezier(.4,0,1,1))
+//    EASE_IN_OUT  → Curve.EaseInOut            (cubic-bezier(.4,0,.2,1))
+//    EASE_BOUNCE  → Curves.cubicBezier(.34,1.56,.64,1)  (手动指定)
+// ========================================================================
 
 // ========================================================================
 //  屏幕尺寸 (vp) — 固定参考值
