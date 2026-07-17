@@ -227,7 +227,9 @@ export class KnowledgeModel {
     const prompt: string = this.buildPrompt(ocrText) + hint;
 
     const systemMsg: ChatMessage = { role: 'system', content: prompt };
-    const userMsg: ChatMessage = { role: 'user', content: ocrText };
+    // 截断 OCR 文本避免超过模型上下文限制 (对齐 TypeClassifier.cleanText 2000 字符策略)
+    const truncatedText: string = ocrText.length > 1500 ? ocrText.substring(0, 1500) : ocrText;
+    const userMsg: ChatMessage = { role: 'user', content: truncatedText };
     const messages: ChatMessage[] = [systemMsg, userMsg];
 
     const client: LlmClient = new LlmClient();
