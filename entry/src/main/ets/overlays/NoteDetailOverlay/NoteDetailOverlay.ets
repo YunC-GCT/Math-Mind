@@ -99,7 +99,7 @@ export struct NoteDetailOverlay {
   };
 
   private confirmDelete = (): void => {
+    // 不在此调 onClose——由父组件 deleteNote 在 async 完成后再关浮层 + 刷新列表
     this.onDelete(this.note.rawId.length > 0 ? this.note.rawId : this.note.id.toString());
-    this.onClose();
   };
 }

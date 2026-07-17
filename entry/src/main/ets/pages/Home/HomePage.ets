@@ -139,7 +139,10 @@ export struct HomePage {
       const store = await DatabaseHelper.init(getContext(this))
       await new NoteDao(store).deleteById(id)
       this.selectedNote = null
-      await this.loadNotes()  // 重新加载,触发统计刷新
+      await this.loadNotes()
+      // 通知 NotesPage 也刷新
+      const v: number = AppStorage.get<number>('notesVersion') ?? 0;
+      AppStorage.setOrCreate('notesVersion', v + 1);
       try { promptAction.showToast({ message: "笔记已删除", duration: 1200 }) } catch (_e) {}
     } catch (e) {
       try { promptAction.showToast({ message: "笔记删除失败", duration: 1500 }) } catch (_e) {}
