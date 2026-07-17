@@ -48,7 +48,7 @@ export class AgentChatService {
       }
       const unit: KnowledgeUnit = await new AiService(this.cbs.getContext()).capture(imageUri, userText);
       this.cbs.bumpNotesVersion();
-      this.cbs.addAiMsg('已识别并整理为知识点:\n' + unit.title + '\n\n' + unit.summary);
+      this.cbs.addAiMsg('📝 ' + unit.title);
     } catch (e) {
       this.cbs.addAiMsg('图片处理失败: ' + ((e as Error).message ?? String(e)).substring(0, 120));
     } finally {
