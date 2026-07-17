@@ -27,28 +27,28 @@ export struct ChipTag {
   @Prop label: string = '';
   @Prop variant: string = 'chip';  // 'chip' | 'chipActive' | 'form' | 'formSelected' | 'tag'
   @Prop colorOverride: string = ''; // 优先覆盖背景色 (如类型颜色)
-  onClick?: () => void = (): void => {};
+  onTap?: () => void = (): void => {};
 
   build() {
     Text(this.label)
       .fontSize(this.variant === 'tag' ? 9 : F_XS)
-      .fontColor(this.fgColor())
+      .fontColor(this.textColor())
       .fontWeight(this.variant === 'chipActive' ? W_BOLD : (this.variant === 'formSelected' ? W_SEMIBOLD : W_MEDIUM))
-      .padding(this.padding())
+      .padding(this.chipPadding())
       .borderRadius(this.variant === 'tag' ? R_SM : R_FULL)
-      .backgroundColor(this.bgColor())
+      .backgroundColor(this.chipBg())
       .border(this.variant === 'tag' ? { width: 0 } : { width: 1, color: BORDER })
-      .onClick((): void => { if (this.onClick) { this.onClick(); } });
+      .onClick((): void => { if (this.onTap) { this.onTap(); } });
   }
 
-  private fgColor(): string {
+  private textColor(): string {
     if (this.variant === 'chipActive') { return TEXT; }
     if (this.variant === 'formSelected') { return MINT; }
     if (this.variant === 'tag') { return TEXT_3; }
     return TEXT_2;
   }
 
-  private bgColor(): string {
+  private chipBg(): string {
     if (this.colorOverride.length > 0) { return this.colorOverride; }
     if (this.variant === 'chipActive') { return MINT; }
     if (this.variant === 'formSelected') { return GLASS_10; }
@@ -56,7 +56,7 @@ export struct ChipTag {
     return GLASS_10;
   }
 
-  private padding(): Padding {
+  private chipPadding(): Padding {
     if (this.variant === 'tag') {
       return { left: S_2, right: S_2, top: S_1, bottom: S_1 };
     }
