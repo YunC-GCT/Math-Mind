@@ -255,75 +255,22 @@ export class KnowledgeModel {
   // === Build AI Prompt ===
 
   buildPrompt(ocrText: string): string {
-    return '你是一名数学知识整理专家。请分析用户输入的数学内容，完成以下任务：\n' +
-      '\n' +
-      '## 1. 自分词（分类）\n' +
-      '判断这段内容属于哪个最小类（只选一个）：\n' +
-      '- **概念**：数学定义、名词解释\n' +
-      '- **定理**：已被证明的真命题、定理\n' +
-      '- **公式**：数学表达式、公式\n' +
-      '- **证明题**：需要证明的命题及其证明过程\n' +
-      '- **计算题**：需要数值计算或求解的问题\n' +
-      '\n' +
-      '## 2. 标题\n' +
-      '- 概念/定理/公式 → 给出严谨的标准名称（如"质数""勾股定理""求根公式"）\n' +
-      '- 证明题/计算题 → AI 概括总结题目（如"证明√2是无理数""计算三阶行列式"）\n' +
-      '\n' +
-      '## 3. 填充该类的结构化字段\n' +
-      '\n' +
-      '### 概念\n' +
-      '- definition: 核心定义\n' +
-      '- properties: 关键性质/特征（分点列举）\n' +
-      '- examples: 典型例子\n' +
-      '- related_concepts: 关联概念\n' +
-      '\n' +
-      '### 定理\n' +
-      '- statement: 定理表述\n' +
-      '- conditions: 适用条件/前提\n' +
-      '- conclusion: 结论\n' +
-      '- proof_sketch: 证明思路\n' +
-      '- applications: 常见应用\n' +
-      '\n' +
-      '### 公式\n' +
-      '- expression: 公式表达式（用 LaTeX）\n' +
-      '- parameters: 参数含义说明\n' +
-      '- applicable_range: 适用范围/前提\n' +
-      '- derivation: 简单推导\n' +
-      '- notes: 注意事项\n' +
-      '\n' +
-      '### 证明题\n' +
-      '- proposition: 要证明的命题\n' +
-      '- given: 已知条件\n' +
-      '- proof_process: 逐步证明过程\n' +
-      '- key_insight: 关键思路/突破口\n' +
-      '- conclusion: 最终结论\n' +
-      '\n' +
-      '### 计算题\n' +
-      '- problem: 题目描述\n' +
-      '- steps: 解题步骤\n' +
-      '- answer: 最终答案\n' +
-      '- method_summary: 解题方法归纳\n' +
-      '- common_mistakes: 易错点\n' +
-      '\n' +
-      '## 4. 难度和重要程度\n' +
-      '- difficulty: 1~5（整数），1=简单 5=困难\n' +
-      '- importance: 1~5（整数），1=低 5=核心\n' +
-      '\n' +
-      '## 5. 标签\n' +
-      '生成 2~5 个标签，包含最小类名和内容关键词。\n' +
-      '\n' +
-      '## 输出格式\n' +
-      '严格按以下 JSON 格式输出，不要包含任何其他文字：\n' +
-      '{\n' +
-      '  "category": "概念|定理|公式|证明题|计算题",\n' +
-      '  "title": "标题",\n' +
-      '  "tags": ["标签1", "标签2"],\n' +
-      '  "difficulty": 3,\n' +
-      '  "importance": 4,\n' +
-      '  "fields": [\n' +
-      '    { "key": "字段名", "label": "显示名", "value": "内容" }\n' +
-      '  ]\n' +
-      '}';
+    return `你是数学知识整理专家。分析输入的数学内容，返回 JSON：
+
+- category: 概念|定理|公式|证明题|计算题
+- title: 严谨名称 (如"拉格朗日中值定理") 或题目概括
+- tags: 2~5 个关键词标签
+- difficulty: 1~5 (1=简单 5=困难)
+- importance: 1~5
+- fields: 结构化字段数组 [{key, label, value}]
+
+概念: definition/properties/examples/related_concepts
+定理: statement/conditions/conclusion/proof_sketch/applications
+公式: expression/parameters/applicable_range/derivation/notes
+证明题: proposition/given/proof_process/key_insight/conclusion
+计算题: problem/steps/answer/method_summary/common_mistakes
+
+返回纯 JSON，不要 markdown。`;
   }
   /**
    * 合并标签：AI 返回的标签 + 最小类名，去重
