@@ -115,7 +115,6 @@ export struct NotesPage {
         NoteDetailOverlay({
           note: this.selectedNote,
           onClose: this.closeDetail,
-          onAskAi: this.askAi,
           onDelete: this.deleteNote,
         })
       }

@@ -16,12 +16,10 @@ import {
 import { parseSections, Section } from '../../utils/NoteSectionParser';
 import { NoteTagChip } from './NoteTagChip';
 import { NoteSectionView } from './NoteSection';
-import { NoteAiCard } from './NoteAiCard';
 
 @Component
 export struct NoteDetailBody {
   @Prop note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '');
-  onAskAi: () => void = (): void => {};
 
   build() {
     Column() {
@@ -66,10 +64,7 @@ export struct NoteDetailBody {
       .width('100%')
       .padding({ left: 20, right: 20, bottom: 16 });
 
-      // AI 解答卡
-      NoteAiCard({ onTap: (): void => this.onAskAi() });
-
-      // 底部留白(给操作栏让位)
+  // 底部留白(给操作栏让位)
       Blank().height(80);
     }
     .width('100%');

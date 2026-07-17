@@ -59,7 +59,6 @@ export struct NoteDetailOverlay {
             // 正文区 (标题 + 标签 + 章节 + AI卡)
             NoteDetailBody({
               note: this.note,
-              onAskAi: (): void => this.handleAskAi(),
             });
           }
           .width('100%');
@@ -83,11 +82,6 @@ export struct NoteDetailOverlay {
   }
 
   // ===== 回调 =====
-
-  private handleAskAi = (): void => {
-    promptAction.showToast({ message: '正在呼叫 AI...', duration: 1500 });
-    this.onAskAi(this.note);
-  };
 
   private mockEdit = (): void => {
     promptAction.showToast({ message: '编辑功能 W2 上线', duration: 1500 });
