@@ -1,7 +1,7 @@
 ﻿import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import { LlmConfig, DatabaseHelper } from 'common';
+import { LlmConfig } from 'common';
 
 const DOMAIN = 0x0000;
 
@@ -16,10 +16,7 @@ export default class EntryAbility extends UIAbility {
     LlmConfig.getInstance().init(this.context).catch((e: Error) => {
       hilog.error(DOMAIN, 'testTag', 'LlmConfig init failed: %{public}s', e.message);
     });
-    // 初始化数据库
-    DatabaseHelper.init(this.context).catch((e: Error) => {
-      hilog.error(DOMAIN, 'testTag', 'DB init failed: %{public}s', e.message);
-    });
+    // 数据库初始化由 MVP 管线的 NoteDaoMVP 懒加载完成
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
@@ -53,7 +50,7 @@ export default class EntryAbility extends UIAbility {
       hilog.error(DOMAIN, 'testTag', 'Failed to set immersive status bar. Cause: %{public}s', JSON.stringify(err));
     });
 
-    windowStage.loadContent('pages/Index', (err) => {
+    windowStage.loadContent('pages/IndexMVP', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;

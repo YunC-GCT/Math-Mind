@@ -14,7 +14,7 @@ const DB_NAME: string = 'mathmind.db';
 /** 数据库版本 */
 const DB_VERSION: number = 1;
 
-/** notes 表建表 SQL（兼容 KnowledgeUnitExt 所有字段） */
+/** notes 表建表 SQL（兼容 KnowledgeUnitExt 所有字段 + 复习系统字段） */
 const CREATE_NOTES_TABLE: string =
   'CREATE TABLE IF NOT EXISTS notes (' +
   'id TEXT PRIMARY KEY,' +
@@ -31,7 +31,14 @@ const CREATE_NOTES_TABLE: string =
   'createdAt INTEGER NOT NULL,' +
   'updatedAt INTEGER NOT NULL,' +
   'source TEXT,' +
-  'userId TEXT' +
+  'userId TEXT,' +
+
+  // ── 复习系统字段（间隔重复） ──
+  'reviewStatus TEXT DEFAULT \'new\',' +
+  'nextReviewAt INTEGER DEFAULT 0,' +
+  'intervalDays INTEGER DEFAULT 1,' +
+  'easeFactor REAL DEFAULT 2.5,' +
+  'repetitions INTEGER DEFAULT 0' +
   ')';
 
 /** 单例 RdbStore */

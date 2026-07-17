@@ -51,6 +51,13 @@ export class NoteDaoMVP {
       'updatedAt': unit.updatedAt,
       'source': unit.source,
       'userId': unit.userId,
+
+      // 复习系统字段（默认值）
+      'reviewStatus': 'new',
+      'nextReviewAt': Date.now() + 24 * 60 * 60 * 1000,
+      'intervalDays': 1,
+      'easeFactor': 2.5,
+      'repetitions': 0,
     };
 
     const rowId: number = await store.insert('notes', values);
@@ -84,6 +91,8 @@ export class NoteDaoMVP {
       'updatedAt': Date.now(),
       'source': unit.source,
       'userId': unit.userId,
+      // 注意：reviewStatus / nextReviewAt / intervalDays / easeFactor / repetitions
+      //       不由 update 修改，由复习系统专用方法管理
     };
 
     const predicates: relationalStore.RdbPredicates = new relationalStore.RdbPredicates('notes');

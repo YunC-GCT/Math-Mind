@@ -4,7 +4,8 @@
 // 状态: MVP 集成版(2026-07-16)
 //
 // 职责:
-//   接收 DispatchRequest → 调 TypeClassifier(仅取ocrText) → 调 KnowledgeModelMVP → 返回 KnowledgeUnitExt
+//   接收 DispatchRequest → 调 TypeClassifier(仅取ocrText) → 调 KnowledgeModelMVP
+//   → 调 ContextLink(上下文关联) → 返回 KnowledgeUnitExt
 //
 // 与原版 Dispatcher.ets 的区别:
 //   1) 使用 KnowledgeModelMVP 替代旧 KnowledgeModel
@@ -15,6 +16,7 @@
 // 依赖状态(2026-07-16):
 //   - TypeClassifier: 仅用于提取 ocrText(图片时 OCR,文本时返回 payload.text)
 //   - KnowledgeModelMVP: 已实现 — AI 自分词 + 真值检验 + 入库
+//   - ContextLink: Stub — 接入 RDB 后填充 3 维度关联
 
 import { TypeClassifier } from '../agents/TypeClassifier';
 import { KnowledgeModelMVP } from '../agents/KnowledgeModelMVP';
@@ -30,6 +32,8 @@ import {
   DispatchResult,
   ClassificationResult,
 } from 'common';
+import { ContextLink } from '../agents/ContextLink';
+import { KnowledgeLinkResult } from '../models/KnowledgeLinkTypes';
 
 const log = new Logger('DispatcherMVP');
 
@@ -39,6 +43,8 @@ export class DispatcherMVP {
   private noteDao: NoteDaoInterface;
   // 最后一次成功调用的 KnowledgeUnitExt 结果, 供调用方读取
   public lastUnit: KnowledgeUnitExt | null = null;
+  // 最后一次成功调用的 ContextLink 关联结果, 供调用方读取
+  public lastLinkResult: KnowledgeLinkResult | null = null;
 
   constructor(noteDao: NoteDaoInterface) {
     this.noteDao = noteDao;
@@ -88,7 +94,15 @@ export class DispatcherMVP {
         + ', category=' + unit.type
         + ', truthFlag=' + String(unit.truthFlag));
 
-      // Step 4: 存入 lastUnit 供调用方读取, 返回成功
+      // Step 4: ContextLink 上下文关联（当前为 Stub，接入 RDB 后生效）
+      const contextLink = new ContextLink();
+      const linkResult: KnowledgeLinkResult = await contextLink.link(unit);
+      this.lastLinkResult = linkResult;
+      log.info('contextLink done, theorems=' + String(linkResult.theoremNames.length)
+        + ', concepts=' + String(linkResult.conceptNames.length)
+        + ', similar=' + String(linkResult.similarNoteIds.length));
+
+      // Step 5: 存入 lastUnit 供调用方读取, 返回成功
       this.lastUnit = unit;
       return {
         success: true,
