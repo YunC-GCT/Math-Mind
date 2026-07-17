@@ -225,6 +225,7 @@ export struct AgentFloatWindow {
 
       const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
       const unit: KnowledgeUnit = await new AiService(ctx).capture(imageUri, userText);
+      this.bumpNotesVersion();  // 通知列表页刷新
       this.addAiMsg('已识别并整理为知识点:\n' + unit.title + '\n\n' + unit.summary);
     } catch (e) {
       const errMsg: string = (e as Error).message ?? String(e);
@@ -275,13 +276,19 @@ export struct AgentFloatWindow {
       const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
       new AiService(ctx).captureText(content).then((_unit: KnowledgeUnit): void => {
         console.info('[AgentFloatWindow] text note persisted, id=' + _unit.id);
+        this.bumpNotesVersion();
       }).catch((e: Error): void => {
         console.warn('[AgentFloatWindow] text note persist failed: ' + e.message);
       });
     } catch (e) {
-      // 静默失败, 不影响主流程
       console.warn('[AgentFloatWindow] persistTextNote init failed: ' + (e as Error).message);
     }
+  };
+
+  // 递增全局笔记版本号，触发 NotesPage / HomePage 自动刷新列表
+  private bumpNotesVersion = (): void => {
+    const cur: number = AppStorage.get<number>('notesVersion') ?? 0;
+    AppStorage.setOrCreate('notesVersion', cur + 1);
   };
 
   // 添加 AI 消息到列表

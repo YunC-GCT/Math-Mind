@@ -73,6 +73,9 @@ export struct HomePage {
   // 笔记列表数据
   @State notes: NoteItem[] = []
 
+  // 全局笔记版本号(AgentFloatWindow 保存笔记后 +1, 触发自动刷新)
+  @StorageProp('notesVersion') @Watch('onNotesVersionChange') notesVersion: number = 0
+
   // 问候语 + 日期
   @State greeting: string = ""
   @State dateText: string = ""
@@ -91,7 +94,17 @@ export struct HomePage {
   aboutToAppear(): void {
     this.greeting = greet()
     this.dateText = dateStr()
+    // 确保 AppStorage 中有初始值
+    if (AppStorage.get<number>('notesVersion') === undefined) {
+      AppStorage.setOrCreate('notesVersion', 0);
+    }
     this.loadNotes()
+  }
+
+  // notesVersion 变化时重新加载笔记列表
+  private onNotesVersionChange = (): void => {
+    console.info('[HomePage] notesVersion changed, reloading list');
+    this.loadNotes();
   }
 
   // 加载所有笔记 + 算统计
