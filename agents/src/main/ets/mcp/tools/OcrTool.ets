@@ -1,4 +1,5 @@
 import { http } from '@kit.NetworkKit';
+import { OcrConfig } from 'common';
 
 // OCR 识别结果接口：对外暴露的统一返回格式
 export interface OcrRecognitionResult {
@@ -25,11 +26,38 @@ interface OcrResponse {
  * 支持自动重试、文件路径规范化、MIME 类型推断及结果格式化。
  */
 export class OcrTool {
-  // OCR 服务端点地址，默认指向本地开发服务
-  private endpoint: string;
+  // 上下文引用(用于懒加载 OcrConfig),P0 修复: 不再硬编码 endpoint
+  private context: Context | null;
 
-  constructor(endpoint?: string) {
-    this.endpoint = endpoint ?? 'http://127.0.0.1:8000/api/v1/ocr/recognize';
+  constructor(context?: Context) {
+    this.context = context ?? null;
+  }
+
+  // 端点从 OcrConfig 拿(P0 修复),失败时兜底默认 localhost
+  // 真机部署: 用户在 AI 设置页 OCR 配置区改 IP
+  private async resolveEndpoint(): Promise<string> {
+    if (this.context !== null) {
+      try {
+        await OcrConfig.getInstance().init(this.context);
+        return OcrConfig.getInstance().getEndpoint();
+      } catch (e) {
+        // OcrConfig 不可用, 走默认
+      }
+    }
+    return 'http://127.0.0.1:8000/api/v1/ocr/recognize';
+  }
+
+  // P0 修复: OCR 未启用时直接跳过, 返空文本让上层走纯文本 prompt
+  private async isEnabled(): Promise<boolean> {
+    if (this.context === null) {
+      return true; // 没传 context 走老路径, 默认可用
+    }
+    try {
+      await OcrConfig.getInstance().init(this.context);
+      return OcrConfig.getInstance().isEnabled();
+    } catch (e) {
+      return true;
+    }
   }
 
   /**
@@ -38,6 +66,10 @@ export class OcrTool {
    * @returns 拼接好的识别结果字符串（文本 + LaTeX 公式）
    */
   async recognize(imageUri: string): Promise<string> {
+    // P0 修复: OCR 未启用时跳过 HTTP 调用, 返空文本让上层走 ruleFallback
+    if (!await this.isEnabled()) {
+      return '';
+    }
     const result: OcrRecognitionResult = await this.recognizeImage(imageUri);
     return this.toPromptText(result);
   }
@@ -64,11 +96,16 @@ export class OcrTool {
     };
   }
 
+  // P0 修复: endpoint 改为运行时从 OcrConfig 拿
+  private currentEndpoint: string = '';
+
   /**
    * 带重试的请求封装：最多尝试 2 次，全部失败后返回错误结果。
    * 这样可应对网络瞬时抖动，避免上层因单次超时就彻底失败。
    */
   private async requestWithRetry(imageUri: string): Promise<OcrResponse> {
+    // P0 修复: 每次请求前重新解析 endpoint, 支持运行时切换
+    this.currentEndpoint = await this.resolveEndpoint();
     let lastError: string = '';
     for (let i = 0; i < 2; i++) {
       try {
@@ -99,7 +136,7 @@ export class OcrTool {
     const httpReq = http.createHttp();
 
     try {
-      const resp: http.HttpResponse = await httpReq.request(this.endpoint, {
+      const resp: http.HttpResponse = await httpReq.request(this.currentEndpoint, {
         method: http.RequestMethod.POST,
         multiFormDataList: [
           {

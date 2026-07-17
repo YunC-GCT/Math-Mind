@@ -5,7 +5,7 @@
 
 import { BG_DARK, BORDER } from "common"
 import { KeyboardAvoidMode } from "@kit.ArkUI"
-import { LlmConfig, LlmClient } from "common"
+import { LlmConfig, LlmClient, OcrConfig } from "common"
 import { promptAction } from "@kit.ArkUI"
 import { PageHeader } from "../../atoms/PageHeader"
 import { ConnectionStatus } from "./ConnectionStatus"
@@ -14,6 +14,7 @@ import { ActionBar } from "./ActionBar"
 import { EndpointPicker, DS_ENDPOINT } from "./EndpointPicker"
 import { ModelPicker, DEFAULT_MODEL } from "./ModelPicker"
 import { KeyInput } from "./KeyInput"
+import { OcrConfigSection } from "./OcrConfigSection"
 
 @Entry
 @Component
@@ -25,6 +26,9 @@ struct AiSettingsPage {
   @State configured: boolean = false; @State testing: boolean = false
   @State statusText: string = "未配置"
   @State temp: number = 0.1; @State maxT: number = 256; @State to: number = 5000
+  // OCR 配置 (P0 修复: 端点从硬编码 127.0.0.1 改为可配置)
+  @State ocrEndpoint: string = ""
+  @State ocrEnabled: boolean = true
 
   aboutToAppear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET) } catch (e) {}; this.load() }
   aboutToDisappear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE) } catch (e) {} }
@@ -36,12 +40,19 @@ struct AiSettingsPage {
     const c = LlmConfig.getInstance()
     const key = await c.getApiKey()
     if (key && key.length > 0) { this.apiKey = key; this.configured = true; this.statusText = "已配置" }
+    // 加载 OCR 配置
+    const oc = OcrConfig.getInstance()
+    this.ocrEndpoint = oc.getEndpoint()
+    this.ocrEnabled = oc.isEnabled()
   }
 
   async handleSave(): Promise<void> {
     try {
       await LlmConfig.getInstance().saveAll(this.ep(), this.md(), this.temp, this.maxT, this.to)
       if (this.apiKey.trim()) { await LlmConfig.getInstance().setApiKey(this.apiKey.trim()); this.configured = true }
+      // 保存 OCR 配置
+      await OcrConfig.getInstance().setEndpoint(this.ocrEndpoint)
+      await OcrConfig.getInstance().setEnabled(this.ocrEnabled)
       this.statusText = "已保存"
       promptAction.showToast({ message: "已保存", duration: 1500 })
     } catch (e) { promptAction.showToast({ message: "保存失败", duration: 1500 }) }
@@ -51,6 +62,10 @@ struct AiSettingsPage {
     try { await LlmConfig.getInstance().resetDefaults(); await LlmConfig.getInstance().clearApiKey()
       this.apiKey = ""; this.useCustomEP = false; this.customEP = ""; this.mdlIdx = 0; this.useCustomMD = false; this.customMD = ""
       this.configured = false; this.statusText = "已重置"
+      // 重置 OCR
+      await OcrConfig.getInstance().resetDefaults()
+      this.ocrEndpoint = OcrConfig.getInstance().getEndpoint()
+      this.ocrEnabled = OcrConfig.getInstance().isEnabled()
     } catch (e) {}
   }
 
@@ -86,6 +101,15 @@ struct AiSettingsPage {
           KeyInput({ apiKey: this.apiKey, testing: this.testing,
             onChange: (v: string): void => { this.apiKey = v },
             onTest: (): void => { this.handleTest() } })
+          // OCR 端点配置 (P0 修复: 之前硬编码 127.0.0.1)
+          SectionHeader({ title: "OCR 服务", desc: "拍照识别后端, 本地 FastAPI" })
+          OcrConfigSection({
+            endpoint: this.ocrEndpoint,
+            enabled: this.ocrEnabled,
+            onEndpointChange: (v: string): void => { this.ocrEndpoint = v },
+            onEnabledChange: (v: boolean): void => { this.ocrEnabled = v },
+            onReset: (): void => { this.ocrEndpoint = 'http://127.0.0.1:8000/api/v1/ocr/recognize' },
+          })
           ActionBar({ onReset: (): void => { this.handleReset() }, onSave: (): void => { this.handleSave() } })
           Blank().height(40)
         }.width("100%")

@@ -78,6 +78,10 @@ export { LlmConfig } from './llm/LlmConfig';
 export { LlmClient } from './llm/LlmClient';
 export { LlmError } from './llm/LlmTypes';
 export type { ChatMessage, LlmCallOptions, LlmErrorKind } from './llm/LlmTypes';
+
+// ========== OCR 端点配置 (2026-07-17 P0 修复) ==========
+//   OcrConfig:  单例, preferences 持久化 endpoint + enabled, 真机部署改 IP
+export { OcrConfig } from './ocr/OcrConfig';
 // ========== 锟斤拷锟捷匡拷 (锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷) ==========
 export { DatabaseHelper } from './DatabaseHelper';
 

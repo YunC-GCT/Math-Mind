@@ -55,13 +55,14 @@ export class TypeClassifier {
 
     let baseText: string = '';
     if (payload.kind === 'image') {
-      const tool = new OcrTool();
+      // P0 修复: 传 context 让 OcrTool 走 OcrConfig 拿 endpoint
+      const tool = new OcrTool(getContext());
       baseText = await tool.recognize(payload.imageUri);
       return this.mergeUserText(baseText, payload.userText);
     }
 
     if (payload.mimeType.startsWith('image/')) {
-      const tool = new OcrTool();
+      const tool = new OcrTool(getContext());
       baseText = await tool.recognize(payload.fileUri);
     }
     return this.mergeUserText(baseText, payload.userText);

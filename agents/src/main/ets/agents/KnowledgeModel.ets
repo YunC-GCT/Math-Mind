@@ -67,16 +67,20 @@ export class KnowledgeModel {
 
   /**
    * 主入口：AI 自分词 + 结构化 + 真值检验，返回主线 KnowledgeUnit。
+   *
+   * P0 修复: type/subject 不再被忽略，作为 hint 注入到 AI prompt。
+   * TypeClassifier 已做过 3 类分类 (概念/计算/证明) + 学科判定 (高代/数分/几何)，
+   * KnowledgeModel 不该再做完全独立的 5 类自分词 — 把分类作为 hint 给 AI 参考。
    */
   async structure(
     ocrText: string,
-    _type?: string,
-    _subject?: string,
+    type?: string,
+    subject?: string,
     chapter: string = '',
   ): Promise<KnowledgeUnit> {
     const startTime: number = Date.now();
 
-    const aiRaw: AiRawResponse = await this.callAi(ocrText);
+    const aiRaw: AiRawResponse = await this.callAi(ocrText, type, subject);
     const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.title, ocrText);
     ext.fields = aiRaw.fields;
     ext.tags = this.buildTags(aiRaw);
@@ -156,8 +160,15 @@ export class KnowledgeModel {
   private uuid(): string {
     return 'KB-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
   }
-  private async callAi(ocrText: string): Promise<AiRawResponse> {
-    const prompt: string = this.buildPrompt(ocrText);
+  private async callAi(ocrText: string, typeHint?: string, subjectHint?: string): Promise<AiRawResponse> {
+    // P0 修复: 把 TypeClassifier 的分类结果作为 hint 注入 prompt
+    const hint: string = (typeHint !== undefined && typeHint.length > 0) || (subjectHint !== undefined && subjectHint.length > 0)
+      ? '\n\n## 分类 hint (来自 TypeClassifier 粗分类, AI 自行决定是否采纳)\n' +
+        '- 粗分类: ' + (typeHint ?? '未知') + '\n' +
+        '- 学科: ' + (subjectHint ?? '未知') + '\n' +
+        '你可以参考, 也可以独立判断, 以你看到的题目内容为准。'
+      : '';
+    const prompt: string = this.buildPrompt(ocrText) + hint;
 
     const systemMsg: ChatMessage = { role: 'system', content: prompt };
     const userMsg: ChatMessage = { role: 'user', content: ocrText };
@@ -167,7 +178,7 @@ export class KnowledgeModel {
     const rawContent: string = await client.call(messages);
 
     if (!rawContent || rawContent.length === 0) {
-      throw new Error('AI ' + '\u8FD4\u56DE\u4E3A\u7A7A\uFF1Acontent \u4E3A\u7A7A');
+      throw new Error('AI 返回为空:content 为空');
     }
 
     const parsed: Record<string, Object> = JSON.parse(rawContent) as Record<string, Object>;
