@@ -1,339 +1,462 @@
-# MathMind · 当前状态
+# MathMind · 数学学习助手
 
-> 工程: YunC-GCT/Math-Mind · 5 module HarmonyOS 数学学习助手  
-> 创建/维护: Z(由 Mavis 代笔) · 最近更新: 2026-07-15
+> 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
+> 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z(由 Mavis 代笔)
+> 最近更新: 2026-07-17
 
 ---
 
-## 当前状态总览
+## 一、当前状态总览
 
-### 已实现 ✅
+MathMind 是一个 HarmonyOS 数学学习助手,通过 **拍照 → OCR → AI 分类 → 知识结构化 → 持久化 → 复习**的整链,把"看到的数学题"变成"可复习的知识"。
+
+### 1.1 已实现功能
 
 | 功能 | 说明 | 验证方式 |
 |------|------|---------|
-| 首页 5 Tab 导航 | 首页/笔记/AI/复习/我的 | DevEco 运行可见 |
-| CameraOverlay 拍照 | `cameraPicker.pick()` 华为系统相机，模拟器降级 mock | 真机点快门拉起系统相机 |
-| CameraOverlay 相册 | `PhotoViewPicker.select()` 系统图库 | 模拟器点 🖼 按钮 |
-| AgentFloatWindow 真实 AI | `LlmClient.call()` → DeepSeek，支持 V3/V4 | 设置页配 API Key → 发消息 |
-| AI 设置页 | 端点切换/模型选择/API Key/参数调优/测试连接 | 我的 → 设置 |
-| Dispatcher 调度 | `dispatch()` 串联 TypeClassifier→KnowledgeModel | 代码完整但未端到端调通 |
-| NoteDetailOverlay | 笔记详情浮层，Markdown 解析 | 首页点笔记卡片 |
+| **拍照→AI 整链** ✨ | 拍照 → OCR → 分类 → 结构化 → 入库,全自动 | 真机拍照,Toast 提示笔记生成 |
+| 5 Tab 底部导航 | 首页 / 笔记 / AI / 复习 / 我的 | DevEco 运行可见 |
+| 拍照浮层 | `cameraPicker.pick()` 调系统相机,模拟器降级 mock | 真机点快门 |
+| 相册选图 | `PhotoViewPicker.select()` 调系统图库 | 模拟器点相册按钮 |
+| AI 浮窗真实对话 | `LlmClient.call()` → DeepSeek 官方,支持 V3.2 / R1 / V4-Pro / V4-Flash | 设置页配 API Key → 发消息 |
+| AI 设置页 | API Key 显隐 / 测试连接 / 参数调优 / 恢复默认 | 我的 → 模型配置 |
+| 学习计划 | PlanListView + PlanInputBar + PlanStatsBar + DAO + ViewModel | 我的 → 学习计划 |
+| 笔记详情浮层 | 章节解析 + 标签 + AI 卡 + 操作栏 + 删除 | 首页/笔记页点卡片 |
+| 进度环呼吸光晕 | Canvas 渐变弧 + 三角波呼吸动画 | 首页 |
+| 浮窗键盘避让 | 监听 keyboardHeightChange + `.translate` 动态上移 | AI 浮窗聚焦输入框 |
+| LLM 配置持久化 | `preferences` 存储,启动恢复 | 重启 App 配置保留 |
 
-### 待实现 ❌
+### 1.2 待实现 / 验证
 
-| 功能 | 阻塞原因 | 负责人 |
+| 任务 | 阻塞 / 状态 | 负责人 |
 |------|---------|--------|
-| Capture-to-AI chain | OCR/classification side is connected; `AgentFloatWindow` still needs to call `AiService.capture()` when sending images | Mavis |
-| 知识建模+入库 | `KnowledgeModel.ets` stub（有 `structure()` 但未调 DB） | L |
-| 笔记数据库 | `NoteDao.ets` 空壳 | L |
-| HTTP 客户端 | `ApiClient.ets` 已实现（未使用） | Mavis |
+| 整链真机端到端验证 | 整链代码已就位,需真机拍照 1 张图看是否入库 + 列表显示 | Z |
+| StudyPlan LLM 自动生成 | 数据库/ViewModel 已就位,缺 UI 触发调用 LLM | L |
+| 真机 V4 模型验证 | 需要 DeepSeek 官方 API Key 余额 | 用户 |
+
+### 1.3 历史 bug 全部解决
+
+- ✅ Index.ets `onCameraConfirm` 不调 `AiService.capture()` 整链缺最后 1 公里 — `5b6f155` 已修
+- ✅ KnowledgeModel 从 stub → 真实实现(MVP 合并 644 行) — `81a6ef6`
+- ✅ NoteDao 从空壳 → 完整 CRUD — `81a6ef6`
+- ✅ LlmConfig 默认值 / 保存 / 加载 — 之前修过
+- ✅ Index.ets AI Tab 跳转占位 — `321762c` 已修
 
 ---
 
-## 一、完成的工作
-
-### 1.1 W0 末 · 5 module 工程搭起来 (commit `bfaa8e5`)
+## 二、5 module 工程结构
 
 ```
 MathMind/
-├── entry/       # HAP · type:entry    主 App
-├── common/      # HSP · shared        共享类型 + 工具
-├── agents/      # HSP · shared        核心业务 Agent
-├── skill/       # HAP · type:feature  小艺 Skill
-└── cardservice/ # HAP · type:feature  元服务卡片
+├── entry/        # HAP · type:entry      主 App(UI + 浮层 + 数据库 + ViewModel)
+├── common/       # HSP · shared          共享类型 + 工具 + LLM + MockData
+├── agents/       # HSP · shared          OCR/分类/知识建模 pipeline
+├── skill/        # HAP · type:feature    小艺 Skill
+└── cardservice/  # HAP · type:feature    元服务卡片
 ```
 
-编译: 5/5 module BUILD SUCCESSFUL · entry 显示 "Hello from common v1! | v0.0.1"
-
-### 1.2 W1 块 2 · common 共享层 + 工具 (5 commits)
-
-- `fc889f6` feat(z-w1-file1): **CommonTypes** 共享类型 (KnowledgeUnit / ReviewRecord / KGNode / KGEdge / AgentTask / AgentResponse / ApiError + 3 enum)
-- `127343c` feat(z-w1-file2): **logger** 统一日志
-- `3c729e2` feat(z-w1-file3): **uuid** 生成
-- `68b8c5b` feat(z-w1-file4): **timeWindow** 时间窗工具
-- `ccb1345` feat(z-w1-file5): **confidenceSort** 置信度排序
-- `610c9d2` docs: README 全面改写 (W0 阶段说明 + W1 进度 + 接手指南)
-- `d6220c4` merge: feature/z-w1-block2 → main
-
-### 1.3 GitHub Web 标题修订
-
-- `31eaa04` Update project title in README to include '源码' — 作者 YunCeH
-- `88fbb99` Update project title in README.md — 作者 shi
-
-### 1.4 D1 精简拍照链骨架 + 编译验证 (2026-07-13 17:48)
-
-**做了什么**: 8 个目标文件全部建好空壳 + DevEco build 验证通过。
-
-**8 个文件当前位置**:
-
-| 文件 | 责任 | 当前内容 |
-|------|------|---------|
-| `entry/database/NoteDao.ets` | L | ❌ 空壳 — TODO(A1) |
-| `entry/services/ApiClient.ets` | Mavis | ✅ 已实现 — HTTP request() + JWT + 401 重试 |
-| `entry/services/AiService.ets` | Mavis | DONE - `capture()` builds image payload -> Dispatcher and calls NoteDao insert |
-| `entry/overlays/CameraOverlay.ets` | Mavis | ✅ 完整 — CameraPicker/PhotoViewPicker + UI |
-| `agents/core/Dispatcher.ets` | Mavis | ✅ 完整 — dispatch() 调度链 TypeClassifier→KnowledgeModel |
-| `agents/agents/TypeClassifier.ets` | D | DONE - image/file uses OcrTool, text goes straight to classifier, LLM failures use rule fallback |
-| `agents/agents/KnowledgeModel.ets` | L | ⚠️ stub — structure() 返 mock KnowledgeUnit |
-| `agents/mcp/tools/OcrTool.ets` | D | DONE - calls local FastAPI `/api/v1/ocr/recognize`, merges text + LaTeX formulas |
-
-D-side OCR/classification shells have been replaced by the real local OCR pipeline; L-side KnowledgeModel/NoteDao still need quality and persistence work.
-
-**新目录**(按 DIRECTORY_MAP 精简链布局):
-- `agents/src/main/ets/agents/`
-- `agents/src/main/ets/core/`
-- `agents/src/main/ets/mcp/tools/`
-- `entry/src/main/ets/database/`
-- `entry/src/main/ets/overlays/`
-- `entry/src/main/ets/services/`
-
-**编译验证**: `hvigor BUILD SUCCESSFUL in 24 s 709 ms`
-- common HSP / agents HSP / entry HAP / skill HAP / cardservice HAP **5/5 全过**
+编译状态: 5/5 module BUILD SUCCESSFUL(走 DevEco Studio GUI,不走命令行 hvigorw)。
 
 ---
 
-### 1.5 S_1 · 首页 UI + 底部导航 (commit `02cabf2` ~ `eeb5cb2`)
+## 三、已完成的工作(按时间顺序)
 
-**当前文件结构**:
+### 3.1 W0 · 工程搭建 (commit `bfaa8e5`)
+
+5 module HarmonyOS 工程脚手架建好,5/5 module 编译通过。
+
+### 3.2 W1 公共层 (5 commits, 2026-07-13)
+
+合并 PR `d6220c4`(feature/z-w1-block2 → main):
+
+| Commit | 内容 |
+|--------|------|
+| `fc889f6` | **CommonTypes** 共享类型(KnowledgeUnit / ReviewRecord / KGNode / KGEdge / AgentTask / AgentResponse + 3 enum) |
+| `127343c` | **logger** 统一日志工具 |
+| `3c729e2` | **uuid** 生成工具 |
+| `68b8c5b` | **timeWindow** 时间窗工具 |
+| `ccb1345` | **confidenceSort** 置信度排序工具 |
+
+### 3.3 D1 精简拍照链骨架 (2026-07-13)
+
+8 个目标文件全部建好空壳 + DevEco build 验证通过。后续 D + L 接手填真实现。
+
+### 3.4 W1 · 5 Tab + 浮层 UI (2026-07-14)
+
+- `Index.ets` — 5 Tab 装配,沉浸式状态栏
+- `HomePage.ets` — Hero + 进度环 + 笔记列表 + FAB
+- `CameraOverlay.ets` — 拍照/相册/快门/重拍/确认
+- `AgentFloatWindow.ets` — AI 对话(已接 LlmClient,真实回复)
+- `NoteDetailOverlay.ets` — 笔记详情(章节解析 + AI 卡)
+
+### 3.5 center 合并 · AI 设置页 + DeepSeek V4 (2026-07-14)
+
+`53b09c0` merge: center → main
+
+- **AiSettingsPage** — 端点/模型/API Key/参数/测试连接
+- **LlmConfig 运行时配置** — `saveAll()` + `loadAll()` 持久化
+- **DeepSeek V4 模型** — `deepseek-v4-flash` / `deepseek-v4-pro`
+- **全 Agent 接入 DeepSeek** — TypeClassifier 通过 `LlmClient.call()` 调 LLM
+
+### 3.6 CameraOverlay · 真实 CameraPicker (2026-07-14)
+
+- `9db3309` `cameraPicker.pick()` 系统相机(无需 CAMERA 权限)
+- `56229ec` `cameraPosition: CAMERA_POSITION_BACK` 枚举 + 空值防护
+- `e155fae` 相册 SVG + 快门 MINT 色 + 模拟器 toast
+- `33d3a5d` + `40508ae` module.json5 加 CAMERA + INTERNET 权限
+
+### 3.7 AgentFloatWindow · 真实 LLM (2026-07-14)
+
+- `7e3f4da` `realReply()` 替代 mock: `LlmClient.call()` → DeepSeek
+- 系统提示词: "你是 MathMind AI 助手,用简洁中文回答数学问题,适当使用 LaTeX"
+- 错误分类: `NO_API_KEY` / `NETWORK_ERROR` / 其他(截断显示)
+
+### 3.8 编译修复 + 代码清理 (2026-07-14)
+
+- `ef0cca3` 类型重命名 `DispatchPayloadImage → ImagePayload` + 桶导出对齐
+- `1a1f8a7` LlmClient 错误序列化改 `(e as Error).message`
+- `8053cfa` AiSettingsPage save 后 `loadConfig()` 刷新 UI
+- 删 `ingestImage()` + mock reply 残留
+
+### 3.9 Local OCR pipeline 接入 TypeClassifier (2026-07-15)
+
+`babdba8` 本地 OCR HTTP 客户端:
+
+- `OcrTool.ets` 改用 HarmonyOS `http.request()` + `multiFormDataList` 上传图片
+- 默认端点 `http://127.0.0.1:8000/api/v1/ocr/recognize`(模拟器/真机改成工作站 LAN IP)
+- 合并 OCR 文本 + LaTeX 公式
+- TypeClassifier 调 DeepSeek 返回 `{ type, subject, chapter, confidence }`,失败降级本地规则
+
+### 3.10 Z 端 refactor · pages 重组 + MVP 合并 (2026-07-17)
+
+`81a6ef6 refactor: organize pages and merge MVP knowledge model`
+
+**(A) Pages 重组** — 单文件 pages/ → 每个 page 一个子文件夹:
+
+| 改前 | 改后 |
+|------|------|
+| `pages/HomePage.ets` | `pages/Home/HomePage.ets` + `HomeTopBar.ets` + `HomeRecentNotes.ets` |
+| `pages/MePage.ets` | `pages/Profile/ProfilePage.ets` + `ProfileHeader.ets` + `ProfileStatsRow.ets` + `ProfileMenuList.ets` + `ProfileMenuItemRow.ets` |
+| `pages/NotesPage.ets` | `pages/Notes/NotesPage.ets` + `NotesHeader.ets` + `NotesList.ets` + `NotesEmptyState.ets` |
+| `pages/ReviewPage.ets` | `pages/Review/ReviewPage.ets` |
+| `pages/StudyPlanPage.ets` | `pages/StudyPlan/PlanHeader.ets` + `PlanInputBar.ets` + `PlanListView.ets` + `PlanStatsBar.ets` + `StudyPlanPage.ets` |
+| `pages/AiSettingsPage.ets` | `pages/AiSettings/AiSettingsPage.ets` + `ActionBar.ets` + `ConnectionStatus.ets` + `EndpointPicker.ets` + `KeyInput.ets` + `ModelPicker.ets` + `SectionHeader.ets` |
+
+**(B) MVP 合并 + 归档**:
+- `KnowledgeModelMVP.ets` 合并进 `KnowledgeModel.ets`(644 行变更)
+- 所有 `*MVP.ets` 文件移到 `archive/mvp-experiments/`
+- 测试文件 `KnowledgeModelMVP.test.ets` → `KnowledgeModel.test.ets`(89 行新测试)
+- 静态检查: active source 无 `*MVP.ets` / 无旧符号引用 / 相对 import 检查通过
+
+**(C) 配套 refactor**(近期 15 个 commit):
+- `616a219` 拆 Home + Agent 浮窗组件
+- `60c958f` 拆 chat 模型 + 文本清理器(ChatTextSanitizer)
+- `a523f1b` 笔记详情删除接入
+- `8652b87` 聊天气泡回调加固(214 行)
+- `321762c` 修 AI Tab 跳转占位(`lastContentIndex`)
+- `753d7ad` 移除 C 风格 logger 循环
+- `94101d0` + `1f4bd93` 进度环定时器(revert + 重做)
+- `d18a76d` + `67deb32` 笔记详情章节/操作拆分
+- `679aa17` + `dbad0da` 学习计划行交互修复 + 行操作
+- `675eca5` 学习计划页面组件拆分
+- `f9470e8` 替换内联 emoji 图标
+- `826c562` 数据流硬化
+
+### 3.11 整链接入 · 拍照→AI→入库 端到端 (2026-07-17) ✨
+
+`5b6f155 feat(p0): Index.ets 接入拍照→AI 整链`
+
+整链最后 1 公里接通:
+- `Index.ets onCameraConfirm` 调 `new AiService(ctx).capture(uri)` 触发完整 pipeline
+- 成功 Toast "笔记已生成: {title}",失败 Toast "处理失败: {errMsg}" 截断 80 字符
+- 拍照确认仍回 AI 浮窗,流程不变
+
+```
+拍照(imageUri) 
+  → AiService.capture() 
+  → ImageUriResolver.resolve()        // file:// URI 复制到沙箱
+  → Dispatcher.dispatch()              // 调度
+    → TypeClassifier.classify()        // OCR + DeepSeek 3×3 分类
+      → OcrTool.recognize()            // 本地 FastAPI HTTP
+    → KnowledgeModel.structure()       // 模板填充 + 真值检验
+  → NoteDao.insert()                   // 入 RDB (knowledge_unit)
+  → Toast 提示用户
+```
+
+**这是 W0 以来工程最关键的一步** — 之前 D + L 的所有 stub 全部填好,只需 Index.ets 调一次。
+
+---
+
+## 四、当前文件结构(2026-07-17 最新)
 
 ```
 entry/src/main/ets/
-├── pages/
-│   ├── Index.ets               # 主容器: 5 Tab 底部导航 + 全局浮层管理
-│   ├── HomePage.ets            # 首页: Hero 问候 + 进度环 + 最近笔记 + FAB
-│   ├── NotesPage.ets           # 笔记列表页
-│   ├── ReviewPage.ets          # 复习页
-│   └── MePage.ets              # 我的页
-├── overlays/
-│   ├── CameraOverlay.ets       # 拍照浮层 (CameraPicker + 系统相册)
-│   ├── AgentFloatWindow.ets    # AI 对话浮窗 (LlmClient→DeepSeek 真实回复)
-│   └── NoteDetailOverlay.ets   # 笔记详情浮层 (全屏)
-├── components/
-│   ├── HexLogo.ets             # 6 边形 Logo SVG
-│   └── notes/
-│       └── notesData.ets       # 共享笔记数据 (NOTES_MOCK + 选中状态)
-├── database/
-│   └── NoteDao.ets             # 数据库 DAO (空壳, 待实现)
+├── pages/                              # 每个 page 一个子文件夹
+│   ├── Index.ets                       # 主容器: 5 Tab + 全局浮层 + 整链触发
+│   ├── Home/                           # 首页(拆 3 个组件)
+│   │   ├── HomePage.ets
+│   │   ├── HomeTopBar.ets
+│   │   └── HomeRecentNotes.ets
+│   ├── Notes/                          # 笔记列表(拆 4 个组件)
+│   │   ├── NotesPage.ets
+│   │   ├── NotesHeader.ets
+│   │   ├── NotesList.ets
+│   │   └── NotesEmptyState.ets
+│   ├── Profile/                        # 我的(原 MePage,拆 5 个组件)
+│   │   ├── ProfilePage.ets
+│   │   ├── ProfileHeader.ets
+│   │   ├── ProfileStatsRow.ets
+│   │   ├── ProfileMenuList.ets
+│   │   └── ProfileMenuItemRow.ets
+│   ├── Review/                         # 复习
+│   │   └── ReviewPage.ets
+│   ├── StudyPlan/                      # 学习计划(拆 4 个组件)
+│   │   ├── StudyPlanPage.ets
+│   │   ├── PlanHeader.ets
+│   │   ├── PlanInputBar.ets
+│   │   ├── PlanListView.ets
+│   │   └── PlanStatsBar.ets
+│   └── AiSettings/                     # AI 设置(拆 6 个组件)
+│       ├── AiSettingsPage.ets
+│       ├── ActionBar.ets
+│       ├── ConnectionStatus.ets
+│       ├── EndpointPicker.ets
+│       ├── KeyInput.ets
+│       ├── ModelPicker.ets
+│       └── SectionHeader.ets
+├── overlays/                           # 顶层浮层(被 Index 引用)
+│   ├── AgentFloatWindow.ets            # 18021 bytes · 真实 LLM
+│   ├── CameraOverlay.ets               # 真实 cameraPicker
+│   └── NoteDetailOverlay.ets           # 5 子组件拆分
+├── prototypes/                          # 独立完整的页面级 UI 原型
+│   ├── AgentFloatWindow.ets
+│   ├── CameraOverlay.ets
+│   ├── NoteDetailOverlay.ets
+│   ├── AgentMessageList.ets
+│   ├── NoteDetailOverlay/              # 5 个子组件
+│   └── chat/                           # AI 浮窗 8 个子组件
+│       ├── ChatBubble.ets
+│       ├── ChatHeader.ets
+│       ├── ChatModels.ets
+│       ├── ChatSession.ets
+│       ├── ChatTextSanitizer.ets
+│       ├── EmptyStateHint.ets
+│       ├── MessageInput.ets
+│       ├── QuickSuggestions.ets
+│       ├── SessionBar.ets
+│       └── TypingIndicator.ets
+├── components/                          # 旧 atom 命名(已废弃)
+│   └── HexLogo.ets
+├── atoms/                               # 16 个原子组件
+│   ├── AiTabButton / AppIcon / CameraAlbumBtn / CameraBackBtn
+│   ├── CameraCloseBtn / CameraConfirmBtn / CameraShutterBtn
+│   ├── ConfBadge / FloatingButton / GradientRing
+│   ├── HexLogo / PageHeader / PriorityBadge / StatsBox
+│   ├── TabButton / ViewfinderCorners
+├── molecules/                           # 7 个分子组件
+│   ├── CameraCapture.ets
+│   ├── CameraPreview.ets
+│   ├── HeroBanner.ets
+│   ├── NoteCard.ets
+│   ├── PlanItemRow.ets
+│   ├── ReminderBanner.ets
+│   └── TabBar.ets
+├── database/                            # RDB 数据访问
+│   ├── DatabaseHelper.ets               # RDB 封装
+│   ├── NoteDao.ets                      # 8336 bytes · 完整 CRUD
+│   └── StudyPlanDao.ets                 # 5164 bytes · 学习计划 DAO
+├── viewmodels/
+│   └── StudyPlanViewModel.ets           # 7869 bytes · MVVM
 ├── services/
-│   ├── ApiClient.ets           # HTTP 客户端 (✅ 已实现)
-    `-- AiService.ets           # AI service (capture is wired to Dispatcher; UI image send still needs to call it)
-├── entryability/
-│   └── EntryAbility.ets        # 应用入口
-└── entrybackupability/
-    └── EntryBackupAbility.ets  # 备份入口
+│   ├── ApiClient.ets                    # HTTP 客户端
+│   ├── AiService.ets                    # 3414 bytes · 整链入口
+│   └── ImageUriResolver.ets             # file:// URI 沙箱化
+└── utils/
+    └── NoteItemMapper.ets               # NoteItem ↔ KnowledgeUnit
+
+common/src/main/ets/
+├── models/                              # 共享类型(KnowledgeUnit + 5 个 enum)
+├── constants/                           # ColorTokens / 字号 / 间距
+├── tools/                               # logger / uuid / timeWindow / confidenceSort
+├── data/                                # MockNotes
+└── llm/                                 # LlmConfig + LlmClient(OpenAI 兼容)
+
+agents/src/main/ets/
+├── agents/
+│   ├── TypeClassifier.ets               # OCR + DeepSeek 3×3 分类
+│   └── KnowledgeModel.ets               # 644 行 · AI 结构化 + 真值检验
+├── core/
+│   └── Dispatcher.ets                   # D1 精简链调度
+└── mcp/tools/
+    └── OcrTool.ets                      # 本地 FastAPI HTTP
 ```
 
-**Index.ets — 5 Tab 底部导航**:
-- `首页` / `笔记` / `AI` / `复习` / `我的`
-- AI Tab 为中央渐变凸起圆 (mint→purple gradient + 发光阴影)
-- 对照 Web MVP `.tabbar` CSS: `height:74px` `backdrop-filter:blur(24px)` `border-top`
-- 沉浸式状态栏 (窗口延伸到 status bar 区域)
+---
 
-**HomePage — 首页**:
-- Header: 日期 + 问候语 ("下午好 ☀️")
-- Hero 卡片: 连续天数 + 学习统计 (🔥/📝/⏱)
-- 学习进度: Canvas 绘制的多色进度环 (mint/purple/amber 分别对应高代/数分/解析几何)
-- 最近笔记列表: 可滚动, 每项显示标题 + 学科类型 chip + 日期
-- 点击笔记项 → 弹 NoteDetailOverlay
-- 右下 FAB [+] 按钮 → 弹 CameraOverlay
+## 五、整链架构(端到端流程)
 
-**NotesPage — 笔记列表**:
-- 顶栏搜索框 + 筛选 chips (全部/高代/分析/几何)
-- 卡片列表: 标题 + 学科·类型 + 置信度徽章 + 日期
-- 点击卡片 → 弹 NoteDetailOverlay
+### 5.1 完整 pipeline
 
-**ReviewPage / MePage**:
-- 基础布局就位, 待后续填充内容
+```
+用户拍照
+  ↓
+CameraOverlay.onConfirm(imageUri)
+  ↓
+Index.ets onCameraConfirm              [5b6f155]
+  ↓ new AiService(ctx).capture(uri)
+AiService.capture()                    [services/AiService.ets]
+  ↓ ImageUriResolver.resolve()         [services/ImageUriResolver.ets]
+  ↓ Dispatcher.dispatch()               [agents/core/Dispatcher.ets]
+    ↓ TypeClassifier.classify()        [agents/agents/TypeClassifier.ets]
+      ↓ OcrTool.recognize()             [agents/mcp/tools/OcrTool.ets]
+        ↓ http://127.0.0.1:8000/api/v1/ocr/recognize
+        ↓ 返回 {text, formulas}
+      ↓ DeepSeek LlmClient 分类        [common/llm/LlmClient.ets]
+        ↓ 失败降级本地规则
+    ↓ KnowledgeModel.structure()        [agents/agents/KnowledgeModel.ets]
+      ↓ AI 自分词 → Schema 填充
+      ↓ truthCheck(花括号/LaTeX/除零/方程)
+  ↓ NoteDao.insert()                    [entry/database/NoteDao.ets]
+    ↓ relationalStore.insert('knowledge_unit')
+  ↓ Toast 通知用户
+```
+
+### 5.2 整链文件依赖图
+
+```
+Index.ets  ─→  AiService  ─→  Dispatcher  ─→  TypeClassifier  ─→  OcrTool
+                                          ─→  KnowledgeModel
+                              ─→  NoteDao  ─→  DatabaseHelper
+                              ─→  LlmClient  ─→  LlmConfig
+                              ─→  ImageUriResolver
+```
 
 ---
 
-### 1.6 S_3 · 3 个浮层 (commit `b15d960`)
+## 六、LLM 配置
 
-#### 📷 CameraOverlay — 拍照浮层
+### 6.1 端点 + 模型
 
-| 功能 | 状态 |
-|------|------|
-| 全屏弹层 + #CC000000 遮罩 | ✅ |
-| Drag bar (#4B5563) + [✕] 关闭 + "拍照记题" 标题 | ✅ |
-| 📷 相机预览 (纯黑底 + 72sp emoji + 提示文字) | ✅ |
-| 4 角 L 形取景框 (mint 色, 24vp) | ✅ |
-| 快门按钮 76×76 双圈 / 相册按钮 56×56 圆 | ✅ |
-| 状态机: camera ↔ preview | ✅ |
-| preview: "已拍摄"/"从相册选择" + mock uri | ✅ |
-| 重拍 → 回 camera / [✓ 使用此图] → confirm | ✅ |
-| 确认后 → 跳 AI Tab + 弹 AiChatOverlay + 带 pendingImageUri | ✅ |
+| 端点 | URL | 特点 |
+|------|-----|------|
+| DeepSeek 官方(默认) | `https://api.deepseek.com` | V4-Pro/Flash 第一时间可用,128K~1M 上下文 |
+| 自定义 OpenAI 兼容 | 用户自填 | 自建网关/代理 |
 
-#### 💬 AiChatOverlay — AI 对话浮层
+| 模型 | model 名 | 上下文 | 用途 |
+|------|---------|--------|------|
+| DeepSeek-V3.2 | `deepseek-chat` | 128K | 通用对话(默认) |
+| DeepSeek-R1 | `deepseek-reasoner` | 64K | 数学/代码/复杂问题 |
+| DeepSeek-V4-Pro | `deepseek-v4-pro` | 1M | 旗舰推理 |
+| DeepSeek-V4-Flash | `deepseek-v4-flash` | 1M | 更快更便宜 |
 
-| 功能 | 状态 |
-|------|------|
-| 卡片式浮窗 (非全屏, 距底部 96vp, 圆角 20vp, purple 边框) | ✅ |
-| Drag bar + "✦ MathMind AI" + "在线·DeepSeek" subtitle | ✅ |
-| [+] 新对话 / [✕] 关闭按钮 | ✅ |
-| 4 快捷 prompt (📷拍照/📝总结/✏️出题/🔄复习) | ✅ |
-| AI 欢迎消息 (greeting) | ✅ |
-| AI 气泡 (左灰底 purple 浅底) / 用户气泡 (右 mint 渐变) | ✅ |
-| 消息列表 (max-height 240vp, 可滚动) | ✅ |
-| 底部输入框 + 发送按钮 (空时灰/有内容 mint) | ✅ |
-| 空发送 → toast "说点什么吧 ✨" | ✅ |
-| Mock AI 关键词回复 (总结/出题/复习) | ✅ |
-| 拍照回流: CameraOverlay 确认后 → 自动发图 + pending"正在分析..." | ✅ |
-| [+] 新对话 → 清空消息流, 回 greeting | ✅ |
+### 6.2 默认参数
 
-> ⚠️ **Note**: AiChatOverlay 当前是卡片式浮窗 (left:12, right:12, bottom:96vp),  
-> 不是全屏页面跳转。对照 Web MVP `.ai-overlay` CSS:  
-> `position:absolute; left:12px; right:12px; bottom:96px; max-height:420px;`  
-> 需要确认是否符合设计要求。
+- **Temperature**: 0.1
+- **MaxTokens**: 1024
+- **Timeout**: 15s
 
-#### 📄 NoteDetailOverlay — 笔记详情浮层
+### 6.3 持久化
 
-| 功能 | 状态 |
-|------|------|
-| 全屏弹层 + drag bar + 学科·类型 chip + [✕] 关闭 | ✅ |
-| 标题 24sp 粗体 + 日期·章节 meta + 置信度徽章 | ✅ |
-| 置信度圆点颜色: mint (≥85%) / amber (≥60%) / red (<60%) | ✅ |
-| 标签 #tag chips (mint 浅底) | ✅ |
-| `##` Markdown 章节解析渲染 (定义/性质/解法 等) | ✅ |
-| AI 解答卡 → toast "正在呼叫 AI..." | ✅ |
-| 底部操作栏: [删除] / [编辑] / [分享] + toast 反馈 | ✅ |
-| 点 ✕ / 点遮罩 → 关闭 | ✅ |
-| 接入 HomePage + NotesPage 双重触发 | ✅ |
-
-#### 🔗 接入汇总
-
-| 接入点 | 状态 |
-|--------|------|
-| HomePage FAB → CameraOverlay | ✅ |
-| HomePage 笔记卡片 → NoteDetailOverlay | ✅ |
-| NotesPage 卡片 → NoteDetailOverlay | ✅ |
-| AI Tab → AiChatOverlay (不占位) | ✅ |
-| 拍照确认 → 跳 AI Tab + 弹 AiChatOverlay + 图片气泡 | ✅ |
-| Index.ets 集中管理 showCamera / showAI / pendingImageUri | ✅ |
+`preferences` 存储(端点/模型/温度/MaxTokens/Timeout),换设备需重新输入 API Key。
 
 ---
 
-### 1.9 center 分支合并 · AI 设置页 + DeepSeek V4 (2026-07-14)
+## 七、构建与运行
 
-- `53b09c0` merge: center→main — 精简拍照链 D1 + AI 模型配置 + 全 Agent 接入 DeepSeek
-- **AiSettingsPage**（我的 → 设置）: 端点预设（硅基流动 / DeepSeek 官方）、模型选择（V3/R1/V4-Flash/V4-Pro）、API Key 显隐切换、参数调优（Temperature/MaxTokens/Timeout）、一键测试连接
-- **LlmConfig 运行时配置**: `saveAll()` 持久化端点+模型+参数，`loadAll()` 启动时恢复
-- **DeepSeek V4 模型**: `deepseek-v4-flash`（快速便宜）、`deepseek-v4-pro`（推理更强），端点自适应切换 `api.deepseek.com/chat/completions`
-- **全 Agent 接入 DeepSeek**: TypeClassifier 等 Agent 统一通过 `LlmClient.call()` 调 LLM
+### 7.1 构建
 
-### 1.10 CameraOverlay · 接入真实 CameraPicker (2026-07-14)
+- **必须走 DevEco Studio GUI**(Build → Build Hap(s)/APP(s))
+- **不走命令行 `hvigorw`**: 中文路径乱码 + git 工作树状态干扰
+- AI 改完代码只做本地 commit + git status,build 结果等用户报回
 
-- `9db3309` CameraOverlay 接入 `cameraPicker.pick()` 华为系统相机（无需 CAMERA 权限）
-- `56229ec` cameraPosition 用 `camera.CameraPosition.CAMERA_POSITION_BACK` 枚举 + result 空值防护
-- `e155fae` 相册按钮换 SVG 图标 `ic_album.svg` + 快门改 MINT 品牌色 + 模拟器 toast 提示
-- `33d3a5d` + `40508ae` module.json5 加 CAMERA + INTERNET 权限声明，修复合并冲突导致 CAMERA 权限丢失
-- **降级策略**: 模拟器无相机 → catch 降级 mock uri + toast "模拟器不支持相机"
-- **Known limit**: `AiService.capture()` can call Dispatcher now, but `AgentFloatWindow` still sends images through the plain LLM chat path. It should call `AiService.capture(imageUri, userText)` when an image is present.
+### 7.2 整链真机验证流程
 
-### 1.11 AgentFloatWindow · 接入 LlmClient 真实 AI 对话 (2026-07-14)
+1. 启动本地 FastAPI OCR 服务:`formula_api:ocr_router`(端口 8000)
+2. 真机/模拟器跑 MathMind,确保能访问 `127.0.0.1:8000`(模拟器用 LAN IP)
+3. 配置 API Key(我的 → 模型配置 → 测试连接)
+4. 拍张数学题照片
+5. 预期:Toast "笔记已生成: {title}" → 首页/笔记页能看到新笔记
 
-- `7e3f4da` `realReply()` 替代 `mockReply()`: `LlmClient.call()` 调 DeepSeek → AI 气泡显示真实回复
-- 系统提示词: "你是 MathMind AI 助手，用简洁中文回答数学问题，适当使用 LaTeX"
-- 错误分类: `NO_API_KEY` → "请先配置 API Key" / `NETWORK_ERROR` → "网络连接失败" / 其他 → 截断显示
-- 图片预览从输入框左侧移到上方独立行（48×48 缩略图 + "已选图片" + ✕ 取消）
-- 发送文案 "📷 已发送图片" → "分享了一张照片"
-- `6d2b45b` 修复 TextInput 丢 `.layoutWeight(1)` 导致相机/发送按钮被挤出
+### 7.3 GitHub SSH
 
-### 1.12 编译修复 + 代码清理 (2026-07-14)
+走 port 443(`~/.ssh/config` 已配 `Host github.com → ssh.github.com:443`)。
 
-- **类型重命名**: center 合并后 `DispatchPayloadImage→ImagePayload` 等，`ef0cca3` 桶导出对齐
-- **LlmClient**: `1a1f8a7` 错误序列化 `JSON.stringify(e)` → `(e as Error).message`
-- **LlmConfig init 竞态**: `1a1f8a7` `EntryAbility` 补 `.catch()` 错误处理
-- **AiSettingsPage**: `8053cfa` save 后 `loadConfig()` 自动刷新 UI
-- **死代码清理**: 删 `ingestImage()` / `send()`/`sendQuick()` 中的 mock reply 残留
+### 7.4 作者固定
+
+`YunC-GCT <2549237929@qq.com>`(`git config user.name/email` 已配)。
 
 ---
 
-### 1.13 Local OCR pipeline integrated into TypeClassifier (2026-07-15)
-
-- `babdba8` changed `OcrTool.ets` from an empty shell into a local OCR HTTP client using HarmonyOS `http.request()` + `multiFormDataList` to upload image files.
-- Default OCR endpoint is `http://127.0.0.1:8000/api/v1/ocr/recognize`; for emulator/device testing, change it to the workstation LAN IP. If starting `formula_api:ocr_router` directly, the path is `/recognize`.
-- `TypeClassifier.ets` no longer uses mock OCR text: `image` and `file(image/*)` payloads call `OcrTool`, then merge OCR text and LaTeX formulas into `ocrText`.
-- Classification uses the shared `LlmClient` first and asks for `{ type, subject, chapter, confidence }` JSON; missing API key, network errors, and parse failures fall back to local keyword rules.
-- `Dispatcher` flow stays unchanged: `TypeClassifier.classify()` produces real `ocrText`, then `KnowledgeModel.structure()` consumes it.
-- `agents/Index.ets` now exports `OcrTool` and `OcrRecognitionResult` for reuse and tests.
-- Verified: `formula_api.py`, `ocr_text_tool.py`, and `formula_tool.py` compile from source; SDK declarations confirm `multiFormDataList/filePath/remoteFileName`; full ArkTS build was not run because `hvigor/ohpm` is not available in this shell.
-- Remaining UI wiring: when `AgentFloatWindow` sends an image, call `new AiService().capture(imagePreview, inputText)` instead of the plain LLM chat path.
-
----
-
-## 二、待实现 — D1 精简拍照链 (后端链)
-
-> 目标: 拍照 → OCR → DeepSeek 3×3 分类 → 3 模板 → 真值检验 → 入库 → 显示  
-> 整链时序见 `docs/D1_CAPTURE_CHAIN_PLAN.md` · 详细分工见 `docs/TONIGHT_TASKS.md`
-
-### 2.0 3 角色分工总览
-
-| 角色 | 文件数 | 编号 | 关键交付 |
-|------|--------|------|---------|
-| **主+UI** | 4 | A2 + D + E1 + E2 | 拍照按钮 → 出笔记卡 · 整链可跑通 |
-| **分类** | 2 | B1 + B2 | 拍图 → 返回 {3×3 分类, confidence>0.7} |
-| **写笔记** | 2 | A1 + C | 文本+分类 → KnowledgeUnit 入库 · 真值检验标红 |
-
-### 2.1 角色 A · 主+UI (4 文件) — 你 + Mavis
-
-- `entry/src/main/ets/services/ApiClient.ets` (A2) — HTTP 客户端
-- `agents/src/main/ets/core/Dispatcher.ets` (D) — 主 Agent 调度
-- `entry/src/main/ets/services/AiService.ets` (E1) — 拍照调用 Dispatcher
-- `entry/src/main/ets/overlays/CameraOverlay.ets` (E2) — **UI 已完成**, 待接 `AiService.capture()`
-
-### 2.2 角色 B · 分类 (2 文件) — D
-
-- `agents/src/main/ets/mcp/tools/OcrTool.ets` (B1) - local FastAPI OCR workstation client (text + LaTeX)
-- `agents/src/main/ets/agents/TypeClassifier.ets` (B2) - OCR -> DeepSeek/rule-fallback 3x3 classification
-
-### 2.3 角色 C · 写笔记 (2 文件) — L
-
-- `entry/src/main/ets/database/NoteDao.ets` (A1) — RDB 数据访问
-- `agents/src/main/ets/agents/KnowledgeModel.ets` (C) — 模板 + 真值 + 入库
-
-### 2.4 LLM 配置
-
-- **双端点**: SiliconFlow (`api.siliconflow.cn`) / DeepSeek 官方 (`api.deepseek.com`)，设置页一键切换
-- **模型列表**: SiliconFlow → DeepSeek-V3 / R1；DeepSeek 官方 → V4-Flash / V4-Pro
-- Temperature: **0.1** · MaxTokens: [redacted] · Timeout: **5s**
-- **配置持久化**: `preferences` 存储，换设备需重新输入 API Key
-### 2.5 3×3 分类体系 + 3 模板
-
-- 学科: 高等代数 / 数学分析 / 解析几何
-- 类型: 概念 / 计算 / 证明
-- 模板: `concept_v1` (定义/性质/相关概念) / `computation_v1` (题目/解法/答案) / `proof_v1` (命题/证明/要点)
-
----
-
-## 三、下一步待实现
-
-### P0 — 拍照→AI 整链打通
-| 任务 | 文件 | 负责 | 说明 |
-|------|------|------|------|
-| AiService.capture() | AiService.ets | Mavis | DONE - builds image DispatchPayload and calls Dispatcher |
-| Image send wiring | AgentFloatWindow.ets | Mavis | Call `AiService.capture(imagePreview, inputText)` when an image is present |
-| Classification | TypeClassifier.ets | D | DONE - OCR -> DeepSeek/rule-fallback 3x3 classification, stub replaced |
-| 真值建模+入库 | KnowledgeModel.ets | L | 3模板+真值检验+NoteDao INSERT |
-| 数据库 | NoteDao.ets | L | RDB INSERT + queryById |
-| OCR | OcrTool.ets | D | DONE - local FastAPI OCR -> text + LaTeX |
-
-### P1 — 体验增强
-| 任务 | 说明 |
-|------|------|
-| AI 对话历史 | LlmClient.call() 传入最近 N 轮消息 |
-| 真机 CameraPicker 验证 | 华为手机验证系统相机弹出+拍照+返回 |
-
----
-
-## 四、构建与运行
-
-- **build 走 DevEco Studio GUI** (Build → Build Hap(s)/APP(s)),不走命令行 hvigorw (中文路径乱码)
-- **SSH 走 port 443** (`~/.ssh/config` 已配 Host github.com → ssh.github.com:443)
-- **作者固定** `YunC-GCT <2549237929@qq.com>` (`git config user.name/email` 已配)
-
----
-
-## 五、git 规则
+## 八、git 规则
 
 1. **未经明示禁止 push** — 本地 commit 自由,推送必须 leader 点头
-2. commit message 规则: `feat(module):` / `fix(module):` / `docs:` / `merge:`
+2. **commit message 规则**:
+   - `feat(scope): 新功能` · `fix(scope): bug 修复` · `refactor(scope): 重构`
+   - `docs:` · `merge:`
+3. **每个 commit 前必查 `git branch --show-current`** — 不在自己分支不 commit
+4. **DevEco Studio 会自动切分支** — commit 前必须确认当前分支
+5. **回滚走 `git reset --hard HEAD~N`**(user 授权后),reflog 可找回
+
+---
+
+## 九、已归档的 MVP 实验文件
+
+保留作为参考,**不算 active product code**:
+
+```
+archive/mvp-experiments/
+├── agents/src/main/ets/agents/KnowledgeModelMVP.ets   ← MVP 合并后已空
+├── agents/src/main/ets/core/DispatcherMVP.ets
+├── entry/src/main/ets/database/DatabaseHelperMVP.ets
+├── entry/src/main/ets/database/NoteDaoMVP.ets
+├── entry/src/main/ets/overlays/AgentFloatWindowMVP.ets
+├── entry/src/main/ets/pages/AiTestPage.ets
+├── entry/src/main/ets/pages/AiTestPageMVP.ets
+├── entry/src/main/ets/pages/IndexMVP.ets
+└── entry/src/main/ets/services/AiServiceMVP.ets
+```
+
+未来决定: 团队确认不再需要后整体删除。
+
+---
+
+## 十、下一步计划
+
+### 🔴 P0 · 整链真机验证
+- [ ] 启动本地 FastAPI OCR 服务
+- [ ] 真机/模拟器拍张数学题照片
+- [ ] 验证:Toast 提示 + 首页/笔记页显示新笔记
+- [ ] 失败兜底:任意一环报错,Toast 提示
+
+### 🟡 P1 · 体验增强
+- [ ] StudyPlan LLM 自动生成(ViewModel 已有,接 LLM)
+- [ ] AI 浮窗历史持久化(ChatSession 已有,UI 完整接入)
+- [ ] 拍照后流式 AI 实时反馈
+
+### 🟢 P2 · 已设计待落地
+- [ ] 图标系统 5 个 SVG 改(album bug + ai/review/notes 改 lucide + 删 brand)
+- [ ] AiSettingsPage 重构 · DeepSeek 官方最简版方案
+- [ ] HomePage 进度环 sin 曲线 + 3 统计方块可点
+
+### ⚪ P3 · 清理
+- [ ] `archive/mvp-experiments/` 9 个文件是否保留
+- [ ] `prototypes/` 重命名为 `features/`
+- [ ] `entry/_fb.ets` (1KB untracked) 是什么?
+- [ ] 8 个 `docs/*.html` 预览是否归档(完成设计任务后)
+
+---
+
+## 附录:关键 commit 索引
+
+| 阶段 | 关键 commit |
+|------|------------|
+| W0 脚手架 | `bfaa8e5` |
+| W1 公共层 | `d6220c4` merge |
+| D1 拍照链 | `b15d960` |
+| W1 5 Tab UI | `02cabf2` ~ `eeb5cb2` |
+| center 合并 | `53b09c0` |
+| CameraPicker 接入 | `9db3309` `56229ec` `e155fae` |
+| LlmClient 接入 | `7e3f4da` `6d2b45b` |
+| Local OCR | `babdba8` |
+| Z 端 refactor | `81a6ef6` |
+| **整链接入** ✨ | `5b6f155` |
