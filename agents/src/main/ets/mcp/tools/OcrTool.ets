@@ -106,12 +106,14 @@ export class OcrTool {
   private async requestWithRetry(imageUri: string): Promise<OcrResponse> {
     // P0 修复: 每次请求前重新解析 endpoint, 支持运行时切换
     this.currentEndpoint = await this.resolveEndpoint();
+    console.info('[OcrTool] requestWithRetry endpoint=' + this.currentEndpoint);
     let lastError: string = '';
     for (let i = 0; i < 2; i++) {
       try {
         return await this.postImage(imageUri);
       } catch (e) {
         lastError = e instanceof Error ? e.message : String(e);
+        console.warn('[OcrTool] request attempt ' + (i + 1).toString() + '/' + '2' + ' failed: ' + lastError);
       }
     }
     // 所有重试均失败，返回统一错误结构，保持接口契约一致
@@ -146,8 +148,8 @@ export class OcrTool {
             remoteFileName: fileName,
           },
         ],
-        connectTimeout: 5000,   // 连接超时 5 秒
-        readTimeout: 30000,     // 读取超时 30 秒（图片上传可能较慢）
+        connectTimeout: 10000,   // 连接超时 10 秒
+        readTimeout: 120000,    // 读取超时 2 分钟 (公式识别 CPU 推理 ~28s/张, 需留余量)
       });
 
       // 非 2xx 状态码视为请求失败
