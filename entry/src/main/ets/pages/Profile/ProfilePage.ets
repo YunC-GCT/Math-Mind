@@ -1,3 +1,23 @@
+// ============================================================================
+//  pages/Profile/ProfilePage.ets — 我的页装配层
+//  ----------------------------------------------------------------------------
+//  职责: 拼装"我的"页所有视觉组件,管理数据统计 + 退出登录交互。
+//
+//  数据流:
+//    aboutToAppear → loadStats() (从 RDB 读 KnowledgeUnit → 算 notes/avg/today)
+//    退出登录按钮 → toast 提示(W2 计划接入)
+//
+//  统计计算:
+//    notes:  RDB 总数
+//    today:  createdAt 在今天 0 点到 24 点之间的笔记数
+//    avg:    按 reviewStatus 加权(GRADUATED=95 / REVIEW=86 / LEARNING=72 /
+//            LAPSED=45 / 其他=64),求平均后取整
+//
+//  依赖:
+//    pages:    ProfileHeader / ProfileStatsRow / ProfileMenuList
+//    database: NoteDao + DatabaseHelper
+//  ============================================================================
+
 import {
   BG_DARK,
   S_1, S_4, S_6,
@@ -17,7 +37,10 @@ import { NoteDao } from "../../database/NoteDao"
 
 @Component
 export struct ProfilePage {
+  // 状态栏高度(沉浸式占位)
   @StorageProp("statusBarHeight") sbh: number = 0
+
+  // 统计 3 项
   @State notes: number = 0
   @State avg: number = 0
   @State today: number = 0
@@ -26,10 +49,14 @@ export struct ProfilePage {
     this.loadStats()
   }
 
+  // Toast 工具(失败安全)
   private toast(msg: string): void {
-    try { promptAction.showToast({ message: msg, duration: 2000, bottom: "50%" }) } catch (e) {}
+    try {
+      promptAction.showToast({ message: msg, duration: 2000, bottom: "50%" })
+    } catch (e) { /* toast 失败忽略 */ }
   }
 
+  // 加载统计
   private loadStats = async (): Promise<void> => {
     try {
       const store = await DatabaseHelper.init(getContext(this))
@@ -38,13 +65,15 @@ export struct ProfilePage {
       this.today = this.countToday(units)
       this.avg = this.calcAvg(units)
     } catch (e) {
+      // 降级: 数据库未初始化时全 0
       this.notes = 0
       this.avg = 0
       this.today = 0
-      this.toast("\u7edf\u8ba1\u52a0\u8f7d\u5931\u8d25")
+      this.toast("统计加载失败")
     }
   }
 
+  // 计算今日新增笔记数
   private countToday(units: KnowledgeUnit[]): number {
     const now: Date = new Date()
     const start: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -59,6 +88,7 @@ export struct ProfilePage {
     return count
   }
 
+  // 按 reviewStatus 加权算掌握率
   private calcAvg(units: KnowledgeUnit[]): number {
     if (units.length === 0) { return 0 }
     let total: number = 0
@@ -75,20 +105,33 @@ export struct ProfilePage {
   build() {
     Scroll() {
       Column() {
-        Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
+        // 状态栏占位
+        Row()
+          .width("100%")
+          .height(this.sbh)
+          .backgroundColor(BG_DARK)
+
+        // 头像区
         ProfileHeader()
+
+        // 统计方块行
         ProfileStatsRow({ notes: this.notes, avg: this.avg, today: this.today })
+
+        // 5 菜单
         ProfileMenuList({ onToast: (message: string): void => this.toast(message) })
 
-        Button("\u9000\u51fa\u767b\u5f55")
+        // 退出登录按钮(W2 计划接入)
+        Button("退出登录")
           .fontSize(F_SM)
           .fontColor(DANGER)
-          .width("100%").height(S_6 * 2 - S_1)
+          .width("100%")
+          .height(S_6 * 2 - S_1)
           .backgroundColor(GLASS_8)
           .borderRadius(R_FULL)
           .margin({ left: S_4, right: S_4, top: S_6, bottom: S_6 * 2 - S_1 })
-          .onClick((): void => this.toast("\u9000\u51fa\u767b\u5f55\u529f\u80fd\u5f00\u53d1\u4e2d"))
+          .onClick((): void => this.toast("退出登录功能开发中"))
 
+        // FAB 底部留白
         Blank().height(80)
       }
       .width("100%")

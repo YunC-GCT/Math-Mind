@@ -1,18 +1,64 @@
+// ============================================================================
+//  pages/Profile/ProfileMenuList.ets — 我的页菜单列表
+//  ----------------------------------------------------------------------------
+//  职责: 5 个菜单项的容器(复习计划/错题本/我的收藏/模型/切换账号)。
+//
+//  布局: 卡片式列表,每项 1 行
+//    [图标] [标签]                            [›]
+//
+//  依赖:
+//    pages: ProfileMenuItemRow
+//    common 令牌: BG_CARD / S_2 / S_4 / R_LG
+//
+//  Props:
+//    onToast: 菜单点击回调(子菜单用 toast 提示"开发中","模型"项直接跳路由)
+//  ============================================================================
+
 import { BG_CARD, S_2, S_4, R_LG } from "common"
 import { router } from "@kit.ArkUI"
 import { MenuItemRow } from "./ProfileMenuItemRow"
 
 @Component
 export struct ProfileMenuList {
+  // 菜单点击回调(子菜单传 toast,"模型" 项不走这里)
   onToast: (message: string) => void = (_message: string): void => {}
 
   build() {
     Column() {
-      MenuItemRow({ icon: "review", label: "\u6211\u7684\u590d\u4e60\u8ba1\u5212", onTap: (): void => this.onToast("\u590d\u4e60\u8ba1\u5212\u5f00\u53d1\u4e2d") })
-      MenuItemRow({ icon: "notes", label: "\u9519\u9898\u672c", onTap: (): void => this.onToast("\u9519\u9898\u672c\u5f00\u53d1\u4e2d") })
-      MenuItemRow({ icon: "home", label: "\u6211\u7684\u6536\u85cf", onTap: (): void => this.onToast("\u6536\u85cf\u529f\u80fd\u5f00\u53d1\u4e2d") })
-      MenuItemRow({ icon: "ai", label: "\u6a21\u578b", onTap: (): void => { router.pushUrl({ url: "pages/AiSettings/AiSettingsPage" }) } })
-      MenuItemRow({ icon: "me", label: "\u5207\u6362\u8d26\u53f7", onTap: (): void => this.onToast("\u5207\u6362\u8d26\u53f7\u5f00\u53d1\u4e2d") })
+      // 1. 我的复习计划(W2 计划接入)
+      MenuItemRow({
+        icon: "review",
+        label: "我的复习计划",
+        onTap: (): void => this.onToast("复习计划开发中")
+      })
+
+      // 2. 错题本
+      MenuItemRow({
+        icon: "notes",
+        label: "错题本",
+        onTap: (): void => this.onToast("错题本开发中")
+      })
+
+      // 3. 我的收藏
+      MenuItemRow({
+        icon: "home",
+        label: "我的收藏",
+        onTap: (): void => this.onToast("收藏功能开发中")
+      })
+
+      // 4. 模型配置(已实现,跳 AiSettingsPage)
+      MenuItemRow({
+        icon: "ai",
+        label: "模型",
+        onTap: (): void => { router.pushUrl({ url: "pages/AiSettings/AiSettingsPage" }) }
+      })
+
+      // 5. 切换账号
+      MenuItemRow({
+        icon: "me",
+        label: "切换账号",
+        onTap: (): void => this.onToast("切换账号开发中")
+      })
     }
     .width("100%")
     .backgroundColor(BG_CARD)

@@ -1,3 +1,22 @@
+// ============================================================================
+//  pages/Profile/ProfileHeader.ets — 我的页头像区
+//  ----------------------------------------------------------------------------
+//  职责: 圆形头像 + 用户名 + 副标题(垂直居中)。
+//
+//  布局:
+//    [圆形头像 (M 首字母)]
+//    "Mini"
+//    "数学爱好者 · 学习 30 天"
+//
+//  依赖: common 令牌(MINT / TEXT / TEXT_3 / S_1 / S_3 / S_6 /
+//         F_XS / F_XL / W_BOLD / GLASS_10 / AVATAR_SIZE)
+//
+//  Props:
+//    name:     用户名
+//    subtitle: 副标题
+//    initial:  头像首字母
+//  ============================================================================
+
 import {
   MINT, TEXT, TEXT_3,
   S_1, S_3, S_6,
@@ -9,12 +28,18 @@ import {
 
 @Component
 export struct ProfileHeader {
+  // 用户名
   @Prop name: string = "Mini"
-  @Prop subtitle: string = "\u6570\u5b66\u7231\u597d\u8005 \u00b7 \u5b66\u4e60 30 \u5929"
+
+  // 副标题
+  @Prop subtitle: string = "数学爱好者 · 学习 30 天"
+
+  // 头像首字母
   @Prop initial: string = "M"
 
   build() {
     Column() {
+      // 头像(圆形 + 首字母)
       Stack() {
         Circle({ width: AVATAR_SIZE, height: AVATAR_SIZE })
           .fill(GLASS_10)
@@ -25,11 +50,13 @@ export struct ProfileHeader {
       }
       .margin({ bottom: S_3 })
 
+      // 用户名
       Text(this.name)
         .fontSize(F_XL)
         .fontWeight(W_BOLD)
         .fontColor(TEXT)
 
+      // 副标题
       Text(this.subtitle)
         .fontSize(F_XS)
         .fontColor(TEXT_3)
