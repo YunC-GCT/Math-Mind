@@ -1,5 +1,6 @@
 import { http } from '@kit.NetworkKit';
 import { OcrConfig, fileNameFromUri, mimeFromExtension } from 'common';
+import fileIo from '@ohos.file.fs';
 
 // OCR 识别结果接口：对外暴露的统一返回格式
 export interface OcrRecognitionResult {
@@ -139,26 +140,35 @@ export class OcrTool {
 
   /**
    * 通过 HTTP multipart/form-data 将图片文件上传至 OCR 服务。
-   * 使用 HarmonyOS http 模块完成 POST 请求，请求完成后销毁 http 实例释放资源。
+   * 用手动读文件 + data 字段发送 (multiFormDataList filePath 在沙箱中 upload_size=0)。
    */
   private async postImage(imageUri: string): Promise<OcrResponse> {
     const filePath: string = this.normalizeFilePath(imageUri);
     const fileName: string = fileNameFromUri(filePath);
+    const mimeType: string = mimeFromExtension(fileName);
     const httpReq = http.createHttp();
 
     try {
+      // 手动读文件为 ArrayBuffer (multiFormDataList filePath 在沙箱不可靠)
+      const file: fileIo.File = fileIo.openSync(filePath, fileIo.OpenMode.READ_ONLY);
+      const stat: fileIo.Stat = fileIo.statSync(filePath);
+      const buf: ArrayBuffer = new ArrayBuffer(stat.size);
+      fileIo.readSync(file.fd, buf);
+      fileIo.closeSync(file);
+      console.info('[OcrTool] read file, size=' + stat.size.toString() + ' bytes');
+
       const resp: http.HttpResponse = await httpReq.request(this.currentEndpoint, {
         method: http.RequestMethod.POST,
         multiFormDataList: [
           {
             name: 'file',
-            contentType: mimeFromExtension(fileName),  // 根据后缀自动推断 MIME
-            filePath: filePath,
+            contentType: mimeType,
+            data: buf,
             remoteFileName: fileName,
           },
         ],
-        connectTimeout: 10000,   // 连接超时 10 秒
-        readTimeout: 120000,    // 读取超时 2 分钟 (公式识别 CPU 推理 ~28s/张, 需留余量)
+        connectTimeout: 10000,
+        readTimeout: 120000,
       });
 
       // 非 2xx 状态码视为请求失败
