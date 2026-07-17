@@ -226,13 +226,12 @@ export class KnowledgeModel {
       : '';
     const prompt: string = this.buildPrompt(ocrText) + hint;
 
-    // 截断 OCR 文本
+    const systemMsg: ChatMessage = { role: 'system', content: prompt };
     const truncatedText: string = ocrText.length > 1500 ? ocrText.substring(0, 1500) : ocrText;
-    // system 消息在某些模型/免费 API 不可靠，合并到一条 user 消息
-    const combinedContent: string = prompt + '\n\n## 待分析的数学内容\n' + truncatedText;
-    const messages: ChatMessage[] = [{ role: 'user', content: combinedContent }];
+    const userMsg: ChatMessage = { role: 'user', content: truncatedText };
+    const messages: ChatMessage[] = [systemMsg, userMsg];
 
-    console.info('[KnowledgeModel] callAi: combinedPrompt=' + combinedContent.length.toString() + ' chars');
+    console.info('[KnowledgeModel] callAi: systemPrompt=' + prompt.length.toString() + ' chars, userText=' + truncatedText.length.toString() + ' chars');
     let rawContent: string;
     try {
       const client: LlmClient = new LlmClient();
