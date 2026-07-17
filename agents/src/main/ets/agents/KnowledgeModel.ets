@@ -78,9 +78,46 @@ export class KnowledgeModel {
     subject?: string,
     chapter: string = '',
   ): Promise<KnowledgeUnit> {
-    // 跳过 LLM（DeepSeek 免费 API 对结构化 JSON 持续空响应，TypeClassifier 正常）
-    // 直接用 TypeClassifier 分类结果 + OCR 全文构造笔记
-    return this.buildFallbackFromClassify(ocrText, type, subject, chapter);
+    const startTime: number = Date.now();
+
+    // 尝试 AI 结构化；失败时用已有分类结果构造 fallback 笔记，不丢数据
+    let aiRaw: AiRawResponse;
+    try {
+      aiRaw = await this.callAi(ocrText, type, subject);
+    } catch (aiErr) {
+      console.warn('[KnowledgeModel] AI call failed, using fallback: ' + (aiErr as Error).message);
+      return this.buildFallbackFromClassify(ocrText, type, subject, chapter);
+    }
+    const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.title, ocrText);
+    ext.fields = aiRaw.fields;
+    ext.tags = this.buildTags(aiRaw);
+    ext.difficulty = aiRaw.difficulty;
+    ext.importance = aiRaw.importance;
+    ext.source = chapter.length > 0 ? chapter : 'camera_capture';
+
+    const truthResult: MvpTruthCheckResult = this.truthCheck(ocrText);
+    ext.truthFlag = truthResult.truthFlag;
+    if (!truthResult.truthFlag) {
+      for (let i: number = 0; i < truthResult.details.length; i++) {
+        const item: MvpTruthCheckItem = truthResult.details[i];
+        if (!item.passed) {
+          for (let j: number = 0; j < item.issues.length; j++) {
+            ext.truthDetails.push('[' + item.checkName + '] ' + item.issues[j]);
+          }
+        }
+      }
+    }
+    this.markNeedsUserInput(ext, aiRaw);
+
+    const unit: KnowledgeUnit = this.toKnowledgeUnit(ext, startTime);
+    console.info('[KnowledgeModel] structure done: id=' + unit.id
+      + ' title=' + unit.title
+      + ' category=' + ext.type
+      + ' tags=' + JSON.stringify(unit.tags)
+      + ' contentLen=' + unit.content.length.toString()
+      + ' summary=' + unit.summary
+      + ' aiFields=' + aiRaw.fields.length.toString());
+    return unit;
   }
 
   private toKnowledgeUnit(ext: KnowledgeUnitExt, createdAt: number): KnowledgeUnit {
