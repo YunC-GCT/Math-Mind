@@ -38,6 +38,12 @@ export struct NotesPage {
   // 笔记列表数据
   @State notes: NoteItem[] = []
 
+  // @Watch 回调必须在被监听属性之前以常规方法定义（ArkTS strict 铁律）
+  onNotesVersionChange(): void {
+    console.info('[NotesPage] notesVersion changed, reloading list');
+    this.loadNotes();
+  }
+
   // 全局笔记版本号(AgentFloatWindow 保存笔记后 +1, 触发自动刷新)
   @StorageProp('notesVersion') @Watch('onNotesVersionChange') notesVersion: number = 0
 
@@ -66,12 +72,6 @@ export struct NotesPage {
       AppStorage.setOrCreate('notesVersion', 0);
     }
     this.loadNotes()
-  }
-
-  // notesVersion 变化时重新加载笔记列表
-  private onNotesVersionChange = (): void => {
-    console.info('[NotesPage] notesVersion changed, reloading list');
-    this.loadNotes();
   }
 
   // 加载所有笔记
