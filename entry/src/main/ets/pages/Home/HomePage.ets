@@ -112,6 +112,10 @@ export struct HomePage {
     try {
       const store = await DatabaseHelper.init(getContext(this))
       const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
+      console.info('[HomePage] RDB queryAll: ' + units.length.toString() + ' notes');
+      for (const u of units) {
+        console.info('[HomePage] RDB note: id=' + u.id + ' title=' + u.title + ' contentLen=' + u.content.length.toString());
+      }
       this.notes = unitsToNoteItems(units)
       this.refreshStats()
     } catch (e) {
