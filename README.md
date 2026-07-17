@@ -6,6 +6,38 @@
 
 ---
 
+## 当前状态：拍照→AI→入库 整链已跑通 ✨
+
+选图 → 发送 → OCR 识别 → AI 分类 → 知识结构化 → RDB 持久化 → 笔记列表自动刷新，全链路闭环。
+
+### 已知不足
+
+| 问题 | 详情 | 影响 |
+|------|------|------|
+| **OCR 速度慢** | PaddleOCR PP-FormulaNet CPU 推理 ~28s/张，总耗时约 30s | 用户体验差，需等待 |
+| **OCR 需本地服务** | 依赖 `D:\OCR\MathMind_OCR_v1.0\start.bat` 启动 FastAPI，模拟器需改 IP 为宿主机 LAN | 不能开箱即用 |
+| **文字 OCR 不可用** | Tesseract 未安装，只有公式识别（LaTeX），普通文字行返回空 | 混合图文场景识别不完整 |
+| **LLM 偶发空响应** | KnowledgeModel 的 ~270 行 prompt 偶尔触发 LLM 返回空 content | 笔记降级为基础框架（标题/标签来自 TypeClassifier） |
+| **HarmonyOS HTTP 文件上传** | `multiFormDataList` 的 `filePath` 和 `data` 模式在沙箱中均 `upload_size=0` | 已绕过：手动拼装 multipart 请求体 + `extraData` |
+| **笔记列表不自动刷新** | Tab 切换不触发 `aboutToAppear` | 已修复：`AppStorage.notesVersion` 计数器通知重载 |
+| **没有单元测试** | 整链无自动化验证 | 每次改完需手动 Build→Run→拍照测试 |
+
+### 架构审查修正（2026-07-17）
+
+本次 session 完成 9 项修正，详见 `docs/arch-review-20260717.html`：
+
+- 🔴 **致命**：`Index.ets` 导入旧版 `prototypes/AgentFloatWindow`（无 `captureReply`），拍照链为死代码 → 改为 `overlays/` 版本
+- 🟡 OCR 空占位符泄漏到 LLM prompt → Dispatcher 层直接构造 fallback
+- 🟡 `TypeClassifier.getContext()` 在非 UI 类中越界 → 显式 Context 参数
+- 🟡 MIME 映射逻辑重复 → 提取到 `common/FileUriUtils.ets`
+- 🟡 纯文本对话绕过知识管线 → `realReply` 加 `persistTextNote`
+- 🟡 `captureReply` 缺 API Key 检查 → 对齐 `realReply`
+- ⚪ `ApiClient.ets` 零引用死代码 → 已删除
+- ⚪ `KnowledgeModel` LLM 失败笔记丢失 → 加 `buildFallbackFromClassify`
+- ⚪ OCR `readTimeout` 30s 踩临界线 → 提高到 120s
+
+---
+
 ## 一、当前状态总览
 
 MathMind 是一个 HarmonyOS 数学学习助手,通过 **拍照 → OCR → AI 分类 → 知识结构化 → 持久化 → 复习**的整链,把"看到的数学题"变成"可复习的知识"。
