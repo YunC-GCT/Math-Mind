@@ -240,7 +240,7 @@ export class KnowledgeModel {
       console.info('[KnowledgeModel] callAi response received, len=' + rawContent.length.toString());
     } catch (llmErr) {
       console.error('[KnowledgeModel] callAi LLM error: ' + (llmErr as Error).message);
-      throw llmErr;
+      throw new Error('LLM 调用失败: ' + (llmErr as Error).message);
     }
 
     if (!rawContent || rawContent.length === 0) {
