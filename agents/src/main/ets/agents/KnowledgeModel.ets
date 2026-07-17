@@ -80,7 +80,14 @@ export class KnowledgeModel {
   ): Promise<KnowledgeUnit> {
     const startTime: number = Date.now();
 
-    const aiRaw: AiRawResponse = await this.callAi(ocrText, type, subject);
+    // 尝试 AI 结构化；失败时用已有分类结果构造 fallback 笔记，不丢数据
+    let aiRaw: AiRawResponse;
+    try {
+      aiRaw = await this.callAi(ocrText, type, subject);
+    } catch (aiErr) {
+      console.warn('[KnowledgeModel] AI call failed, using fallback: ' + (aiErr as Error).message);
+      return this.buildFallbackFromClassify(ocrText, type, subject, chapter);
+    }
     const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.title, ocrText);
     ext.fields = aiRaw.fields;
     ext.tags = this.buildTags(aiRaw);
@@ -129,6 +136,49 @@ export class KnowledgeModel {
       related: [],
       embedding: [],
       userId: ext.userId,
+      version: 1,
+    };
+  }
+
+  // AI 调用失败 fallback: 用 TypeClassifier 已有分类结果构造基础笔记
+  // 不调 AI，直接返回 KnowledgeUnit（标题来自 OCR 首行，标签来自分类结果）
+  private buildFallbackFromClassify(
+    ocrText: string, type?: string, subject?: string, chapter: string = '',
+  ): KnowledgeUnit {
+    const now: number = Date.now();
+    const firstLine: string = ocrText.split('\n')[0].trim();
+    const title: string = (firstLine.length > 3 && firstLine.length < 60)
+      ? firstLine
+      : (type !== undefined && type.length > 0 ? type : '笔记')
+        + (subject !== undefined && subject.length > 0 ? ' · ' + subject : '');
+    const tags: string[] = [];
+    if (type !== undefined && type.length > 0) { tags.push(type); }
+    if (subject !== undefined && subject.length > 0) { tags.push(subject); }
+    if (chapter.length > 0) { tags.push(chapter); }
+    const summary: string = ocrText.length > 100
+      ? ocrText.substring(0, 100).replace(/[#*]/g, '').trim()
+      : ocrText.replace(/[#*]/g, '').trim();
+
+    console.info('[KnowledgeModel] fallback note created, title=' + title);
+    return {
+      id: this.uuid(),
+      title: title,
+      content: ocrText,
+      summary: summary,
+      tags: tags,
+      difficulty: DifficultyLevel.MEDIUM,
+      source: chapter.length > 0 ? chapter : 'camera_capture',
+      createdAt: now,
+      updatedAt: now,
+      reviewStatus: ReviewStatus.NEW,
+      nextReviewAt: now + 24 * 60 * 60 * 1000,
+      intervalDays: 1,
+      easeFactor: 2.5,
+      repetitions: 0,
+      prerequisites: [],
+      related: [],
+      embedding: [],
+      userId: '',
       version: 1,
     };
   }
