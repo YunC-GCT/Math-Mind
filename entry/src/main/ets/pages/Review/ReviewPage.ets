@@ -8,7 +8,7 @@ import {
   F_SM, F_BASE, F_2XL, W_SEMIBOLD,
 } from "common"
 import { router } from "@kit.ArkUI"
-import { AppIcon } from "../atoms/AppIcon"
+import { AppIcon } from "../../atoms/AppIcon"
 
 @Component
 export struct ReviewPage {
@@ -30,7 +30,7 @@ export struct ReviewPage {
             Button("打开学习计划").fontSize(F_SM).fontWeight(W_SEMIBOLD)
               .fontColor(BG_DARK).width(140).height(44).borderRadius(R_FULL)
               .linearGradient({ angle: 135, colors: [[MINT, 0], [MINT_DARK, 1]] })
-              .onClick((): void => { router.pushUrl({ url: "pages/StudyPlanPage" }) })
+              .onClick((): void => { router.pushUrl({ url: "pages/StudyPlan/StudyPlanPage" }) })
           }.alignItems(HorizontalAlign.Center).width("100%")
           Blank()
         }.width("100%").height("100%")

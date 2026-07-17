@@ -1,9 +1,4 @@
 /**
- * KnowledgeCategory.ets — 知识最小类类型定义
- *
- * AI 自分词（分类）为以下 5 个最小类之一。
- * 每个最小类对应不同的结构化字段表。
+ * KnowledgeCategory.ets - five structured math knowledge categories.
  */
-
-/** 5 个最小知识类 */
-export type KnowledgeCategory = '概念' | '定理' | '公式' | '证明题' | '计算题';
+export type KnowledgeCategory = '\u6982\u5ff5' | '\u5b9a\u7406' | '\u516c\u5f0f' | '\u8bc1\u660e\u9898' | '\u8ba1\u7b97\u9898';

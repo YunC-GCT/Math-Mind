@@ -1,132 +1,119 @@
-// MathMind - KnowledgeModel (�ʼǽṹ�� + ��ֵ����)
-// ������: C
-// ����: Z
-// ״̬: ʵ�����(2026-07-14) �� ����������
-//
-// �ӿ�:
-//   structure(ocrText, type, subject, chapter): Promise<KnowledgeUnit>
-//
-// ʵ��:
-//   1) ���� type ѡģ�� (3ѡ1)
-//   2) �� LlmClient �ṹ�� �� Markdown
-//   3) ��ֵ����(�������/����/���ʽ/ì�ܵ�ʽ)
-//   4) ���� KnowledgeUnit (����ɵ��÷� AiService ����)
+/**
+ * KnowledgeModel.ets — 知识结构化模型
+ *
+ * 职责：笔记结构化 + 真值检验；持久化由 entry 层 NoteDao 负责
+ * 任务编号: C
+ * 依赖: A1 (NoteDao) + B1 (OcrTool) 完成
+ *
+ * 接口约定:
+ *   structure(ocrText: string): Promise<KnowledgeUnitExt>
+ *
+ * 实现路径（2026-07 新版）:
+ *   1) AI 自分词 → 判断最小类（概念/定理/公式/证明题/计算题）
+ *   2) AI 按各类 Schema 填充结构化字段
+ *   3) 构造 KnowledgeUnitExt (含 id/tags/fields/truthFlag/...)
+ *   4) truthCheck(ocrText) 返回 MvpTruthCheckResult
+ *   5) 转换为主线 KnowledgeUnit 返回
+ *
+ * ArkTS 严格模式约束:
+ *   - 不使用 any/unknown
+ *   - 不使用 as const
+ *   - 对象字面量有显式类型
+ *   - 不使用解构赋值
+ *   - 不使用 spread 运算符
+ *   - 不使用嵌套函数
+ */
 
+import { KnowledgeCategory } from '../models/KnowledgeCategory';
+import { MvpTruthCheckResult, MvpTruthCheckItem } from '../models/TruthCheckResult';
+import {
+  KnowledgeUnitExt,
+  createUnitExt,
+  StructuredField,
+  AiRawResponse,
+} from '../models/KnowledgeUnitExt';
 import {
   KnowledgeUnit,
   DifficultyLevel,
   ReviewStatus,
-  TruthCheckResult,
-  TruthFlag,
   LlmClient,
   ChatMessage,
 } from 'common';
 
-// ���� UUID
-function uuid(): string {
-  return 'KB-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
+// truthCheck internal interfaces
+interface BracePairingResult {
+  valid: boolean;
+  errors: string[];
+  correctedText: string;
 }
 
-// ===== 3 ģ�� =====
+interface LatexCheckDetail {
+  hasError: boolean;
+  issues: string[];
+  correctedBody: string;
+}
 
-const TEMPLATE_CONCEPT: string = `����һ����ѧ֪ʶ�ṹ�����֡��뽫������ѧ�����ı�����Ϊ Markdown ��ʽ��ʹ�����½ṹ:
+interface DivisionByZeroCheck {
+  hasIssue: boolean;
+  issues: string[];
+}
 
-## ����
-(���ĸ���ľ�ȷ����)
-
-## ����
-(�ø������Ҫ���ʣ�ÿ��һ��)
-
-## ��ظ���
-(��֮��ص�������ѧ���ÿ��һ��)
-
-�����ı�:
-`;
-
-const TEMPLATE_COMPUTATION: string = `����һ����ѧ֪ʶ�ṹ�����֡��뽫������ѧ����������Ϊ Markdown ��ʽ��ʹ�����½ṹ:
-
-## ��Ŀ
-(ԭʼ��Ŀ����)
-
-## �ⷨ
-(��ϸ���ⲽ�裬�ֲ��г�)
-
-## ��
-(���ս��)
-
-�����ı�:
-`;
-
-const TEMPLATE_PROOF: string = `����һ����ѧ֪ʶ�ṹ�����֡��뽫������ѧ֤��������Ϊ Markdown ��ʽ��ʹ�����½ṹ:
-
-## ����
-(��֤��������)
-
-## ֤��
-(��ϸ֤�����̣��ֲ��г�)
-
-## Ҫ��
-(֤���еĹؼ������ͼ��ɣ�ÿ��һ��)
-
-�����ı�:
-`;
+interface EquationCheckResult {
+  hasIssue: boolean;
+  issues: string[];
+}
 
 export class KnowledgeModel {
-  // �����: �ṹ�� + ��ֵ���� �� KnowledgeUnit (�����)
+
+  /**
+   * 主入口：AI 自分词 + 结构化 + 真值检验，返回主线 KnowledgeUnit。
+   */
   async structure(
     ocrText: string,
-    type: '概念' | '计算' | '证明',
-    subject: '高等代数' | '数学分析' | '解析几何',
-    chapter: string,
+    _type?: string,
+    _subject?: string,
+    chapter: string = '',
   ): Promise<KnowledgeUnit> {
-    // Step 1: ѡģ��
-    const template: string = this.pickTemplate(type);
+    const startTime: number = Date.now();
 
-    // Step 2: �� LLM �ṹ��
-    const messages: ChatMessage[] = [
-      { role: 'system', content: '����һ����ѧ֪ʶ����ר�ң��밴ָ����ʽ�������ݣ�ֻ���������� Markdown��' },
-      { role: 'user', content: template + '\n\n' + ocrText },
-    ];
+    const aiRaw: AiRawResponse = await this.callAi(ocrText);
+    const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.title, ocrText);
+    ext.fields = aiRaw.fields;
+    ext.tags = this.buildTags(aiRaw);
+    ext.difficulty = aiRaw.difficulty;
+    ext.importance = aiRaw.importance;
+    ext.source = chapter.length > 0 ? chapter : 'camera_capture';
 
-    const client = new LlmClient();
-    let content: string;
-    try {
-      content = await client.call(messages);
-    } catch (e) {
-      // LLM ������ʱʹ��ԭʼ�ı� + ģ��ռλ
-      content = this.fallbackContent(type, ocrText);
+    const truthResult: MvpTruthCheckResult = this.truthCheck(ocrText);
+    ext.truthFlag = truthResult.truthFlag;
+    if (!truthResult.truthFlag) {
+      for (let i: number = 0; i < truthResult.details.length; i++) {
+        const item: MvpTruthCheckItem = truthResult.details[i];
+        if (!item.passed) {
+          for (let j: number = 0; j < item.issues.length; j++) {
+            ext.truthDetails.push('[' + item.checkName + '] ' + item.issues[j]);
+          }
+        }
+      }
     }
+    this.markNeedsUserInput(ext, aiRaw);
 
-    // Step 3: ��ֵ����
-    const truth: TruthCheckResult = this.truthCheck(ocrText);
+    const unit: KnowledgeUnit = this.toKnowledgeUnit(ext, startTime);
+    console.info('[KnowledgeModel] structure complete, note.id=' + unit.id + ', category=' + ext.type);
+    return unit;
+  }
 
-    // Step 4: ���� title (��30��, ��ǰ׺)
-    const prefix: string = type === '概念' ? '【概念】' : type === '计算' ? '【计算】' : '【证明】';
-    const rawTitle: string = ocrText.replace(/\s+/g, ' ').trim().substring(0, 30);
-    const title: string = prefix + rawTitle;
-
-    // Step 5: ����ժҪ
-    const summary: string = content.replace(/[#*]/g, '').trim().substring(0, 100);
-
-    // Step 6: ���� tags
-    const tags: string[] = [type, subject];
-    if (chapter.length > 0) {
-      tags.push(chapter);
-    }
-    if (!truth.passed) {
-      tags.push('������');
-    }
-
-    // Step 7: ���� KnowledgeUnit
-    const now: number = Date.now();
-    const unit: KnowledgeUnit = {
-      id: uuid(),
-      title: title,
-      content: content,
+  private toKnowledgeUnit(ext: KnowledgeUnitExt, createdAt: number): KnowledgeUnit {
+    const summary: string = this.summaryFromFields(ext);
+    const now: number = createdAt > 0 ? createdAt : Date.now();
+    return {
+      id: this.uuid(),
+      title: ext.title,
+      content: ext.content,
       summary: summary,
-      tags: tags,
-      difficulty: DifficultyLevel.MEDIUM,
-      source: 'camera_capture',
+      tags: ext.tags,
+      difficulty: this.toDifficultyLevel(ext.difficulty),
+      source: ext.source.length > 0 ? ext.source : 'camera_capture',
       createdAt: now,
       updatedAt: now,
       reviewStatus: ReviewStatus.NEW,
@@ -137,105 +124,412 @@ export class KnowledgeModel {
       prerequisites: [],
       related: [],
       embedding: [],
-      userId: '',
+      userId: ext.userId,
       version: 1,
     };
-
-    return unit;
   }
 
-  // ===== ģ��ѡ�� =====
-  private pickTemplate(type: string): string {
-    if (type === '概念') {
-      return TEMPLATE_CONCEPT;
+  private summaryFromFields(ext: KnowledgeUnitExt): string {
+    let summary: string = '';
+    for (let i: number = 0; i < ext.fields.length; i++) {
+      if (ext.fields[i].value.length > 0) {
+        summary = summary + ext.fields[i].value + '\n';
+      }
+      if (summary.length >= 100) {
+        break;
+      }
     }
-    if (type === '证明') {
-      return TEMPLATE_PROOF;
+    if (summary.length === 0) {
+      summary = ext.content;
     }
-    return TEMPLATE_COMPUTATION;
+    const cleaned: string = summary.replace(/[#*]/g, '').trim();
+    return cleaned.length > 100 ? cleaned.substring(0, 100) : cleaned;
   }
 
-  // ===== LLM ���� =====
-  private fallbackContent(type: string, ocrText: string): string {
-    const sections: string[] = [];
-    if (type === '概念') {
-      sections.push('## 定义', '', ocrText, '', '## 性质', '', '## 相关概念');
-    } else if (type === '计算') {
-      sections.push('## 题目', '', ocrText, '', '## 解法', '', '## 答案');
-    } else {
-      sections.push('## 命题', '', ocrText, '', '## 证明', '', '## 要点');
-    }
-    return sections.join('\n');
+  private toDifficultyLevel(value: number): DifficultyLevel {
+    if (value <= 1) { return DifficultyLevel.EASY; }
+    if (value === 2 || value === 3) { return DifficultyLevel.MEDIUM; }
+    if (value === 4) { return DifficultyLevel.HARD; }
+    return DifficultyLevel.EXPERT;
   }
 
-  // ===== ��ֵ���� =====
-  truthCheck(text: string): TruthCheckResult {
-    const flags: TruthFlag[] = [];
+  private uuid(): string {
+    return 'KB-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
+  }
+  private async callAi(ocrText: string): Promise<AiRawResponse> {
+    const prompt: string = this.buildPrompt(ocrText);
 
-    if (!this.bracketsBalanced(text)) {
-      flags.push('括号不配对');
-    }
-    if (this.hasZeroDivision(text)) {
-      flags.push('除零');
-    }
-    if (this.hasIdentity(text)) {
-      flags.push('恒等式');
-    }
-    if (this.hasContradiction(text)) {
-      flags.push('矛盾等式');
-    }
-    if (text.trim().length < 5) {
-      flags.push('无明确题目');
+    const systemMsg: ChatMessage = { role: 'system', content: prompt };
+    const userMsg: ChatMessage = { role: 'user', content: ocrText };
+    const messages: ChatMessage[] = [systemMsg, userMsg];
+
+    const client: LlmClient = new LlmClient();
+    const rawContent: string = await client.call(messages);
+
+    if (!rawContent || rawContent.length === 0) {
+      throw new Error('AI ' + '\u8FD4\u56DE\u4E3A\u7A7A\uFF1Acontent \u4E3A\u7A7A');
     }
 
-    const passed: boolean = flags.length === 0;
-    let message: string = '';
-    if (!passed) {
-      message = '��ֵ���鷢������: ' + flags.join(', ');
+    const parsed: Record<string, Object> = JSON.parse(rawContent) as Record<string, Object>;
+
+    const aiRaw: AiRawResponse = {
+      category: parsed['category'] as KnowledgeCategory,
+      title: parsed['title'] as string,
+      tags: parsed['tags'] as string[],
+      difficulty: parsed['difficulty'] as number,
+      importance: parsed['importance'] as number,
+      fields: parsed['fields'] as StructuredField[],
+    };
+
+    return aiRaw;
+  }
+  // === Build AI Prompt ===
+
+  buildPrompt(ocrText: string): string {
+    return '你是一名数学知识整理专家。请分析用户输入的数学内容，完成以下任务：\n' +
+      '\n' +
+      '## 1. 自分词（分类）\n' +
+      '判断这段内容属于哪个最小类（只选一个）：\n' +
+      '- **概念**：数学定义、名词解释\n' +
+      '- **定理**：已被证明的真命题、定理\n' +
+      '- **公式**：数学表达式、公式\n' +
+      '- **证明题**：需要证明的命题及其证明过程\n' +
+      '- **计算题**：需要数值计算或求解的问题\n' +
+      '\n' +
+      '## 2. 标题\n' +
+      '- 概念/定理/公式 → 给出严谨的标准名称（如"质数""勾股定理""求根公式"）\n' +
+      '- 证明题/计算题 → AI 概括总结题目（如"证明√2是无理数""计算三阶行列式"）\n' +
+      '\n' +
+      '## 3. 填充该类的结构化字段\n' +
+      '\n' +
+      '### 概念\n' +
+      '- definition: 核心定义\n' +
+      '- properties: 关键性质/特征（分点列举）\n' +
+      '- examples: 典型例子\n' +
+      '- related_concepts: 关联概念\n' +
+      '\n' +
+      '### 定理\n' +
+      '- statement: 定理表述\n' +
+      '- conditions: 适用条件/前提\n' +
+      '- conclusion: 结论\n' +
+      '- proof_sketch: 证明思路\n' +
+      '- applications: 常见应用\n' +
+      '\n' +
+      '### 公式\n' +
+      '- expression: 公式表达式（用 LaTeX）\n' +
+      '- parameters: 参数含义说明\n' +
+      '- applicable_range: 适用范围/前提\n' +
+      '- derivation: 简单推导\n' +
+      '- notes: 注意事项\n' +
+      '\n' +
+      '### 证明题\n' +
+      '- proposition: 要证明的命题\n' +
+      '- given: 已知条件\n' +
+      '- proof_process: 逐步证明过程\n' +
+      '- key_insight: 关键思路/突破口\n' +
+      '- conclusion: 最终结论\n' +
+      '\n' +
+      '### 计算题\n' +
+      '- problem: 题目描述\n' +
+      '- steps: 解题步骤\n' +
+      '- answer: 最终答案\n' +
+      '- method_summary: 解题方法归纳\n' +
+      '- common_mistakes: 易错点\n' +
+      '\n' +
+      '## 4. 难度和重要程度\n' +
+      '- difficulty: 1~5（整数），1=简单 5=困难\n' +
+      '- importance: 1~5（整数），1=低 5=核心\n' +
+      '\n' +
+      '## 5. 标签\n' +
+      '生成 2~5 个标签，包含最小类名和内容关键词。\n' +
+      '\n' +
+      '## 输出格式\n' +
+      '严格按以下 JSON 格式输出，不要包含任何其他文字：\n' +
+      '{\n' +
+      '  "category": "概念|定理|公式|证明题|计算题",\n' +
+      '  "title": "标题",\n' +
+      '  "tags": ["标签1", "标签2"],\n' +
+      '  "difficulty": 3,\n' +
+      '  "importance": 4,\n' +
+      '  "fields": [\n' +
+      '    { "key": "字段名", "label": "显示名", "value": "内容" }\n' +
+      '  ]\n' +
+      '}';
+  }
+  /**
+   * 合并标签：AI 返回的标签 + 最小类名，去重
+   *
+   * @param aiRaw - AI 原始响应
+   * @returns 去重后的标签数组
+   */
+  private buildTags(aiRaw: AiRawResponse): string[] {
+    const tags: string[] = [];
+    tags.push(aiRaw.category);
+    for (let i: number = 0; i < aiRaw.tags.length; i++) {
+      const tag: string = aiRaw.tags[i];
+      if (tags.indexOf(tag) === -1) {
+        tags.push(tag);
+      }
     }
-    return { passed, flags, message };
+    return tags;
   }
 
-  private bracketsBalanced(text: string): boolean {
-    let count: number = 0;
-    for (let i = 0; i < text.length; i++) {
-      const ch: string = text.charAt(i);
-      if (ch === '(' || ch === '��' || ch === '{' || ch === '[') {
-        count++;
-      } else if (ch === ')' || ch === '��' || ch === '}' || ch === ']') {
-        count--;
-        if (count < 0) {
-          return false;
+  /**
+   * 标记需要用户确认的字段（标题/难度/重要性）
+   * 证明题和计算题的标题由 AI 总结，用户可以修改
+   *
+   * @param unit - 正在构建的知识单元
+   * @param aiRaw - AI 原始响应
+   */
+  private markNeedsUserInput(unit: KnowledgeUnitExt, aiRaw: AiRawResponse): void {
+    if (aiRaw.category === '证明题' || aiRaw.category === '计算题') {
+      unit.needsUserInput.push('title');
+    }
+    unit.needsUserInput.push('difficulty');
+    unit.needsUserInput.push('importance');
+  }
+
+  /**
+   * 执行 4 项数学真值检验：括号配对、除零检测、等式矛盾、LaTeX 语法
+   *
+   * @param ocrText - 输入文本
+   * @returns MvpTruthCheckResult（检验结果 + 自动修正）
+   */
+  truthCheck(ocrText: string): MvpTruthCheckResult {
+    if (!ocrText || ocrText.trim().length === 0) {
+      const emptyItem: MvpTruthCheckItem = {
+        checkName: 'emptyInput',
+        passed: false,
+        issues: ['input text is empty'],
+      };
+      return {
+        truthFlag: false,
+        details: [emptyItem],
+        correctedText: undefined,
+      };
+    }
+
+    const details: MvpTruthCheckItem[] = [];
+    let corrected: string = ocrText;
+    let allPassed: boolean = true;
+
+    const braceResult: BracePairingResult = this.checkBracePairing(corrected);
+    const braceItem: MvpTruthCheckItem = {
+      checkName: 'bracketPair',
+      passed: braceResult.valid,
+      issues: braceResult.errors,
+    };
+    details.push(braceItem);
+    if (!braceResult.valid) {
+      allPassed = false;
+      corrected = braceResult.correctedText;
+    }
+
+    const divByZero: DivisionByZeroCheck = this.checkDivisionByZero(corrected);
+    const divItem: MvpTruthCheckItem = {
+      checkName: 'divisionByZero',
+      passed: !divByZero.hasIssue,
+      issues: divByZero.issues,
+    };
+    details.push(divItem);
+    if (divByZero.hasIssue) {
+      allPassed = false;
+    }
+
+    const eqResult: EquationCheckResult = this.checkEquation(corrected);
+    const eqItem: MvpTruthCheckItem = {
+      checkName: 'equationCheck',
+      passed: !eqResult.hasIssue,
+      issues: eqResult.issues,
+    };
+    details.push(eqItem);
+    if (eqResult.hasIssue) {
+      allPassed = false;
+    }
+
+    const latexDetail: LatexCheckDetail = this.checkLatexInternal(corrected);
+    const latexItem: MvpTruthCheckItem = {
+      checkName: 'latexSyntax',
+      passed: !latexDetail.hasError,
+      issues: latexDetail.issues,
+    };
+    details.push(latexItem);
+    if (latexDetail.hasError) {
+      allPassed = false;
+    }
+    if (latexDetail.correctedBody !== corrected) {
+      corrected = latexDetail.correctedBody;
+    }
+
+    return {
+      truthFlag: allPassed,
+      details: details,
+      correctedText: corrected !== ocrText ? corrected : undefined,
+    };
+  }
+
+  checkBracePairing(text: string): BracePairingResult {
+    const errors: string[] = [];
+    let braceDepth: number = 0;
+    let result: string = '';
+
+    for (let i: number = 0; i < text.length; i++) {
+      const ch: string = text[i];
+      if (ch === '{') {
+        braceDepth = braceDepth + 1;
+        result = result + ch;
+      } else if (ch === '}') {
+        braceDepth = braceDepth - 1;
+        if (braceDepth < 0) {
+          errors.push('extra closing brace at position ' + String(i));
+          braceDepth = 0;
+        } else {
+          result = result + ch;
+        }
+      } else {
+        result = result + ch;
+      }
+    }
+
+    if (braceDepth > 0) {
+      errors.push('missing closing brace count: ' + String(braceDepth));
+      for (let j: number = 0; j < braceDepth; j++) {
+        result = result + '}';
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors: errors,
+      correctedText: result,
+    };
+  }
+
+  checkDivisionByZero(text: string): DivisionByZeroCheck {
+    const issues: string[] = [];
+    if (text.indexOf('/0') !== -1) {
+      issues.push('possible division by zero: /0');
+    }
+    return {
+      hasIssue: issues.length > 0,
+      issues: issues,
+    };
+  }
+  checkEquation(text: string): EquationCheckResult {
+    const issues: string[] = [];
+    const contradictions: string[] = ['1=0', '0=1', '2=1', '1=2', '0=2', '2=0'];
+    for (let i: number = 0; i < contradictions.length; i++) {
+      if (text.indexOf(contradictions[i]) !== -1) {
+        issues.push('contradictory equation: ' + contradictions[i]);
+      }
+    }
+    if (text.indexOf('\u2260') !== -1) {
+      issues.push('contains not-equal sign, please verify context');
+    }
+    const eqPatterns: string[] = ['x=x', 'X=X', 'a=a', 'A=A'];
+    for (let j: number = 0; j < eqPatterns.length; j++) {
+      if (text.indexOf(eqPatterns[j]) !== -1) {
+        issues.push('identity equation: ' + eqPatterns[j]);
+        break;
+      }
+    }
+    return {
+      hasIssue: issues.length > 0,
+      issues: issues,
+    };
+  }
+  checkLatexInternal(body: string): LatexCheckDetail {
+    const issues: string[] = [];
+    let corrected: string = body;
+
+    const braceResult: BracePairingResult = this.checkBracePairing(corrected);
+    if (!braceResult.valid) {
+      for (let i: number = 0; i < braceResult.errors.length; i++) {
+        issues.push(braceResult.errors[i]);
+      }
+      corrected = braceResult.correctedText;
+    }
+
+    const leftCount: number = this.countOccurrences(corrected, '\\left');
+    const rightCount: number = this.countOccurrences(corrected, '\\right');
+    if (leftCount !== rightCount) {
+      issues.push('\\left and \\right count mismatch: ' + String(leftCount) + ':' + String(rightCount));
+    }
+
+    const latexFixes: string[][] = [
+      ['\\fract{', '\\frac{'],
+      ['\\sqt{', '\\sqrt{'],
+      ['\\begin{align*}', '\\begin{aligned}'],
+    ];
+    for (let k: number = 0; k < latexFixes.length; k++) {
+      const before: string = corrected;
+      const target: string = latexFixes[k][0];
+      const replacement: string = latexFixes[k][1];
+      if (corrected.indexOf(target) !== -1) {
+        corrected = corrected.split(target).join(replacement);
+        if (corrected !== before) {
+          issues.push('auto fixed: ' + target + ' -> ' + replacement);
         }
       }
     }
-    return count === 0;
-  }
 
-  private hasZeroDivision(text: string): boolean {
-    const patterns: string[] = ['/0', '��0', '�� 0', '/ 0', '��ĸΪ��', '��ĸΪ0', '����0', '���� 0'];
-    for (let i = 0; i < patterns.length; i++) {
-      if (text.indexOf(patterns[i]) >= 0) {
-        return true;
-      }
+    corrected = this.patchIntegralDx(corrected, issues);
+
+    return {
+      hasError: issues.length > 0,
+      issues: issues,
+      correctedBody: corrected,
+    };
+  }
+  // === Utility methods ===
+
+  private countOccurrences(text: string, pattern: string): number {
+    let count: number = 0;
+    let pos: number = text.indexOf(pattern);
+    while (pos !== -1) {
+      count = count + 1;
+      pos = text.indexOf(pattern, pos + 1);
     }
-    return false;
+    return count;
   }
 
-  private hasIdentity(text: string): boolean {
-    const re: RegExp = /(\d+|[a-zA-Z])\s*=\s*\1/g;
-    const match: RegExpMatchArray | null = text.match(re);
-    return match !== null && match.length > 0;
-  }
-
-  private hasContradiction(text: string): boolean {
-    const re: RegExp = /(\d+)\s*=\s*(\d+)/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
-      if (m.length >= 3 && m[1] !== m[2]) {
-        return true;
+  private patchIntegralDx(text: string, issues: string[]): string {
+    let result: string = text;
+    const intPattern: string = '\\int_{';
+    const dxPattern: string = 'dx';
+    let searchPos: number = 0;
+    while (true) {
+      const intIdx: number = result.indexOf(intPattern, searchPos);
+      if (intIdx === -1) {
+        break;
       }
+      const closeIdx: number = result.indexOf('}', intIdx + intPattern.length);
+      if (closeIdx === -1) {
+        break;
+      }
+      const hatOpen: number = result.indexOf('^{', closeIdx);
+      if (hatOpen === -1) {
+        break;
+      }
+      const hatClose: number = result.indexOf('}', hatOpen + 2);
+      if (hatClose === -1) {
+        break;
+      }
+      const afterIntegral: string = result.substring(hatClose + 1);
+      const trimmedAfter: string = afterIntegral.trim();
+      if (
+        trimmedAfter.indexOf(dxPattern) !== 0 &&
+        trimmedAfter.indexOf('\\,dx') !== 0 &&
+        trimmedAfter.indexOf('\\, dx') !== 0
+      ) {
+        result =
+          result.substring(0, hatClose + 1) +
+          ' \\, dx' +
+          result.substring(hatClose + 1);
+        issues.push('自动修正: 积分表达式补充 \\, dx');
+      }
+      searchPos = hatClose + 1;
     }
-    return false;
+    return result;
   }
 }

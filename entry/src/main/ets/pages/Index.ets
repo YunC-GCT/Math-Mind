@@ -5,15 +5,15 @@
 //  数据流: @State cur → TabContent + TabBar，浮层状态由回调控制。
 //  依赖:
 //    molecules: TabBar
-//    pages:     HomePage, NotesPage, ReviewPage, MePage
+//    pages:     HomePage, NotesPage, ReviewPage, ProfilePage
 //    prototypes: CameraOverlay, AgentFloatWindow
 //  ============================================================================
 
 import { BG_DARK } from "common"
-import { HomePage } from "./HomePage"
-import { NotesPage } from "./NotesPage"
-import { ReviewPage } from "./ReviewPage"
-import { MePage } from "./MePage"
+import { HomePage } from "./Home/HomePage"
+import { NotesPage } from "./Notes/NotesPage"
+import { ReviewPage } from "./Review/ReviewPage"
+import { ProfilePage } from "./Profile/ProfilePage"
 import { TabBar } from "../molecules/TabBar"
 import { AgentFloatWindow } from "../prototypes/AgentFloatWindow"
 import { CameraOverlay } from "../prototypes/CameraOverlay"
@@ -73,7 +73,7 @@ struct Index {
               }
             })
           }
-          TabContent() { MePage() }
+          TabContent() { ProfilePage() }
         }
         .barHeight(0)
         .layoutWeight(1)

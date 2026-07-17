@@ -24,12 +24,12 @@ import {
   F_BASE,
   F_3XL,
 } from 'common';
-import { HomePage } from './HomePage';
-import { NotesPage } from './NotesPage';
-import { ReviewPage } from './ReviewPage';
-import { MePage } from './MePage';
+import { HomePage } from './Home/HomePage';
+import { NotesPage } from './Notes/NotesPage';
+import { ReviewPage } from './Review/ReviewPage';
+import { ProfilePage } from './Profile/ProfilePage';
 import { AgentFloatWindowMVP } from '../overlays/AgentFloatWindowMVP';
-import { CameraOverlay } from '../overlays/CameraOverlay';
+import { CameraOverlay } from '../prototypes/CameraOverlay';
 import { promptAction, KeyboardAvoidMode } from '@kit.ArkUI';
 
 interface TabItem {
@@ -117,7 +117,7 @@ struct IndexMVP {
         }
 
         TabContent() {
-          MePage();
+          ProfilePage();
         }
       }
       .barHeight(0)

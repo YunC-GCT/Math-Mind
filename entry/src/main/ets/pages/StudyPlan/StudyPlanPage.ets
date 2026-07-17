@@ -1,5 +1,5 @@
 // ============================================================================
-//  pages/StudyPlanPage.ets — 学习计划页面（编排层）
+//  pages/StudyPlan/StudyPlanPage.ets — 学习计划页面（编排层）
 //  ----------------------------------------------------------------------------
 //  职责: 页面骨架布局 + ViewModel 桥接到原子组件。
 //  来源: 基于 swiftui-to-arkui TodoPage，拆分为 PlanItemRow / PriorityBadge 原子组件。
@@ -13,12 +13,12 @@
 import {
   BG_DARK,
 } from "common"
-import { StudyPlanViewModel } from "../viewmodels/StudyPlanViewModel"
+import { StudyPlanViewModel } from "../../viewmodels/StudyPlanViewModel"
 import { promptAction } from "@kit.ArkUI"
-import { PlanHeader } from "./StudyPlanPage/PlanHeader"
-import { PlanStatsBar } from "./StudyPlanPage/PlanStatsBar"
-import { PlanListView } from "./StudyPlanPage/PlanListView"
-import { PlanInputBar } from "./StudyPlanPage/PlanInputBar"
+import { PlanHeader } from "./PlanHeader"
+import { PlanStatsBar } from "./PlanStatsBar"
+import { PlanListView } from "./PlanListView"
+import { PlanInputBar } from "./PlanInputBar"
 
 @Entry
 @Component

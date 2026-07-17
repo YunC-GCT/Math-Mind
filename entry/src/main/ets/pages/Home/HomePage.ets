@@ -1,13 +1,13 @@
 import { BG_DARK, NoteItem, KnowledgeUnit, DatabaseHelper } from "common"
 import { promptAction } from "@kit.ArkUI"
-import { FloatingButton } from "../atoms/FloatingButton"
-import { HeroBanner } from "../molecules/HeroBanner"
-import { ReminderBanner } from "../molecules/ReminderBanner"
-import { NoteDetailOverlay } from "../prototypes/NoteDetailOverlay"
-import { NoteDao } from "../database/NoteDao"
-import { unitsToNoteItems } from "../utils/NoteItemMapper"
-import { HomeTopBar } from "./HomePage/HomeTopBar"
-import { HomeRecentNotes } from "./HomePage/HomeRecentNotes"
+import { FloatingButton } from "../../atoms/FloatingButton"
+import { HeroBanner } from "../../molecules/HeroBanner"
+import { ReminderBanner } from "../../molecules/ReminderBanner"
+import { NoteDetailOverlay } from "../../prototypes/NoteDetailOverlay"
+import { NoteDao } from "../../database/NoteDao"
+import { unitsToNoteItems } from "../../utils/NoteItemMapper"
+import { HomeTopBar } from "./HomeTopBar"
+import { HomeRecentNotes } from "./HomeRecentNotes"
 
 function greet(): string {
   const hour: number = new Date().getHours()

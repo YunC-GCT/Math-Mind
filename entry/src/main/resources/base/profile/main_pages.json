@@ -2,6 +2,6 @@
   "src": [
     "pages/Index",
     "pages/AiSettings/AiSettingsPage",
-    "pages/StudyPlanPage"
+    "pages/StudyPlan/StudyPlanPage"
   ]
 }

@@ -1,10 +1,11 @@
 /**
- * AiTestPageMVP.ets — KnowledgeModel MVP 测试页面
+ * AiTestPage.ets — KnowledgeModel MVP 测试页面
  *
  * 使用方式：
  *   1. 在模拟器/真机上运行 App
  *   2. 底部 navigation 切换到 "我的" Tab
- *   3. 点击"AI 测试"按钮（需手动添加到 MePage）
+ *   3. 点击"AI 测试"按钮（需手动添加到 ProfilePage）
+ *   或直接在代码中调用 navigateToUrl
  *
  * 功能：
  *   - 输入一段数学文本
@@ -20,14 +21,14 @@ import { KnowledgeUnitExt } from 'agents';
 // Mock NoteDao（正式版会注入真实 NoteDao）
 class MockNoteDao implements NoteDaoInterface {
   async insert(unit: KnowledgeUnitExt): Promise<number> {
-    console.info('[AiTestPageMVP] MockNoteDao.insert ' + unit.title);
+    console.info('[AiTestPage] MockNoteDao.insert ' + unit.title);
     return 1;
   }
 }
 
 @Entry
 @Component
-struct AiTestPageMVP {
+struct AiTestPage {
   @State inputText: string = '勾股定理：直角三角形两直角边的平方和等于斜边的平方。';
   @State resultText: string = '';
   @State isLoading: boolean = false;
@@ -35,12 +36,14 @@ struct AiTestPageMVP {
 
   build() {
     Column() {
-      Text('AI \u5206\u8BCD\u9020\u8868\u6D4B\u8BD5')
+      // 标题
+      Text('AI 分词造表测试')
         .fontSize(20)
         .fontWeight(700)
         .margin({ top: 20, bottom: 16 });
 
-      TextArea({ placeholder: '\u8BF7\u8F93\u5165\u6570\u5B66\u6587\u672C...', text: this.inputText })
+      // 输入区
+      TextArea({ placeholder: '请输入数学文本...', text: this.inputText })
         .height(150)
         .borderRadius(8)
         .border({ width: 1, color: '#ccc' })
@@ -50,7 +53,8 @@ struct AiTestPageMVP {
           this.inputText = val;
         });
 
-      Button('\u53D1\u9001\u6D4B\u8BD5')
+      // 按钮
+      Button('发送测试')
         .width('90%')
         .height(44)
         .backgroundColor('#4A90D9')
@@ -62,11 +66,13 @@ struct AiTestPageMVP {
           this.runTest();
         });
 
+      // 状态提示
       Text(this.statusText)
         .fontSize(14)
         .fontColor('#888')
         .margin({ top: 8 });
 
+      // 结果区
       Scroll() {
         Text(this.resultText)
           .fontSize(13)
@@ -80,8 +86,9 @@ struct AiTestPageMVP {
       .margin({ left: 16, right: 16, top: 12 })
       .layoutWeight(1);
 
+      // 底部填充
       Divider().margin({ top: 16 });
-      Text('\u6CE8\u610F\uFF1A\u9700\u8981 INTERNET \u6743\u9650\u548C API Key')
+      Text('注意：需要 INTERNET 权限和 API Key')
         .fontSize(12)
         .fontColor('#aaa')
         .margin({ bottom: 16 });
@@ -93,12 +100,12 @@ struct AiTestPageMVP {
 
   async runTest(): Promise<void> {
     if (!this.inputText || this.inputText.trim().length === 0) {
-      this.statusText = '\u8BF7\u8F93\u5165\u6587\u672C';
+      this.statusText = '请输入文本';
       return;
     }
 
     this.isLoading = true;
-    this.statusText = '\u6B63\u5728\u8C03\u7528 AI...';
+    this.statusText = '正在调用 AI...';
     this.resultText = '';
 
     try {
@@ -106,30 +113,32 @@ struct AiTestPageMVP {
       const km: KnowledgeModelMVP = new KnowledgeModelMVP(mockDao);
       const result: KnowledgeUnitExt = await km.structure(this.inputText);
 
+      // 格式化结果
       const output: string =
-        '\u2705 \u6210\u529F\n\n' +
-        '\u5206\u7C7B: ' + result.type + '\n' +
-        '\u6807\u9898: ' + result.title + '\n' +
-        '\u96BE\u5EA6: ' + String(result.difficulty) + '/5\n' +
-        '\u91CD\u8981\u6027: ' + String(result.importance) + '/5\n' +
-        '\u6807\u7B7E: ' + result.tags.join(', ') + '\n' +
-        '\u771F\u503C\u68C0\u9A8C: ' + (result.truthFlag ? '\u2713 \u901A\u8FC7' : '\u2717 \u5F02\u5E38') + '\n' +
-        (result.truthDetails.length > 0 ? '\u68C0\u9A8C\u8BE6\u60C5: ' + result.truthDetails.join('; ') + '\n' : '') +
-        '\n--- \u7ED3\u6784\u5316\u5B57\u6BB5 ---\n';
+        '✅ 成功\n\n' +
+        '分类: ' + result.type + '\n' +
+        '标题: ' + result.title + '\n' +
+        '难度: ' + String(result.difficulty) + '/5\n' +
+        '重要性: ' + String(result.importance) + '/5\n' +
+        '标签: ' + result.tags.join(', ') + '\n' +
+        '真值检验: ' + (result.truthFlag ? '✓ 通过' : '✗ 异常') + '\n' +
+        (result.truthDetails.length > 0 ? '检验详情: ' + result.truthDetails.join('; ') + '\n' : '') +
+        '\n--- 结构化字段 ---\n';
 
       let fieldsStr: string = '';
       for (const f of result.fields) {
         fieldsStr = fieldsStr + '[' + f.label + ']\n' + f.value + '\n\n';
       }
 
-      this.resultText = output + (fieldsStr || '(\u65E0\u5B57\u6BB5)');
-      this.statusText = '\u5B8C\u6210\uFF0C\u8017\u65F6\u8BF7\u67E5\u770B\u65E5\u5FD7';
+      this.resultText = output + (fieldsStr || '(无字段)');
+      this.statusText = '完成，耗时请查看日志';
 
     } catch (err) {
-      this.resultText = '\u274C \u9519\u8BEF:\n' + String(err);
-      this.statusText = '\u8C03\u7528\u5931\u8D25';
+      this.resultText = '❌ 错误:\n' + String(err);
+      this.statusText = '调用失败';
     } finally {
       this.isLoading = false;
     }
   }
 }
+

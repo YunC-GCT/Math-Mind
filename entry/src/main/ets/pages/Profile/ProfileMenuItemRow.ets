@@ -1,12 +1,12 @@
 // ============================================================================
-//  atoms/MenuItemRow.ets — 菜单行原子组件
+//  pages/Profile/ProfileMenuItemRow.ets — 菜单行原子组件
 //  ----------------------------------------------------------------------------
 //  职责: 图标 + 标签 + 右箭头 的通用菜单行。纯展示，交互通过 onClick 回调。
-//  来源: 从 MePage.ets MenuItem @Builder 抽取。
+//  来源: 从 ProfilePage.ets MenuItem @Builder 抽取。
 //  ============================================================================
 
 import { TEXT_2, TEXT_4, BORDER, S_4, F_SM, F_MD } from "common"
-import { AppIcon } from "./AppIcon"
+import { AppIcon } from "../../atoms/AppIcon"
 
 @Component
 export struct MenuItemRow {
