@@ -20,7 +20,7 @@
 
 import { BG_DARK, NoteItem, KnowledgeUnit, DatabaseHelper } from "common"
 import { promptAction } from "@kit.ArkUI"
-import { NoteDetailOverlay } from "../../prototypes/NoteDetailOverlay"
+import { NoteDetailOverlay } from "../../overlays/NoteDetailOverlay/NoteDetailOverlay"
 import { NoteDao } from "../../database/NoteDao"
 import { unitsToNoteItems } from "../../utils/NoteItemMapper"
 import { NotesHeader } from "./NotesHeader"
