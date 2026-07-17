@@ -9,14 +9,10 @@
 
 import {
   TEXT_3, TEXT_4, BORDER,
-  S_2, S_3,
-  R_FULL,
-  F_XS, F_SM,
-  W_SEMIBOLD, W_BOLD,
-  GLASS_10,
   NoteItem, typeColor, subjectColor,
 } from 'common';
 import { NoteCloseButton } from './NoteCloseButton';
+import { ChipTag } from '../../atoms/ChipTag';
 
 @Component
 export struct NoteDetailHeader {
@@ -31,17 +27,10 @@ export struct NoteDetailHeader {
       Blank();
 
       // 中: 学科 · 类型 chip
-      Row() {
-        Text(this.note.subject)
-          .fontSize(F_XS).fontColor(subjectColor(this.note.subject)).fontWeight(W_BOLD);
-        Text(' · ')
-          .fontSize(F_XS).fontColor(TEXT_4);
-        Text(this.note.type)
-          .fontSize(F_XS).fontColor(typeColor(this.note.type)).fontWeight(W_SEMIBOLD);
-      }
-      .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-      .borderRadius(R_FULL).backgroundColor(GLASS_10)
-      .border({ width: 1, color: BORDER });
+      ChipTag({
+        label: this.note.subject + ' · ' + this.note.type,
+        variant: 'chip',
+      });
 
       Blank();
 
