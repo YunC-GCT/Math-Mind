@@ -235,7 +235,7 @@ export class KnowledgeModel {
     let rawContent: string;
     try {
       const client: LlmClient = new LlmClient();
-      rawContent = await client.call(messages);
+      rawContent = await client.call(messages, { timeoutMs: 30000 });  // 推理模型需要更长时间
       console.info('[KnowledgeModel] callAi response received, len=' + rawContent.length.toString());
     } catch (llmErr) {
       console.error('[KnowledgeModel] callAi LLM error: ' + (llmErr as Error).message);
