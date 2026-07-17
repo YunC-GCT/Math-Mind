@@ -199,13 +199,16 @@ sequenceDiagram
   <code>
 <span class="field-type">ClassificationResult</span> {<br>
 &nbsp;&nbsp;type: <span class="field-comment">'概念' | '计算' | '证明'</span>,<br>
-&nbsp;&nbsp;subject: <span class="field-comment">'高等代数' | '数学分析' | '解析几何'</span>,<br>
+&nbsp;&nbsp;subject: <span class="field-type">string</span>, <span class="field-comment">// LLM 自由判定 (推荐: 高等代数/数学分析/解析几何/概率论/数论…)</span><br>
 &nbsp;&nbsp;chapter?: <span class="field-comment">"微分中值定理"</span>,<br>
 &nbsp;&nbsp;confidence: <span class="field-type">number</span>, <span class="field-comment">// 0.85</span><br>
 &nbsp;&nbsp;ocrText?: <span class="field-comment">// OCR 返回的完整文本</span><br>
 }
   </code>
-  <p class="text-xs text-stone-400 mt-1">LLM 分类失败时降级 ruleFallback (关键词匹配: 证明/求证→证明, 求/计算→计算, 默认→概念)</p>
+  <p class="text-xs text-stone-400 mt-1">
+    subject 不再限制三选一，LLM 自由判定如 概率论/数论/组合数学/微分方程/拓扑学 等；ruleFallback 仍用关键词推断默认三门<br>
+    type 三分类作为 KnowledgeModel 五分类('概念'|'定理'|'公式'|'证明题'|'计算题')的 hint 注入
+  </p>
 </div>
 
 <!-- Stage 4: AiRawResponse -->

@@ -2,22 +2,19 @@ import { ClassificationResult, DispatchPayload, LlmClient, LlmError, ChatMessage
 import { OcrTool } from '../mcp/tools/OcrTool';
 
 type NoteType = '概念' | '计算' | '证明';
-type SubjectType = '高等代数' | '数学分析' | '解析几何';
 
 const TYPE_CONCEPT: NoteType = '概念';
 const TYPE_CALCULATION: NoteType = '计算';
 const TYPE_PROOF: NoteType = '证明';
-
-const SUBJECT_ALGEBRA: SubjectType = '高等代数';
-const SUBJECT_ANALYSIS: SubjectType = '数学分析';
-const SUBJECT_GEOMETRY: SubjectType = '解析几何';
 
 const CLASSIFY_PROMPT: string = `You classify OCR text from a math note or problem.
 Return strict JSON only, with no markdown.
 
 Fields:
 - type: one of "concept", "calculation", "proof"
-- subject: one of "advanced_algebra", "math_analysis", "analytic_geometry"
+  (concept = definitions/properties/formulas, calculation = compute/solve/evaluate, proof = prove/demonstrate)
+- subject: math subject name in Chinese (e.g. 高等代数, 数学分析, 解析几何, 概率论, 数论, 组合数学, 微分方程, 拓扑学, etc.)
+  freely choose the most appropriate; use "数学" if unsure
 - chapter: short chapter/topic name, or empty string if unsure
 - confidence: number from 0 to 1
 
@@ -27,7 +24,6 @@ Classification hints:
 - prove, proof, show that, demonstrate => proof`;
 
 export class TypeClassifier {
-  // context 由 AiService 显式传入, 避免在非 @Component 类中调用 getContext()
   async classify(payload: DispatchPayload, context?: Context): Promise<ClassificationResult> {
     const ocrText: string = await this.extractText(payload, context);
     const cleaned: string = this.cleanText(ocrText);
@@ -61,17 +57,14 @@ export class TypeClassifier {
       return this.mergeUserText(baseText, payload.userText);
     }
 
-    // kind === 'file': 明确匹配 file 类型，修复之前对 discriminated union 隐式 fall-through
     if (payload.kind === 'file') {
       if (payload.mimeType.startsWith('image/')) {
         const tool = new OcrTool(context);
         baseText = await tool.recognize(payload.fileUri);
       }
-      // 非 image 文件: baseText 为空，仅保留 userText
       return this.mergeUserText(baseText, payload.userText);
     }
 
-    // 未知 kind：返回空 ocrText
     return '';
   }
 
@@ -144,18 +137,20 @@ export class TypeClassifier {
     return TYPE_CONCEPT;
   }
 
-  private ruleSubject(text: string): SubjectType {
+  // LLM 自由判定学科 → 直接返回 string
+  // ruleFallback 仍用关键词推断默认三门
+  private ruleSubject(text: string): string {
     const lower: string = text.toLowerCase();
     if (this.containsAny(lower, ['matrix', 'determinant', 'eigen', 'rank', '矩阵', '行列式', '特征值'])) {
-      return SUBJECT_ALGEBRA;
+      return '高等代数';
     }
     if (this.containsAny(lower, ['integral', 'limit', 'derivative', 'series', '\\int', '\\sum', '极限', '积分', '导数', '级数'])) {
-      return SUBJECT_ANALYSIS;
+      return '数学分析';
     }
     if (this.containsAny(lower, ['curve', 'surface', 'plane', 'vector', 'geometry', '曲线', '曲面', '平面', '向量'])) {
-      return SUBJECT_GEOMETRY;
+      return '解析几何';
     }
-    return SUBJECT_ALGEBRA;
+    return '数学';
   }
 
   private mapType(value: string): NoteType {
@@ -169,16 +164,12 @@ export class TypeClassifier {
     return TYPE_CONCEPT;
   }
 
-  private mapSubject(value: string, text: string): SubjectType {
-    const lower: string = value.toLowerCase();
-    if (lower === 'math_analysis' || value === '数学分析') {
-      return SUBJECT_ANALYSIS;
-    }
-    if (lower === 'analytic_geometry' || value === '解析几何') {
-      return SUBJECT_GEOMETRY;
-    }
-    if (lower === 'advanced_algebra' || value === '高等代数') {
-      return SUBJECT_ALGEBRA;
+  // LLM 返回的学科直接透传 (不限制三选一)
+  // 无法匹配时 fallback 到 ruleSubject
+  private mapSubject(value: string, text: string): string {
+    const cleaned: string = value.trim();
+    if (cleaned.length > 0) {
+      return cleaned;  // 直接返回 LLM 判定的学科
     }
     return this.ruleSubject(text);
   }

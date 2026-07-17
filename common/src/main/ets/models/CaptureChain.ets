@@ -12,10 +12,10 @@ export interface ClassificationInput {
 }
 
 export interface ClassificationResult {
-  // 笔记类型(三选一)
+  // 笔记类型(三选一, 作为 KnowledgeModel 五分类的 hint)
   type: '概念' | '计算' | '证明';
-  // 学科(三选一)
-  subject: '高等代数' | '数学分析' | '解析几何';
+  // 学科(LLM 自由判定, 不限制枚举值; 高等代数/数学分析/解析几何 为推荐类别)
+  subject: string;
   // 章节(可选,如"微分中值定理" / "行列式")
   chapter?: string;
   // 分类置信度 0.0-1.0,主 agent 用作路由门控
