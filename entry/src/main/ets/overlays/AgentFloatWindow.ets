@@ -80,6 +80,11 @@ export struct AgentFloatWindow {
   private mainWindow: window.Window | null = null;
 
   aboutToAppear(): void {
+    // P1 修复 v2: 父组件传进来的 pendingImageUri 在 aboutToAppear 时刻已经定值,
+    //   @Watch 不会触发 (值没变化), 这里主动同步一次到 imagePreview
+    if (this.pendingImageUri && this.pendingImageUri.length > 0) {
+      this.imagePreview = this.pendingImageUri;
+    }
     // 持久化开场白(W1.1: AppStorage 标记, 整个 App 生命周期只显示一次)
     if (AppStorage.get<boolean>('shownGreeting') !== true) {
       this.messages = [
@@ -122,10 +127,13 @@ export struct AgentFloatWindow {
   }
 
   // @Watch 回调: pendingImageUri 变化时存到 imagePreview (W1.2: 不立即发送)
+  // P1 修复 v2: 即使值"看起来没变"也存 (ArkUI 内部对相同字符串值不触发 @Watch, 但首次 mount 后 aboutToAppear 已同步)
   onPendingImageChange(): void {
+    console.info('[AgentFloatWindow.onPendingImageChange] pendingImageUri=' + this.pendingImageUri)
     if (this.pendingImageUri && this.pendingImageUri.length > 0) {
       // 存为待发送图片预览, 不调 ingestImage
       this.imagePreview = this.pendingImageUri;
+      console.info('[AgentFloatWindow.onPendingImageChange] imagePreview set, len=' + this.imagePreview.length)
     }
   }
 

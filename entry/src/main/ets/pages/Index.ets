@@ -41,18 +41,29 @@ struct Index {
   // P1 修复: 旧版 (5b6f155) 选完图立刻跑 AiService.capture(), 用户无法编辑/取消
   // 新版: 跟文字一样, 走对话模式 — 选图后图片进浮窗 input, 用户写文字, 点"发送"才触发
   // 整链: imageUri + userText → AiService.capture(uri, userText) → Dispatcher → ... → NoteDao.insert()
+  //
+  // P1 修复 v2: 之前用 setTimeout(100ms) 清空 pendingImageUri, 跟 AgentFloatWindow 重新挂载时序冲突:
+  //   showAgentFloat=true → AgentFloatWindow 挂载 → @Watch 默认不触发
+  //   setTimeout 100ms 后清空 → 即便后续 @Watch 触发也是 ""→"", 不会存到 imagePreview
+  //   用户点发送 → hasImage=false → 走 realReply 弹开场白
+  // 现在: pendingImageUri 一直保留, 直到用户点发送后 AgentFloatWindow 自己清 imagePreview
+  //   或用户主动关闭浮窗 (aboutToDisappear)
   private onCameraConfirm = (uri: string, _src: "camera" | "album"): void => {
     this.showCamera = false
     this.showAgentFloat = true
-    // 1) 把 URI 立刻写入 pendingImageUri, AgentFloatWindow @Watch 触发 onPendingImageChange
-    //    → 存到 imagePreview, 用户能看到缩略图
-    this.pendingImageUri = uri
-    // 2) 100ms 后清空 pendingImageUri (避免重复触发 @Watch)
-    //    AgentFloatWindow 内部已经存到 imagePreview, 这里清空不影响浮窗
-    setTimeout((): void => { this.pendingImageUri = "" }, 100)
+    // P1 修复 v3: 先清空再设值, 强制 @Watch 触发 (ArkUI 对相同字符串值不触发)
+    //   选同一张图时, oldValue == newValue, @Watch 不调, imagePreview 不更新
+    this.pendingImageUri = ""
+    // 下一帧再设新值, 让 ArkUI 完成旧→新的同步
+    setTimeout((): void => { this.pendingImageUri = uri }, 0)
+    console.info('[Index.onCameraConfirm] uri=' + uri + ', showAgentFloat=true, pendingImageUri reset then set')
   }
 
-  private closeAgentFloat = (): void => { this.showAgentFloat = false }
+  private closeAgentFloat = (): void => {
+    this.showAgentFloat = false
+    // P1 修复 v2: 浮窗关闭时清空 pendingImageUri, 避免下次开浮窗还显示旧图
+    this.pendingImageUri = ""
+  }
 
   private goCameraFromAgent = (): void => {
     this.showAgentFloat = false
