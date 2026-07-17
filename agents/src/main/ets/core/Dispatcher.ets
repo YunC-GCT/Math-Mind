@@ -66,19 +66,19 @@ export class Dispatcher {
         + ', confidence=' + classification.confidence.toString());
 
       // Step 2: 拿 ocrText(优先用 classification 返的,fallback 到 payload.text)
+      // P0 修复: 即使 OCR 失败(空 ocrText), 也不再直接失败。
+      //   改为传 placeholder 给 KnowledgeModel, 让它能生成"待人工补充"的笔记框架。
+      //   用户体验: 拍照后即使 OCR 不通, 也能看到 AI 给的题目标题/分类, 不再"假成功"也不"假失败"。
       let ocrText: string = classification.ocrText ?? '';
       if (ocrText === '') {
         if (req.payload.kind === 'text') {
           ocrText = req.payload.text;
           log.info('ocrText fallback to payload.text (text kind)');
         } else {
-          // image / file 必须有 ocrText,缺则报失败
-          return {
-            success: false,
-            route: 'D1',
-            errorMessage: 'TypeClassifier 未返回 ocrText,且 payload 非 text 类型无法 fallback',
-            durationMs: Date.now() - t0,
-          };
+          // image / file 拿到空 ocrText, 走 placeholder 兜底
+          // 让 KnowledgeModel 仍能产出一个"待补充内容"的 KnowledgeUnit 框架
+          ocrText = '[OCR 暂不可达, 请人工补充题目内容]';
+          log.warn('OCR 返回空, 使用 placeholder 兜底, payload.kind=' + req.payload.kind);
         }
       }
 

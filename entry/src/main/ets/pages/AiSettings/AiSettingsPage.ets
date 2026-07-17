@@ -105,7 +105,7 @@ struct AiSettingsPage {
           SectionHeader({ title: "OCR 服务", desc: "拍照识别后端, 本地 FastAPI" })
           OcrConfigSection({
             endpoint: this.ocrEndpoint,
-            enabled: this.ocrEnabled,
+            isEnabled: this.ocrEnabled,
             onEndpointChange: (v: string): void => { this.ocrEndpoint = v },
             onEnabledChange: (v: boolean): void => { this.ocrEnabled = v },
             onReset: (): void => { this.ocrEndpoint = 'http://127.0.0.1:8000/api/v1/ocr/recognize' },

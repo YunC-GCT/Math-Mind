@@ -17,9 +17,7 @@ import { ProfilePage } from "./Profile/ProfilePage"
 import { TabBar } from "../molecules/TabBar"
 import { AgentFloatWindow } from "../prototypes/AgentFloatWindow"
 import { CameraOverlay } from "../prototypes/CameraOverlay"
-import { AiService } from "../services/AiService"
 import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
-import { common } from "@kit.AbilityKit"
 
 @Entry
 @Component
@@ -39,26 +37,19 @@ struct Index {
     }
   }
 
-  // 拍照/选图完成 → 触发整链 + 回 AI 浮窗
-  // 整链: imageUri → AiService.capture() → Dispatcher → OcrTool → TypeClassifier → KnowledgeModel → NoteDao.insert()
-  private onCameraConfirm = async (uri: string, _src: "camera" | "album"): Promise<void> => {
+  // 拍照/选图完成 → 仅把图片传给 AI 浮窗(由用户点"发送"触发整链)
+  // P1 修复: 旧版 (5b6f155) 选完图立刻跑 AiService.capture(), 用户无法编辑/取消
+  // 新版: 跟文字一样, 走对话模式 — 选图后图片进浮窗 input, 用户写文字, 点"发送"才触发
+  // 整链: imageUri + userText → AiService.capture(uri, userText) → Dispatcher → ... → NoteDao.insert()
+  private onCameraConfirm = (uri: string, _src: "camera" | "album"): void => {
     this.showCamera = false
     this.showAgentFloat = true
+    // 1) 把 URI 立刻写入 pendingImageUri, AgentFloatWindow @Watch 触发 onPendingImageChange
+    //    → 存到 imagePreview, 用户能看到缩略图
     this.pendingImageUri = uri
+    // 2) 100ms 后清空 pendingImageUri (避免重复触发 @Watch)
+    //    AgentFloatWindow 内部已经存到 imagePreview, 这里清空不影响浮窗
     setTimeout((): void => { this.pendingImageUri = "" }, 100)
-
-    try {
-      const ctx = getContext(this) as common.UIAbilityContext
-      const unit = await new AiService(ctx).capture(uri)
-      try {
-        promptAction.showToast({ message: "笔记已生成: " + unit.title, duration: 2000 })
-      } catch (e) { /* toast 失败忽略 */ }
-    } catch (e) {
-      const errMsg: string = (e as Error).message ?? String(e)
-      try {
-        promptAction.showToast({ message: "处理失败: " + errMsg.substring(0, 80), duration: 2500 })
-      } catch (e) { /* toast 失败忽略 */ }
-    }
   }
 
   private closeAgentFloat = (): void => { this.showAgentFloat = false }

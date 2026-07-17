@@ -15,17 +15,17 @@ import { BG_CARD, TEXT, TEXT_4, R_MD, R_LG, F_XS, F_SM } from 'common';
 
 @Component
 export struct OcrConfigSection {
-  // OCR 端点 URL
+  // OCR 端点 URL (字段名避开 CommonAttribute.enabled 冲突, 用 isEnabled)
   @Prop endpoint: string = '';
 
   // 是否启用 OCR
-  @Prop enabled: boolean = true;
+  @Prop isEnabled: boolean = true;
 
   // 端点输入回调
   onEndpointChange?: (v: string) => void = (_v: string): void => {};
 
   // 启用开关回调
-  onEnabledChange?: (v: boolean) => void = {};
+  onEnabledChange?: (v: boolean) => void = (_v: boolean): void => {};
 
   // 恢复默认回调
   onReset?: () => void = (): void => {};
@@ -38,7 +38,7 @@ export struct OcrConfigSection {
           .fontSize(F_SM)
           .fontColor(TEXT)
           .layoutWeight(1)
-        Toggle({ type: ToggleType.Switch, isOn: this.enabled })
+        Toggle({ type: ToggleType.Switch, isOn: this.isEnabled })
           .onChange((v: boolean): void => {
             if (this.onEnabledChange) { this.onEnabledChange(v); }
           })
