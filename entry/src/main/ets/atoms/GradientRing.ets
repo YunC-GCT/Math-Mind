@@ -9,7 +9,7 @@ import { MINT, PURPLE } from "common"
 
 @Component
 export struct GradientRing {
-  @Prop pct: number = 75
+  @Prop @Watch('restartAnimation') pct: number = 75
   @State animPct: number = 0
   @State glow: number = 0.45
   private settings: RenderingContextSettings = new RenderingContextSettings(true)
@@ -17,6 +17,19 @@ export struct GradientRing {
   private fillTimerId: number = -1
   private glowTimerId: number = -1
   private glowDir: number = 1
+
+  // @Watch 回调: pct 变化时重新填充动画
+  restartAnimation(): void {
+    if (this.fillTimerId !== -1) { clearInterval(this.fillTimerId); }
+    const target: number = this.pct;
+    const startTs: number = Date.now();
+    this.fillTimerId = setInterval((): void => {
+      const t: number = Math.min(1, (Date.now() - startTs) / 800);
+      this.animPct = target * (1 - Math.pow(1 - t, 3));
+      this.draw();
+      if (t >= 1) { clearInterval(this.fillTimerId); this.fillTimerId = -1; }
+    }, 16);
+  }
 
   aboutToAppear(): void {
     const startTs: number = Date.now()
