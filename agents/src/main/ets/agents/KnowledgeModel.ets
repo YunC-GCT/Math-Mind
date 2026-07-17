@@ -263,7 +263,14 @@ export class KnowledgeModel {
   // === Build AI Prompt ===
 
   buildPrompt(ocrText: string): string {
-    return `分类下面的数学内容(概念/定理/公式/证明题/计算题)，给标题和2-5个标签。\n返回纯JSON:{"category":"概念","title":"标题","tags":["标签1"],"difficulty":3,"importance":3,"fields":[{"key":"definition","label":"定义","value":"内容"}]}`;
+    return `You analyze math content. Return strict JSON only, no markdown.
+Fields:
+- category: concept/theorem/formula/proof/computation
+- title: precise name or topic summary
+- tags: 2-5 keywords
+- difficulty: 1-5
+- importance: 1-5
+- fields: [{key, label, value}] (definition/properties for concept, statement/conclusion for theorem, expression/parameters for formula, proposition/proof_process for proof, problem/answer for computation)`;
   }
   /**
    * 合并标签：AI 返回的标签 + 最小类名，去重
