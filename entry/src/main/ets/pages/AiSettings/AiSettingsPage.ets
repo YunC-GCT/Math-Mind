@@ -1,116 +1,106 @@
 // ============================================================================
-//  AiSettingsPage.ets — 大模型设置 · 7 行装配
-//  仅 DeepSeek + 自定义端点/模型
+//  pages/AiSettings/AiSettingsPage.ets - ai settings shell
 // ============================================================================
 
 import { BG_DARK, BORDER } from "common"
-import { KeyboardAvoidMode } from "@kit.ArkUI"
-import { LlmConfig, LlmClient, OcrConfig } from "common"
-import { promptAction } from "@kit.ArkUI"
+import { KeyboardAvoidMode, promptAction } from "@kit.ArkUI"
 import { PageHeader } from "./PageHeader"
 import { ConnectionStatus } from "./ConnectionStatus"
 import { SectionHeader } from "./SectionHeader"
 import { ActionBar } from "./ActionBar"
-import { EndpointPicker, DS_ENDPOINT } from "./EndpointPicker"
-import { ModelPicker, DEFAULT_MODEL } from "./ModelPicker"
+import { EndpointPicker } from "./EndpointPicker"
+import { ModelPicker } from "./ModelPicker"
 import { KeyInput } from "./KeyInput"
 import { OcrConfigSection } from "./OcrConfigSection"
+import { AiSettingsViewModel } from "../../viewmodels/AiSettingsViewModel"
 
 @Entry
 @Component
 struct AiSettingsPage {
   @StorageProp("statusBarHeight") sbh: number = 0
-  @State apiKey: string = ""
-  @State useCustomEP: boolean = false; @State customEP: string = ""
-  @State mdlIdx: number = 0; @State useCustomMD: boolean = false; @State customMD: string = ""
-  @State configured: boolean = false; @State testing: boolean = false
-  @State statusText: string = "未配置"
-  @State temp: number = 0.1; @State maxT: number = 1024; @State to: number = 5000
-  // OCR 配置 (P0 修复: 端点从硬编码 127.0.0.1 改为可配置)
-  @State ocrEndpoint: string = ""
-  @State ocrEnabled: boolean = true
+  @State vm: AiSettingsViewModel = new AiSettingsViewModel()
 
-  aboutToAppear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET) } catch (e) {}; this.load() }
-  aboutToDisappear(): void { try { this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE) } catch (e) {} }
-
-  private ep(): string { return this.useCustomEP && this.customEP ? this.customEP : DS_ENDPOINT }
-  private md(): string { if (this.useCustomMD && this.customMD) { return this.customMD }; return this.mdlIdx === 1 ? "deepseek-v4-pro" : DEFAULT_MODEL }
-
-  async load(): Promise<void> {
-    const c = LlmConfig.getInstance()
-    const key = await c.getApiKey()
-    if (key && key.length > 0) { this.apiKey = key; this.configured = true; this.statusText = "已配置" }
-    // 加载 OCR 配置
-    const oc = OcrConfig.getInstance()
-    this.ocrEndpoint = oc.getEndpoint()
-    this.ocrEnabled = oc.isEnabled()
-  }
-
-  async handleSave(): Promise<void> {
+  aboutToAppear(): void {
     try {
-      await LlmConfig.getInstance().saveAll(this.ep(), this.md(), this.temp, this.maxT, this.to)
-      if (this.apiKey.trim()) { await LlmConfig.getInstance().setApiKey(this.apiKey.trim()); this.configured = true }
-      // 保存 OCR 配置
-      await OcrConfig.getInstance().setEndpoint(this.ocrEndpoint)
-      await OcrConfig.getInstance().setEnabled(this.ocrEnabled)
-      this.statusText = "已保存"
-      promptAction.showToast({ message: "已保存", duration: 1500 })
-    } catch (e) { promptAction.showToast({ message: "保存失败", duration: 1500 }) }
+      this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET)
+    } catch (_e) {}
+    this.reload()
   }
 
-  async handleReset(): Promise<void> {
-    try { await LlmConfig.getInstance().resetDefaults(); await LlmConfig.getInstance().clearApiKey()
-      this.apiKey = ""; this.useCustomEP = false; this.customEP = ""; this.mdlIdx = 0; this.useCustomMD = false; this.customMD = ""
-      this.configured = false; this.statusText = "已重置"
-      // 重置 OCR
-      await OcrConfig.getInstance().resetDefaults()
-      this.ocrEndpoint = OcrConfig.getInstance().getEndpoint()
-      this.ocrEnabled = OcrConfig.getInstance().isEnabled()
-    } catch (e) {}
+  aboutToDisappear(): void {
+    try {
+      this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.NONE)
+    } catch (_e) {}
   }
 
-  async handleTest(): Promise<void> {
-    if (!this.apiKey.trim()) { promptAction.showToast({ message: "请先输入 API Key", duration: 1500 }); return }
-    await LlmConfig.getInstance().setApiKey(this.apiKey.trim())
-    await LlmConfig.getInstance().saveAll(this.ep(), this.md(), this.temp, this.maxT, this.to)
-    this.testing = true
-    try { await new LlmClient().call([{ role: "system", content: "OK" }, { role: "user", content: "OK" }])
-      this.statusText = "已配置 · 连接正常"; this.configured = true
-    } catch (e) { this.statusText = "连接失败" }
-    finally { this.testing = false }
+  private reload(): void {
+    this.vm.load().then((ok: boolean): void => {
+      if (!ok) {
+        try { promptAction.showToast({ message: "配置加载失败", duration: 1500 }) } catch (_e) {}
+      }
+    })
+  }
+
+  private save(): void {
+    this.vm.save().then((ok: boolean): void => {
+      try {
+        promptAction.showToast({ message: ok ? "已保存" : "保存失败", duration: 1500 })
+      } catch (_e) {}
+    })
+  }
+
+  private reset(): void {
+    this.vm.reset()
+  }
+
+  private test(): void {
+    if (this.vm.apiKey.trim().length === 0) {
+      try { promptAction.showToast({ message: "请先输入 API Key", duration: 1500 }) } catch (_e) {}
+      return
+    }
+    this.vm.test()
   }
 
   build() {
     Column() {
       Row().width("100%").height(this.sbh).backgroundColor(BG_DARK)
-      PageHeader({ title: "模型配置" })
+      PageHeader({ title: "模型设置" })
       Row().width("100%").height(0.5).backgroundColor(BORDER)
       Scroll() {
         Column() {
-          ConnectionStatus({ configured: this.configured, statusText: this.statusText })
+          ConnectionStatus({ configured: this.vm.configured, statusText: this.vm.statusText })
           SectionHeader({ title: "服务端点", desc: "DeepSeek 官方或自定义" })
-          EndpointPicker({ useCustom: this.useCustomEP, customText: this.customEP,
-            onToggle: (v: boolean): void => { this.useCustomEP = v },
-            onCustomChange: (v: string): void => { this.customEP = v } })
-          SectionHeader({ title: "模型", desc: "DeepSeek-V3 或自定义" })
-          ModelPicker({ mdlIdx: this.mdlIdx, useCustom: this.useCustomMD, customText: this.customMD,
-            onSelect: (i: number): void => { this.mdlIdx = i; this.useCustomMD = false },
-            onToggle: (v: boolean): void => { this.useCustomMD = v },
-            onCustomChange: (v: string): void => { this.customMD = v } })
-          SectionHeader({ title: "API Key", desc: "从 DeepSeek 获取的密钥" })
-          KeyInput({ apiKey: this.apiKey, testing: this.testing,
-            onChange: (v: string): void => { this.apiKey = v },
-            onTest: (): void => { this.handleTest() } })
-          // OCR 端点配置 (P0 修复: 之前硬编码 127.0.0.1)
-          SectionHeader({ title: "OCR 服务", desc: "拍照识别后端, 本地 FastAPI" })
-          OcrConfigSection({
-            endpoint: this.ocrEndpoint,
-            isEnabled: this.ocrEnabled,
-            onEndpointChange: (v: string): void => { this.ocrEndpoint = v },
-            onEnabledChange: (v: boolean): void => { this.ocrEnabled = v },
-            onReset: (): void => { this.ocrEndpoint = 'http://127.0.0.1:8000/api/v1/ocr/recognize' },
+          EndpointPicker({
+            useCustom: this.vm.useCustomEP,
+            customText: this.vm.customEP,
+            onToggle: (v: boolean): void => { this.vm.toggleCustomEndpoint(v) },
+            onCustomChange: (v: string): void => { this.vm.setCustomEndpoint(v) },
           })
-          ActionBar({ onReset: (): void => { this.handleReset() }, onSave: (): void => { this.handleSave() } })
+          SectionHeader({ title: "模型", desc: "DeepSeek-V3 或自定义" })
+          ModelPicker({
+            mdlIdx: this.vm.mdlIdx,
+            useCustom: this.vm.useCustomMD,
+            customText: this.vm.customMD,
+            onSelect: (i: number): void => { this.vm.selectModel(i) },
+            onToggle: (v: boolean): void => { this.vm.toggleCustomModel(v) },
+            onCustomChange: (v: string): void => { this.vm.setCustomModel(v) },
+          })
+          SectionHeader({ title: "API Key", desc: "来自 DeepSeek 的密钥" })
+          KeyInput({
+            apiKey: this.vm.apiKey,
+            testing: this.vm.testing,
+            onChange: (v: string): void => { this.vm.setApiKey(v) },
+            onTest: (): void => { this.test() },
+          })
+          SectionHeader({ title: "OCR 服务", desc: "拍照识别后端，本地 FastAPI" })
+          OcrConfigSection({
+            endpoint: this.vm.ocrEndpoint,
+            isEnabled: this.vm.ocrEnabled,
+            onEndpointChange: (v: string): void => { this.vm.setOcrEndpoint(v) },
+            onEnabledChange: (v: boolean): void => { this.vm.setOcrEnabled(v) },
+            onReset: (): void => { this.vm.resetOcrEndpoint() },
+          })
+          ActionBar({ onReset: (): void => { this.reset() }, onSave: (): void => { this.save() } })
           Blank().height(40)
         }.width("100%")
       }.layoutWeight(1)
