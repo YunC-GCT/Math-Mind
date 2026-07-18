@@ -13,7 +13,7 @@
 //    onDelete: 删除
 //
 //  依赖:
-//    molecules:  PlanItemRow
+//    pages:     PlanItemRow
 //    viewmodels: StudyPlanViewModel
 //    common:     BORDER
 //
@@ -22,7 +22,7 @@
 
 import { BORDER, StudyPlanItem } from "common"
 import { StudyPlanViewModel } from "../../viewmodels/StudyPlanViewModel"
-import { PlanItemRow } from "../../molecules/PlanItemRow"
+import { PlanItemRow } from "./PlanItemRow"
 
 @Component
 export struct PlanListView {

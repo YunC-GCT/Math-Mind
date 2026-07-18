@@ -11,8 +11,8 @@
 //    浮层 onDelete → deleteNote() → 重新 loadNotes() 刷新列表
 //
 //  依赖:
-//    atoms:     FloatingButton
-//    molecules: HeroBanner / ReminderBanner
+//    pages:     FloatingButton
+//    pages:     HeroBanner / ReminderBanner
 //    pages:     HomeTopBar / HomeRecentNotes
 //    overlays: NoteDetailOverlay
 //    database:  NoteDao + DatabaseHelper
@@ -25,9 +25,9 @@
 
 import { BG_DARK, NoteItem, KnowledgeUnit, DatabaseHelper } from "common"
 import { promptAction } from "@kit.ArkUI"
-import { FloatingButton } from "../../atoms/FloatingButton"
-import { HeroBanner } from "../../molecules/HeroBanner"
-import { ReminderBanner } from "../../molecules/ReminderBanner"
+import { FloatingButton } from "./FloatingButton"
+import { HeroBanner } from "./HeroBanner"
+import { ReminderBanner } from "./ReminderBanner"
 import { NoteDetailOverlay } from "../../overlays/NoteDetailOverlay/NoteDetailOverlay"
 import { NoteDao } from "../../database/NoteDao"
 import { unitsToNoteItems } from "../../utils/NoteItemMapper"

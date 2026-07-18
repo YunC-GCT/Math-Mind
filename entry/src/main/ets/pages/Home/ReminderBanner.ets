@@ -1,5 +1,5 @@
 // ============================================================================
-//  molecules/ReminderBanner.ets — 首页提醒横幅分子组件
+//  pages/Home/ReminderBanner.ets — 首页提醒横幅分子组件
 //  ----------------------------------------------------------------------------
 //  职责: 笔记数 < 3 时显示引导文案（欢迎/鼓励）。
 //  来源: 从 HomePage.ets 提取，消除内联 if 块。
@@ -14,7 +14,7 @@ import {
   F_SM,
   LH_BASE,
 } from "common"
-import { AppIcon } from "../atoms/AppIcon"
+import { AppIcon } from "../../atoms/AppIcon"
 
 @Component
 export struct ReminderBanner {

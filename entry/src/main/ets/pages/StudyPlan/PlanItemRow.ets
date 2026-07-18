@@ -1,5 +1,5 @@
 // ============================================================================
-//  components/PlanItemRow.ets — 学习计划单行原子组件
+//  pages/StudyPlan/PlanItemRow.ets — 学习计划单行原子组件
 //  ----------------------------------------------------------------------------
 //  职责: 渲染一条学习计划项（完成状态图标 + 标题 + 关联笔记 + 优先级标签）。
 //  与 ViewModel 解耦: 通过 onToggle 回调通知父组件。
@@ -8,8 +8,8 @@
 //  ============================================================================
 
 import { MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, DANGER, WARNING, S_1, S_3, S_5, F_MD, F_XS, R_MD } from "common"
-import { PriorityBadge } from "../atoms/PriorityBadge"
-import { AppIcon } from "../atoms/AppIcon"
+import { PriorityBadge } from "./PriorityBadge"
+import { AppIcon } from "../../atoms/AppIcon"
 
 @Component
 export struct PlanItemRow {

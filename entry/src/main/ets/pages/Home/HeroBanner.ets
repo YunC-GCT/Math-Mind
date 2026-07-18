@@ -1,5 +1,5 @@
 // ============================================================================
-//  molecules/HeroBanner.ets — 首页 Hero 横幅分子组件
+//  pages/Home/HeroBanner.ets — 首页 Hero 横幅分子组件
 //  ----------------------------------------------------------------------------
 //  职责: 组装问候行 + 日期 + GradientRing 进度环 + StatsBox 统计方块。
 //  来源: 从 HomePage.ets 提取，消除内联 50 行 UI。
@@ -11,7 +11,7 @@
 //    @Prop  notesCount — 笔记总数
 //    @Prop  todayCount — 今日新增数
 //    onGoReview         — 点击进度环回调
-//  依赖: GradientRing (atoms), StatsBox (atoms)
+//  依赖: GradientRing (pages/Home), StatsBox (atoms)
 //  ============================================================================
 
 import {
@@ -23,8 +23,8 @@ import {
   W_SEMIBOLD, W_BOLD,
   HERO_RING_SIZE, DOT_SIZE,
 } from "common"
-import { GradientRing } from "../atoms/GradientRing"
-import { StatsBox } from "../atoms/StatsBox"
+import { GradientRing } from "./GradientRing"
+import { StatsBox } from "../../atoms/StatsBox"
 
 @Component
 export struct HeroBanner {

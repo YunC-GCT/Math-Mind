@@ -8,7 +8,7 @@
 //    [HexLogo + "MathMind" 标题 (HEADER_H 高)]
 //
 //  依赖:
-//    atoms: HexLogo
+//    pages: HexLogo
 //    common 令牌: BG_DARK / TEXT / S_2 / S_4 / F_MD / W_MEDIUM / HEADER_H
 //
 //  Props:
@@ -16,7 +16,7 @@
 //  ============================================================================
 
 import { BG_DARK, TEXT, S_2, S_4, F_MD, W_MEDIUM, HEADER_H } from "common"
-import { HexLogo } from "../../atoms/HexLogo"
+import { HexLogo } from "./HexLogo"
 
 @Component
 export struct HomeTopBar {
