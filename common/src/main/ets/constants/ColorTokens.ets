@@ -11,6 +11,7 @@
 // ========================================================================
 //  主色板 (Palette) — 11 个
 // ========================================================================
+export const COLOR_PRIMARY_500: string = "#FF5BE3B0" // brand token: --color-primary-500
 export const MINT: string         = "#FF5BE3B0"
 export const MINT_DARK: string    = "#FF1F8F65"
 export const MINT_LIGHT: string   = "#245BE3B0"

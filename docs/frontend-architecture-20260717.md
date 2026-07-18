@@ -201,7 +201,7 @@ entry/src/main/ets/
 
 | 类别 | 键 | 值范围 |
 |------|-----|--------|
-| 颜色 | MINT/PURPLE/PINK/AMBER/DANGER/WARNING/SUCCESS | 主题 + 7 类型色 |
+| 颜色 | `--color-primary-500 = #5BE3B0` / MINT / PURPLE / PINK / AMBER / DANGER / WARNING / SUCCESS | 主题 + 7 类型色 |
 | 文字 | TEXT → TEXT_4 | 白 → 灰 |
 | 间距 | S_1 → S_6 | 4→24 vp |
 | 圆角 | R_SM → R_FULL | 4→999 vp |
