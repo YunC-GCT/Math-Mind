@@ -30,7 +30,7 @@ import { ReviewPage } from './ReviewPage';
 import { MePage } from './MePage';
 import { AgentFloatWindowMVP } from '../overlays/AgentFloatWindowMVP';
 import { CameraOverlay } from '../overlays/CameraOverlay';
-import { promptAction, KeyboardAvoidMode } from '@kit.ArkUI';
+import { KeyboardAvoidMode } from '@kit.ArkUI';
 
 interface TabItem {
   idx: number;
@@ -111,7 +111,7 @@ struct IndexMVP {
         TabContent() {
           ReviewPage({
             onGoAI: (): void => {
-              promptAction.showToast({ message: 'AI 对话功能开发中', duration: 1500 });
+              this.showAgentFloat = true;
             }
           });
         }
