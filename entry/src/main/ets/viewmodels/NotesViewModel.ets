@@ -9,16 +9,31 @@ import { unitsToNoteItems } from "../utils/NoteItemMapper"
 @Observed
 export class NotesViewModel {
   notes: NoteItem[] = []
+  units: KnowledgeUnit[] = []
 
   async loadNotes(context: Context): Promise<boolean> {
     try {
       const store = await DatabaseHelper.init(context)
       const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
+      this.units = units
       this.notes = unitsToNoteItems(units)
       return true
     } catch (_e) {
+      this.units = []
       this.notes = []
       return false
+    }
+  }
+
+  async loadNote(context: Context, id: string): Promise<KnowledgeUnit | null> {
+    if (id.length === 0) {
+      return null
+    }
+    try {
+      const store = await DatabaseHelper.init(context)
+      return await new NoteDao(store).queryById(id)
+    } catch (_e) {
+      return null
     }
   }
 
