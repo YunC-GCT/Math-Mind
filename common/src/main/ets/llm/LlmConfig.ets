@@ -16,7 +16,7 @@ const KEY_TIMEOUT_MS = 'timeout_ms';
 const DEFAULT_ENDPOINT = 'https://api.siliconflow.cn/v1/chat/completions';
 const DEFAULT_MODEL = 'deepseek-ai/DeepSeek-V3';
 const DEFAULT_TEMPERATURE = 0.1;
-const DEFAULT_MAX_TOKENS = [redacted];  // KnowledgeModel 需要至少 8000+ 给 reasoning + content 各留空间
+const DEFAULT_MAX_TOKENS = 8000;
 const DEFAULT_TIMEOUT_MS = 5000;
 
 export class LlmConfig {
@@ -47,7 +47,6 @@ export class LlmConfig {
     }
     try {
       this.store = await preferences.getPreferences(context, STORE_NAME);
-      // 加载所有持久化值(无则用默认)
       await this.loadAll();
       this.inited = true;
       return { ok: true, message: 'LlmConfig initialized' };
