@@ -11,7 +11,7 @@
 //    生成中 → 按钮变 loading,显示 LoadingProgress + "生成中..." 文字
 //
 //  依赖:
-//    atoms:      AppIcon
+//    shared:     AppIcon
 //    viewmodels: StudyPlanViewModel
 //    common 令牌: MINT / BG_DARK / TEXT / TEXT_3 / BORDER / S_4 / S_5 /
 //         R_FULL / F_XS / F_2XL / W_BOLD
@@ -21,7 +21,7 @@
 
 import { MINT, BG_DARK, TEXT, TEXT_3, BORDER, S_4, S_5, R_FULL, F_XS, F_2XL, W_BOLD, StudyPlanItem } from "common"
 import { StudyPlanViewModel } from "../../viewmodels/StudyPlanViewModel"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct PlanHeader {

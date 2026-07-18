@@ -15,7 +15,7 @@
 //    vm.isEditing=true → placeholder 改 "修改学习计划..."、按钮变 ✓
 //
 //  依赖:
-//    atoms:      AppIcon
+//    shared:     AppIcon
 //    viewmodels: StudyPlanViewModel
 //    common 令牌: MINT / BG_CARD / TEXT / TEXT_3 / GLASS_8 / S_5 / R_FULL
 //
@@ -24,7 +24,7 @@
 
 import { MINT, BG_CARD, TEXT, TEXT_3, GLASS_8, S_5, R_FULL } from "common"
 import { StudyPlanViewModel } from "../../viewmodels/StudyPlanViewModel"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct PlanInputBar {

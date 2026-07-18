@@ -10,14 +10,14 @@
 //    onClose: 点击回调
 //
 //  依赖:
-//    atoms: AppIcon(name=close)
+//    shared: AppIcon(name=close)
 //    common 令牌: TEXT_2 / GLASS_10 / S_4
 //
 //  来源: 从 NoteDetailOverlay 拆出(2026-07-15 W2 原子化)
 //  ============================================================================
 
 import { TEXT_2, GLASS_10, S_4 } from "common"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct NoteCloseButton {

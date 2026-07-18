@@ -11,7 +11,7 @@
 //    [打开学习计划] 按钮(跳转 StudyPlanPage)
 //
 //  依赖:
-//    atoms: AppIcon
+//    shared: AppIcon
 //    common 令牌: MINT / MINT_DARK / BG_DARK / TEXT / TEXT_3 / R_FULL /
 //         F_SM / F_BASE / F_2XL / W_SEMIBOLD
 //
@@ -26,7 +26,7 @@ import {
   F_SM, F_BASE, F_2XL, W_SEMIBOLD,
 } from "common"
 import { router } from "@kit.ArkUI"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct ReviewPage {

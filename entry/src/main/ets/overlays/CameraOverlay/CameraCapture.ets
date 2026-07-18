@@ -3,7 +3,7 @@ import { CameraCloseBtn } from "./CameraCloseBtn"
 import { CameraAlbumBtn } from "./CameraAlbumBtn"
 import { CameraShutterBtn } from "./CameraShutterBtn"
 import { ViewfinderCorners } from "./ViewfinderCorners"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct CameraCapture {

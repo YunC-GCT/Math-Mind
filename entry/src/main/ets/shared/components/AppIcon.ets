@@ -1,5 +1,5 @@
 // ============================================================================
-//  atoms/AppIcon.ets - lightweight icon component
+//  shared/components/AppIcon.ets - lightweight icon component
 // ----------------------------------------------------------------------------
 //  Prefer existing SVG resources. For missing assets, use compact glyph marks
 //  with stable sizing instead of hand-rolled Path viewBox math.

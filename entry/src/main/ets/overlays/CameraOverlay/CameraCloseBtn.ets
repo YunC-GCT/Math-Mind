@@ -1,5 +1,5 @@
 import { SCREEN_W } from "common"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct CameraCloseBtn {

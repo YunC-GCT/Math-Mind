@@ -14,7 +14,7 @@ import {
   F_SM,
   LH_BASE,
 } from "common"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct ReminderBanner {

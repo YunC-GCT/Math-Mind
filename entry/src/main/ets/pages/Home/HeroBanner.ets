@@ -24,7 +24,7 @@ import {
   HERO_RING_SIZE, DOT_SIZE,
 } from "common"
 import { GradientRing } from "./GradientRing"
-import { StatsBox } from "../../atoms/StatsBox"
+import { StatsBox } from "../../shared/components/StatsBox"
 
 @Component
 export struct HeroBanner {

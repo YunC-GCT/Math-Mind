@@ -7,7 +7,7 @@
 //    [✓  X/Y 已完成]  ........................ [Progress 进度条 / 暂无计划]
 //
 //  依赖:
-//    atoms:      AppIcon
+//    shared:     AppIcon
 //    viewmodels: StudyPlanViewModel
 //    common 令牌: MINT / TEXT_2 / TEXT_3 / S_5 / F_XS / F_BASE / F_MD
 //
@@ -16,7 +16,7 @@
 
 import { MINT, TEXT_2, TEXT_3, S_5, F_XS, F_BASE, F_MD } from "common"
 import { StudyPlanViewModel } from "../../viewmodels/StudyPlanViewModel"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct PlanStatsBar {

@@ -7,7 +7,7 @@
 //    [StatsBox "笔记"] [StatsBox "掌握率"] [StatsBox "今日新增"]
 //
 //  依赖:
-//    atoms: StatsBox
+//    shared: StatsBox
 //    common 令牌: S_4
 //
 //  Props:
@@ -17,7 +17,7 @@
 //  ============================================================================
 
 import { S_4 } from "common"
-import { StatsBox } from "../../atoms/StatsBox"
+import { StatsBox } from "../../shared/components/StatsBox"
 
 @Component
 export struct ProfileStatsRow {

@@ -8,7 +8,7 @@
 //    [Scroll 列表,内含 N 个 NoteCard(分隔线模式)]
 //
 //  依赖:
-//    molecules: NoteCard
+//    shared: NoteCard
 //    common 令牌: TEXT / TEXT_3 / S_2 / S_3 / S_5 / F_XS / F_BASE / W_SEMIBOLD
 //
 //  Props:
@@ -17,7 +17,7 @@
 //  ============================================================================
 
 import { TEXT, TEXT_3, S_2, S_3, S_5, F_XS, F_BASE, W_SEMIBOLD, NoteItem } from "common"
-import { NoteCard } from "../../molecules/NoteCard"
+import { NoteCard } from "../../shared/components/NoteCard"
 
 @Component
 export struct HomeRecentNotes {

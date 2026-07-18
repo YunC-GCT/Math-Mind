@@ -3,12 +3,12 @@
  *
  * 路径: entry/src/main/ets/overlays/NoteDetailOverlay/NoteDetailMeta.ets
  * 职责: 章节 / 日期 / 置信度点 · 对齐 v2-ui .dmeta (虚线分隔 + tabular nums)
- * 依赖: common, local ConfDot, atoms/AppIcon
+ * 依赖: common, local ConfDot, shared/components/AppIcon
  */
 
 import { TEXT_2, TEXT_3, TEXT_4, BORDER, S_1, S_3, S_4, F_XS, NoteItem, recentDate } from 'common';
 import { ConfDot } from './ConfDot';
-import { AppIcon } from '../../atoms/AppIcon';
+import { AppIcon } from '../../shared/components/AppIcon';
 
 @Component
 export struct NoteDetailMeta {

@@ -9,7 +9,7 @@
 
 import { MINT, BG_DARK, BG_CARD, TEXT, TEXT_3, DANGER, WARNING, S_1, S_3, S_5, F_MD, F_XS, R_MD } from "common"
 import { PriorityBadge } from "./PriorityBadge"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct PlanItemRow {

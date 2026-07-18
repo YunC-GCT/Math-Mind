@@ -7,7 +7,7 @@
 //    [图标]  [标签]  [ › ]
 //
 //  依赖:
-//    atoms: AppIcon
+//    shared: AppIcon
 //    common 令牌: TEXT_2 / TEXT_4 / BORDER / S_4 / F_SM / F_MD
 //
 //  Props:
@@ -19,7 +19,7 @@
 //  ============================================================================
 
 import { TEXT_2, TEXT_4, BORDER, S_4, F_SM, F_MD } from "common"
-import { AppIcon } from "../../atoms/AppIcon"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct MenuItemRow {

@@ -7,7 +7,7 @@
 //    List(ListItem × N + ListItem 底部留白)
 //
 //  依赖:
-//    molecules: NoteCard
+//    shared: NoteCard
 //
 //  Props:
 //    notes:    NoteItem[] (从 NotesPage 注入)
@@ -15,7 +15,7 @@
 //  ============================================================================
 
 import { NoteItem } from "common"
-import { NoteCard } from "../../molecules/NoteCard"
+import { NoteCard } from "../../shared/components/NoteCard"
 
 @Component
 export struct NotesList {
