@@ -7,7 +7,7 @@
 //    [● 模型名]  [◜◝◞ 深度思考]  [+]  [✕]
 //
 //  Props:
-//    modelName:     模型名(默认 "DeepSeek-V4")
+//    modelName:     模型名(默认 "DeepSeek-V4-Pro")
 //    deepThink:     深度思考开关状态
 //    onToggleThink: 切换思考模式回调
 //    onNewChat:     新建对话回调
@@ -24,7 +24,7 @@ import { MINT, MINT_LIGHT, BG_DARK, TEXT_2, TEXT_3, TEXT_4,
 @Component
 export struct ChatHeader {
   // 模型名
-  @Prop modelName: string = "DeepSeek-V4"
+  @Prop modelName: string = "DeepSeek-V4-Pro"
 
   // 深度思考开关
   @Prop deepThink: boolean = false

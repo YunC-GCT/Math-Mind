@@ -9,7 +9,7 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import { LlmConfig, DatabaseHelper } from 'common';
+import { LlmConfig, OcrConfig, DatabaseHelper } from 'common';
 
 const DOMAIN = 0x0000;
 
@@ -23,6 +23,10 @@ export default class EntryAbility extends UIAbility {
     // 初始化 LLM 配置(持久化 API key/endpoint/model)
     LlmConfig.getInstance().init(this.context).catch((e: Error) => {
       hilog.error(DOMAIN, 'testTag', 'LlmConfig init failed: %{public}s', e.message);
+    });
+    // 初始化 OCR 配置(持久化 endpoint/enabled)
+    OcrConfig.getInstance().init(this.context).catch((e: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'OcrConfig init failed: %{public}s', e.message);
     });
     // 初始化数据库
     DatabaseHelper.init(this.context).catch((e: Error) => {

@@ -2,16 +2,14 @@ import { http } from '@kit.NetworkKit';
 import { OcrConfig, fileNameFromUri, mimeFromExtension } from 'common';
 import fileIo from '@ohos.file.fs';
 
-// OCR 识别结果接口：对外暴露的统一返回格式
 export interface OcrRecognitionResult {
-  success: boolean;      // 识别是否成功
-  formulas: string[];    // 识别出的 LaTeX 公式列表
-  textLines: string[];   // 按行分割的文本行
-  text: string;          // 完整识别文本（所有文本行拼接）
-  message: string;       // 错误或状态提示信息
+  success: boolean;
+  formulas: string[];
+  textLines: string[];
+  text: string;
+  message: string;
 }
 
-// OCR API 原始响应接口：与后端 /ocr/recognize 返回的 JSON 结构一一对应
 interface OcrResponse {
   success: boolean;
   formula_count: number;
@@ -22,55 +20,46 @@ interface OcrResponse {
   message: string;
 }
 
-/**
- * OCR 工具类：将图片发送至后端 OCR 服务进行文字与公式识别。
- * 支持自动重试、文件路径规范化、MIME 类型推断及结果格式化。
- */
 export class OcrTool {
-  // 上下文引用(用于懒加载 OcrConfig),P0 修复: 不再硬编码 endpoint
   private context: Context | null;
+  private currentEndpoint: string = '';
 
   constructor(context?: Context) {
     this.context = context ?? null;
   }
 
-  // 端点从 OcrConfig 拿(P0 修复),失败时兜底默认 localhost
-  // 真机部署: 用户在 AI 设置页 OCR 配置区改 IP
   private async resolveEndpoint(): Promise<string> {
+    const config: OcrConfig = OcrConfig.getInstance();
     if (this.context !== null) {
       try {
-        await OcrConfig.getInstance().init(this.context);
-        return OcrConfig.getInstance().getEndpoint();
-      } catch (e) {
-        // OcrConfig 不可用, 走默认
+        await config.init(this.context);
+      } catch (_e) {
+        // keep cached value
       }
     }
-    return 'http://127.0.0.1:8000/api/v1/ocr/recognize';
+    const endpoint: string = config.getEndpoint().trim();
+    return endpoint.length > 0 ? endpoint : 'http://127.0.0.1:8000/api/v1/ocr/recognize';
   }
 
-  // P0 修复: OCR 未启用时直接跳过, 返空文本让上层走纯文本 prompt
   private async isEnabled(): Promise<boolean> {
-    if (this.context === null) {
-      return true; // 没传 context 走老路径, 默认可用
+    const config: OcrConfig = OcrConfig.getInstance();
+    if (this.context !== null) {
+      try {
+        await config.init(this.context);
+      } catch (_e) {
+        return true;
+      }
     }
     try {
-      await OcrConfig.getInstance().init(this.context);
-      return OcrConfig.getInstance().isEnabled();
-    } catch (e) {
+      return config.isEnabled();
+    } catch (_e) {
       return true;
     }
   }
 
-  /**
-   * 执行 OCR 识别，返回格式化后的 prompt 文本。
-   * @param imageUri 图片 URI（支持 file:// 协议或普通文件路径）
-   * @returns 拼接好的识别结果字符串（文本 + LaTeX 公式）
-   */
   async recognize(imageUri: string): Promise<string> {
     console.info('[OcrTool] recognize called, uri=' + imageUri.substring(0, 60));
-    // P0 修复: OCR 未启用时跳过 HTTP 调用, 返空文本让上层走 ruleFallback
-    const enabled: boolean = await this.isEnabled();
-    if (!enabled) {
+    if (!await this.isEnabled()) {
       console.info('[OcrTool] OCR disabled in settings, skipping');
       return '';
     }
@@ -82,51 +71,75 @@ export class OcrTool {
     return promptText;
   }
 
-  /**
-   * 调用 OCR 服务识别图片，返回结构化识别结果。
-   * @param imageUri 图片 URI
-   * @returns OcrRecognitionResult 结构，包含文本、公式等信息
-   */
-  async recognizeImage(imageUri: string): Promise<OcrRecognitionResult> {
-    // 发起带重试的 HTTP 请求，获取原始响应
-    const resp: OcrResponse = await this.requestWithRetry(imageUri);
-    const formulas: string[] = resp.formulas ?? [];
-    const textLines: string[] = resp.text_lines ?? [];
-    // 若服务端未返回统一 text，则用所有文本行拼接
-    const text: string = resp.text ?? textLines.join(' ');
-
-    return {
-      success: resp.success,
-      formulas: formulas,
-      textLines: textLines,
-      text: text,
-      message: resp.message ?? '',
-    };
+  async recognizeBytes(imageBytes: ArrayBuffer, fileName: string = 'upload.png'): Promise<OcrRecognitionResult> {
+    if (!await this.isEnabled()) {
+      return {
+        success: false,
+        formulas: [],
+        textLines: [],
+        text: '',
+        message: 'OCR disabled in settings',
+      };
+    }
+    const resp: OcrResponse = await this.requestWithRetryBytes(imageBytes, fileName);
+    return this.toRecognitionResult(resp);
   }
 
-  // P0 修复: endpoint 改为运行时从 OcrConfig 拿
-  private currentEndpoint: string = '';
+  async recognizeBytesWithEndpoint(
+    imageBytes: ArrayBuffer,
+    endpoint: string,
+    fileName: string = 'upload.png',
+  ): Promise<OcrRecognitionResult> {
+    if (!await this.isEnabled()) {
+      return {
+        success: false,
+        formulas: [],
+        textLines: [],
+        text: '',
+        message: 'OCR disabled in settings',
+      };
+    }
+    const resp: OcrResponse = await this.requestWithRetryBytes(imageBytes, fileName, endpoint);
+    return this.toRecognitionResult(resp);
+  }
 
-  /**
-   * 带重试的请求封装：最多尝试 2 次，全部失败后返回错误结果。
-   * 这样可应对网络瞬时抖动，避免上层因单次超时就彻底失败。
-   */
+  async recognizeImage(imageUri: string): Promise<OcrRecognitionResult> {
+    const resp: OcrResponse = await this.requestWithRetry(imageUri);
+    return this.toRecognitionResult(resp);
+  }
+
   private async requestWithRetry(imageUri: string): Promise<OcrResponse> {
-    // P0 修复: 每次请求前重新解析 endpoint, 支持运行时切换
-    this.currentEndpoint = await this.resolveEndpoint();
+    const filePath: string = this.normalizeFilePath(imageUri);
+    const fileName: string = fileNameFromUri(filePath);
+    const stat: fileIo.Stat = fileIo.statSync(filePath);
+    const fileBuf: ArrayBuffer = new ArrayBuffer(stat.size);
+    const file: fileIo.File = fileIo.openSync(filePath, fileIo.OpenMode.READ_ONLY);
+    try {
+      fileIo.readSync(file.fd, fileBuf);
+    } finally {
+      fileIo.closeSync(file);
+    }
+    return await this.requestWithRetryBytes(fileBuf, fileName);
+  }
+
+  private async requestWithRetryBytes(
+    imageBytes: ArrayBuffer,
+    fileName: string,
+    endpointOverride: string = '',
+  ): Promise<OcrResponse> {
+    this.currentEndpoint = endpointOverride.trim().length > 0 ? endpointOverride.trim() : await this.resolveEndpoint();
     console.info('[OcrTool] requestWithRetry endpoint=' + this.currentEndpoint);
     let lastError: string = '';
     for (let i = 0; i < 2; i++) {
       try {
-        return await this.postImage(imageUri);
+        return await this.postBytes(imageBytes, fileName);
       } catch (e) {
         const detail: string = e instanceof Error ? e.message
           : (typeof e === 'string' ? e : JSON.stringify(e));
         lastError = detail;
-        console.warn('[OcrTool] request attempt ' + (i + 1).toString() + '/' + '2' + ' failed: ' + detail);
+        console.warn('[OcrTool] request attempt ' + (i + 1).toString() + '/2 failed: ' + detail);
       }
     }
-    // 所有重试均失败，返回统一错误结构，保持接口契约一致
     return {
       success: false,
       formula_count: 0,
@@ -138,34 +151,17 @@ export class OcrTool {
     };
   }
 
-  /**
-   * 通过 HTTP multipart/form-data 将图片文件上传至 OCR 服务。
-   * 手动拼装 multipart 请求体 + extraData (multiFormDataList 两种模式都 upload_size=0)。
-   */
-  private async postImage(imageUri: string): Promise<OcrResponse> {
-    const filePath: string = this.normalizeFilePath(imageUri);
-    const fileName: string = fileNameFromUri(filePath);
+  private async postBytes(imageBytes: ArrayBuffer, fileName: string): Promise<OcrResponse> {
     const mimeType: string = mimeFromExtension(fileName);
     const httpReq = http.createHttp();
-
     try {
-      // 手动读文件
-      const file: fileIo.File = fileIo.openSync(filePath, fileIo.OpenMode.READ_ONLY);
-      const stat: fileIo.Stat = fileIo.statSync(filePath);
-      const fileBuf: ArrayBuffer = new ArrayBuffer(stat.size);
-      fileIo.readSync(file.fd, fileBuf);
-      fileIo.closeSync(file);
-      console.info('[OcrTool] read file, size=' + stat.size.toString() + ' bytes');
-
-      // 手动拼装 multipart/form-data 请求体
       const boundary: string = '----MathMindOcr' + Date.now().toString();
-      const fileBytes: Uint8Array = new Uint8Array(fileBuf);
-      const bodyParts: string[] = [];
-      bodyParts.push('--' + boundary);
-      bodyParts.push('Content-Disposition: form-data; name="file"; filename="' + fileName + '"');
-      bodyParts.push('Content-Type: ' + mimeType);
-      bodyParts.push('');
-      const headerStr: string = bodyParts.join('\r\n') + '\r\n';
+      const fileBytes: Uint8Array = new Uint8Array(imageBytes);
+
+      const headerStr: string =
+        '--' + boundary + '\r\n' +
+        'Content-Disposition: form-data; name="file"; filename="' + fileName + '"\r\n' +
+        'Content-Type: ' + mimeType + '\r\n\r\n';
       const footerStr: string = '\r\n--' + boundary + '--\r\n';
 
       const headerBuf: Uint8Array = this.strToUtf8(headerStr);
@@ -175,7 +171,6 @@ export class OcrTool {
       body.set(headerBuf, 0);
       body.set(fileBytes, headerBuf.length);
       body.set(footerBuf, headerBuf.length + fileBytes.length);
-      console.info('[OcrTool] multipart body built, total=' + totalSize.toString() + ' bytes');
 
       const resp: http.HttpResponse = await httpReq.request(this.currentEndpoint, {
         method: http.RequestMethod.POST,
@@ -197,7 +192,6 @@ export class OcrTool {
     }
   }
 
-  // 字符串转 UTF-8 Uint8Array
   private strToUtf8(s: string): Uint8Array {
     const buf: Uint8Array = new Uint8Array(s.length * 3);
     let pos: number = 0;
@@ -220,10 +214,6 @@ export class OcrTool {
     return buf.slice(0, pos);
   }
 
-  /**
-   * 将结构化识别结果格式化为可嵌入 prompt 的文本。
-   * 格式：普通文本（如有） + 空行 + LaTeX 公式列表。
-   */
   private toPromptText(result: OcrRecognitionResult): string {
     const parts: string[] = [];
     const text: string = result.text.trim();
@@ -236,9 +226,19 @@ export class OcrTool {
     return parts.join('\n\n');
   }
 
-  /**
-   * 规范化文件路径：去掉 file:// 协议前缀，得到可直接使用的本地路径。
-   */
+  private toRecognitionResult(resp: OcrResponse): OcrRecognitionResult {
+    const formulas: string[] = resp.formulas ?? [];
+    const textLines: string[] = resp.text_lines ?? [];
+    const text: string = resp.text ?? textLines.join(' ');
+    return {
+      success: resp.success,
+      formulas: formulas,
+      textLines: textLines,
+      text: text,
+      message: resp.message ?? '',
+    };
+  }
+
   private normalizeFilePath(imageUri: string): string {
     if (imageUri.startsWith('file://')) {
       return imageUri.substring('file://'.length);

@@ -63,6 +63,10 @@ interface EquationCheckResult {
   issues: string[];
 }
 
+const KNOWLEDGE_INPUT_LIMIT: number = 12000;
+const KNOWLEDGE_MAX_TOKENS: number = 12000;
+const KNOWLEDGE_TIMEOUT_MS: number = 300000;
+
 export class KnowledgeModel {
 
   /**
@@ -126,7 +130,7 @@ export class KnowledgeModel {
     return {
       id: this.uuid(),
       title: ext.title,
-      content: ext.content,
+      content: this.contentFromFields(ext),
       summary: summary,
       tags: ext.tags,
       difficulty: this.toDifficultyLevel(ext.difficulty),
@@ -227,15 +231,18 @@ export class KnowledgeModel {
     const prompt: string = this.buildPrompt(ocrText) + hint;
 
     const systemMsg: ChatMessage = { role: 'system', content: prompt };
-    const truncatedText: string = ocrText.length > 1500 ? ocrText.substring(0, 1500) : ocrText;
-    const userMsg: ChatMessage = { role: 'user', content: truncatedText };
+    const userText: string = ocrText.length > KNOWLEDGE_INPUT_LIMIT ? ocrText.substring(0, KNOWLEDGE_INPUT_LIMIT) : ocrText;
+    const userMsg: ChatMessage = { role: 'user', content: userText };
     const messages: ChatMessage[] = [systemMsg, userMsg];
 
-    console.info('[KnowledgeModel] callAi: systemPrompt=' + prompt.length.toString() + ' chars, userText=' + truncatedText.length.toString() + ' chars');
+    console.info('[KnowledgeModel] callAi: systemPrompt=' + prompt.length.toString() + ' chars, userText=' + userText.length.toString() + ' chars');
     let rawContent: string;
     try {
       const client: LlmClient = new LlmClient();
-      rawContent = await client.call(messages, { timeoutMs: 1800000 });  // 30 分钟
+      rawContent = await client.call(messages, {
+        maxTokens: KNOWLEDGE_MAX_TOKENS,
+        timeoutMs: KNOWLEDGE_TIMEOUT_MS,
+      });
       console.info('[KnowledgeModel] callAi response received, len=' + rawContent.length.toString());
     } catch (llmErr) {
       console.error('[KnowledgeModel] callAi LLM error: ' + (llmErr as Error).message);
@@ -247,7 +254,12 @@ export class KnowledgeModel {
       throw new Error('AI 返回为空:content 为空');
     }
 
-    const parsed: Record<string, Object> = JSON.parse(rawContent) as Record<string, Object>;
+    let jsonStr: string = rawContent.trim();
+    const codeMatch: RegExpMatchArray | null = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeMatch !== null && codeMatch.length >= 2) { jsonStr = codeMatch[1].trim(); }
+    const braceMatch: RegExpMatchArray | null = jsonStr.match(/\{[\s\S]*\}/);
+    if (braceMatch !== null) { jsonStr = braceMatch[0]; }
+    const parsed: Record<string, Object> = JSON.parse(jsonStr) as Record<string, Object>;
 
     const aiRaw: AiRawResponse = {
       category: parsed['category'] as KnowledgeCategory,
@@ -275,7 +287,13 @@ Fields:
   theorem: statement/conditions/conclusion/proof_sketch/applications
   formula: expression/parameters/applicable_range/derivation/notes
   proof: proposition/given/proof_process/key_insight/conclusion
-  computation: problem/steps/answer/method_summary/common_mistakes`;
+  computation: problem/steps/answer/method_summary/common_mistakes
+
+For display rendering:
+- Put formulas as plain text inside the field value.
+- Put important formulas on their own line.
+- Prefer one field per section.
+- Keep all field values complete and do not summarize away the source content.`;
   }
   /**
    * 合并标签：AI 返回的标签 + 最小类名，去重
@@ -308,6 +326,26 @@ Fields:
     }
     unit.needsUserInput.push('difficulty');
     unit.needsUserInput.push('importance');
+  }
+
+  private contentFromFields(ext: KnowledgeUnitExt): string {
+    const sections: string[] = [];
+    for (let i: number = 0; i < ext.fields.length; i++) {
+      const field: StructuredField = ext.fields[i];
+      const label: string = field.label.trim().length > 0 ? field.label.trim() : field.key.trim();
+      const value: string = field.value.trim();
+      if (value.length > 0) {
+        sections.push('## ' + label + '\n' + value);
+      }
+    }
+    const raw: string = ext.content.trim();
+    if (raw.length > 0) {
+      sections.push('## 原文\n' + raw);
+    }
+    if (sections.length === 0) {
+      return ext.content;
+    }
+    return sections.join('\n\n');
   }
 
   /**

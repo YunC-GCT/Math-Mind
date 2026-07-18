@@ -25,7 +25,7 @@ export struct NoteDetailBody {
   build() {
     Column() {
       if (this.summaryText().length > 0) {
-        NoteSectionView({ title: 'Summary', content: this.summaryText() })
+        NoteSectionView({ title: '摘要', content: this.summaryText() })
       }
 
       if (this.bodyText().length > 0) {
@@ -39,10 +39,12 @@ export struct NoteDetailBody {
         }
         .width('100%')
         .padding({ bottom: 8 })
+      } else if (this.summaryText().length === 0) {
+        NoteSectionView({ title: '内容', content: '暂无正文' })
       }
 
       if (this.detailTags().length > 0) {
-        Text('Tags')
+        Text('标签')
           .fontSize(F_SM)
           .fontWeight(W_BOLD)
           .fontColor(TEXT_3)
@@ -69,7 +71,7 @@ export struct NoteDetailBody {
       }
 
       if (this.prerequisites().length > 0) {
-        Text('Prerequisites')
+        Text('前置知识')
           .fontSize(F_SM)
           .fontWeight(W_BOLD)
           .fontColor(TEXT_3)
@@ -96,7 +98,7 @@ export struct NoteDetailBody {
       }
 
       if (this.related().length > 0) {
-        Text('Related')
+        Text('相关知识')
           .fontSize(F_SM)
           .fontWeight(W_BOLD)
           .fontColor(TEXT_3)
@@ -123,11 +125,11 @@ export struct NoteDetailBody {
       }
 
       if (this.sourceText().length > 0) {
-        NoteSectionView({ title: 'Source', content: this.sourceText() })
+        NoteSectionView({ title: '来源', content: this.sourceText() })
       }
 
       if (this.studyStateText().length > 0) {
-        NoteSectionView({ title: 'Study', content: this.studyStateText() })
+        NoteSectionView({ title: '复习状态', content: this.studyStateText() })
       }
 
       Blank().height(80)
@@ -183,13 +185,13 @@ export struct NoteDetailBody {
       return ''
     }
     const lines: string[] = []
-    lines.push('Review status: ' + this.reviewStatusText(this.unit.reviewStatus))
-    lines.push('Difficulty: ' + this.difficultyText(this.unit.difficulty))
-    lines.push('Interval: ' + this.unit.intervalDays.toString() + ' days')
-    lines.push('Repeats: ' + this.unit.repetitions.toString())
-    lines.push('Ease: ' + this.unit.easeFactor.toFixed(1))
+    lines.push('状态: ' + this.reviewStatusText(this.unit.reviewStatus))
+    lines.push('难度: ' + this.difficultyText(this.unit.difficulty))
+    lines.push('间隔: ' + this.unit.intervalDays.toString() + ' 天')
+    lines.push('复习次数: ' + this.unit.repetitions.toString())
+    lines.push('易度: ' + this.unit.easeFactor.toFixed(1))
     if (this.unit.nextReviewAt > 0) {
-      lines.push('Next review: ' + this.formatDate(this.unit.nextReviewAt))
+      lines.push('下次复习: ' + this.formatDate(this.unit.nextReviewAt))
     }
     return lines.join('\n')
   }
@@ -200,18 +202,18 @@ export struct NoteDetailBody {
   }
 
   private reviewStatusText(status: ReviewStatus): string {
-    if (status === ReviewStatus.LEARNING) { return 'Learning' }
-    if (status === ReviewStatus.REVIEW) { return 'Review' }
-    if (status === ReviewStatus.GRADUATED) { return 'Mastered' }
-    if (status === ReviewStatus.LAPSED) { return 'Lapsed' }
-    return 'New'
+    if (status === ReviewStatus.LEARNING) { return '学习中' }
+    if (status === ReviewStatus.REVIEW) { return '复习中' }
+    if (status === ReviewStatus.GRADUATED) { return '已掌握' }
+    if (status === ReviewStatus.LAPSED) { return '需重学' }
+    return '新笔记'
   }
 
   private difficultyText(level: DifficultyLevel): string {
-    if (level === DifficultyLevel.EASY) { return 'Level 1' }
-    if (level === DifficultyLevel.MEDIUM) { return 'Level 2' }
-    if (level === DifficultyLevel.HARD) { return 'Level 3' }
-    return 'Level 4'
+    if (level === DifficultyLevel.EASY) { return '简单' }
+    if (level === DifficultyLevel.MEDIUM) { return '中等' }
+    if (level === DifficultyLevel.HARD) { return '困难' }
+    return '专家'
   }
 
   private formatDate(ts: number): string {

@@ -205,7 +205,10 @@ export class StudyPlanViewModel {
         { role: "user", content: "请生成学习计划" },
       ]
 
-      const reply: string = await this.llm.call(messages)
+      const reply: string = await this.llm.call(messages, {
+        maxTokens: 1024,
+        timeoutMs: 60000,
+      })
       const titles: string[] = this.parsePlanTitles(reply)
 
       for (const title of titles) {

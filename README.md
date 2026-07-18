@@ -2,7 +2,34 @@
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z(由 Mavis 代笔)
-> 最近更新: 2026-07-17
+> 最近更新: 2026-07-18
+
+---
+
+## 2026-07-18 本轮重构记录
+
+### 做了什么
+
+- 调整 DeepSeek 大模型连接方式: 设置页使用 OpenAI 兼容 `base_url`(`https://api.deepseek.com`), `LlmClient` 内部自动拼接 `/chat/completions`。
+- 修复 AI 设置页“测试连接”误判失败的问题: 大模型实际已可用,之前失败原因是测试请求 `max_tokens=16` 导致 V4-Pro 输出被截断。
+- 统一模型入口为 `deepseek-v4-pro`,旧的 V3 / Flash / R1 配置在加载和保存时会归一化到 V4-Pro。
+- AI 设置页失败状态会显示具体错误摘要,便于区分 Key 错误、端点错误、模型错误和网络错误。
+- 同步 OCR 设置页测试入口、本地 OCR endpoint 配置、笔记详情页 LaTeX/分段渲染、KnowledgeModel 输出结构化内容等前序改动。
+
+### 已完成
+
+- DeepSeek API Key、模型名和网络链路已经验证可用。
+- LLM 默认配置已从旧 SiliconFlow / V3 配置切换到 DeepSeek OpenAI 兼容 base_url + V4-Pro。
+- AI 设置页测试逻辑已避免短 token 截断导致的假失败。
+- 拍照/OCR/分类/KnowledgeModel/入库/UI 渲染主链路已具备端到端运行基础。
+
+### 还需要处理
+
+- 重新用 DevEco Studio 编译并真机验收 AI 设置页测试结果。
+- 补齐 AI 浮窗多轮对话: 需要把当前会话历史按 DeepSeek 无状态 API 要求拼进 `messages`。
+- 给 TypeClassifier / KnowledgeModel 增加 `response_format: { type: "json_object" }` 和更严格的 JSON schema 校验,减少静默 fallback。
+- 继续降低“失败即占位笔记”的数据污染风险,让 OCR/LLM 失败在 UI 上更明确。
+- 后续再处理笔记页面、知识图谱宇宙视图、复习页和剩余 UI 对齐。
 
 ---
 
@@ -14,7 +41,7 @@
 
 | 修复 | 说明 |
 |------|------|
-| **deepseek-v4-flash reasoning_content 空响应** | LlmClient 读 `reasoning_content` 字段，Pro 版切换后恢复正常 |
+| **deepseek-v4-pro 连接与响应** | LlmClient 统一走 DeepSeek 官方端点，旧值会自动归一化 |
 | **TypeClassifier 五分类对齐** | `type` 从三分类改为 `NoteCategory` (概念/定理/公式/证明题/计算题)，对接 KnowledgeModel |
 | **Subject 自由判定** | 不再限制三选一，LLM 自由输出学科名称 |
 | **KnowledgeModel prompt 精简** | 中文→英文对齐 TypeClassifier 风格 |
@@ -141,7 +168,7 @@ MathMind/
 
 - **AiSettingsPage** — 端点/模型/API Key/参数/测试连接
 - **LlmConfig 运行时配置** — `saveAll()` + `loadAll()` 持久化
-- **DeepSeek V4 模型** — `deepseek-v4-flash` / `deepseek-v4-pro`
+- **DeepSeek V4 模型** — `deepseek-v4-pro`
 - **全 Agent 接入 DeepSeek** — TypeClassifier 通过 `LlmClient.call()` 调 LLM
 
 ### 3.6 CameraOverlay · 真实 CameraPicker (2026-07-14)
@@ -385,15 +412,13 @@ Index.ets  ─→  AiService  ─→  Dispatcher  ─→  TypeClassifier  ─→
 
 | 端点 | URL | 特点 |
 |------|-----|------|
-| DeepSeek 官方(默认) | `https://api.deepseek.com` | V4-Pro/Flash 第一时间可用,128K~1M 上下文 |
+| DeepSeek 官方(默认) | `https://api.deepseek.com` | OpenAI 兼容 base_url,客户端自动拼接 `/chat/completions` |
 | 自定义 OpenAI 兼容 | 用户自填 | 自建网关/代理 |
 
 | 模型 | model 名 | 上下文 | 用途 |
 |------|---------|--------|------|
-| DeepSeek-V3.2 | `deepseek-chat` | 128K | 通用对话(默认) |
-| DeepSeek-R1 | `deepseek-reasoner` | 64K | 数学/代码/复杂问题 |
 | DeepSeek-V4-Pro | `deepseek-v4-pro` | 1M | 旗舰推理 |
-| DeepSeek-V4-Flash | `deepseek-v4-flash` | 1M | 更快更便宜 |
+| 自定义 model | 用户输入 | 依 provider | 仅用于兼容或自建网关 |
 
 ### 6.2 默认参数
 

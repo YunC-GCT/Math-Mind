@@ -23,6 +23,28 @@ function pushFormulaBlock(blocks: TextBlock[], lines: string[]): void {
   lines.splice(0, lines.length)
 }
 
+function looksLikeFormulaLine(text: string): boolean {
+  if (text.length === 0 || text.indexOf('LaTeX formulas:') === 0) {
+    return false
+  }
+  if (
+    text.indexOf('\\frac') >= 0 ||
+    text.indexOf('\\sqrt') >= 0 ||
+    text.indexOf('\\sum') >= 0 ||
+    text.indexOf('\\int') >= 0 ||
+    text.indexOf('\\lim') >= 0 ||
+    text.indexOf('\\begin') >= 0 ||
+    text.indexOf('\\alpha') >= 0 ||
+    text.indexOf('\\beta') >= 0
+  ) {
+    return true
+  }
+  if (text.indexOf('=') >= 0 && (text.indexOf('^') >= 0 || text.indexOf('_') >= 0 || text.indexOf('\\') >= 0)) {
+    return true
+  }
+  return false
+}
+
 export function splitMathText(text: string): TextBlock[] {
   const normalized: string = text.replace(/\r\n/g, '\n').trim()
   if (normalized.length === 0) {
@@ -96,6 +118,12 @@ export function splitMathText(text: string): TextBlock[] {
       pushTextBlock(blocks, textLines)
       inFormula = true
       fence = '\\('
+      continue
+    }
+
+    if (looksLikeFormulaLine(trimmed)) {
+      pushTextBlock(blocks, textLines)
+      blocks.push({ kind: 'formula', content: trimmed })
       continue
     }
 

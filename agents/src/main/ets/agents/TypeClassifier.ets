@@ -1,6 +1,10 @@
 import { ClassificationResult, DispatchPayload, LlmClient, LlmError, ChatMessage, NoteCategory } from 'common';
 import { OcrTool } from '../mcp/tools/OcrTool';
 
+const CLASSIFY_MAX_TOKENS: number = 512;
+const CLASSIFY_TIMEOUT_MS: number = 30000;
+const CLASSIFY_TEXT_LIMIT: number = 6000;
+
 const CLASSIFY_PROMPT: string = `You classify OCR text from a math note or problem.
 Return strict JSON only, with no markdown.
 
@@ -21,15 +25,18 @@ export class TypeClassifier {
       { role: 'user', content: cleaned },
     ];
 
-    const client = new LlmClient();
+    const client: LlmClient = new LlmClient();
     try {
-      const raw: string = await client.call(messages);
-      return this.parseResult(raw, cleaned);
+      const raw: string = await client.call(messages, {
+        maxTokens: CLASSIFY_MAX_TOKENS,
+        timeoutMs: CLASSIFY_TIMEOUT_MS,
+      });
+      return this.parseResult(raw, ocrText);
     } catch (e) {
       if (e instanceof LlmError && e.kind === 'NO_API_KEY') {
-        return this.ruleFallback(cleaned, 0.5);
+        return this.ruleFallback(cleaned, 0.5, ocrText);
       }
-      return this.ruleFallback(cleaned, 0.4);
+      return this.ruleFallback(cleaned, 0.4, ocrText);
     }
   }
 
@@ -62,7 +69,7 @@ export class TypeClassifier {
 
   private cleanText(text: string): string {
     let t: string = text.replace(/\s+/g, ' ').trim();
-    if (t.length > 2000) { t = t.substring(0, 2000); }
+    if (t.length > CLASSIFY_TEXT_LIMIT) { t = t.substring(0, CLASSIFY_TEXT_LIMIT); }
     return t;
   }
 
@@ -89,13 +96,13 @@ export class TypeClassifier {
     }
   }
 
-  private ruleFallback(text: string, confidence: number): ClassificationResult {
+  private ruleFallback(text: string, confidence: number, fullText: string = ''): ClassificationResult {
     return {
       type: this.ruleType(text),
       subject: this.ruleSubject(text),
       chapter: '',
       confidence: confidence,
-      ocrText: text,
+      ocrText: fullText.length > 0 ? fullText : text,
     };
   }
 

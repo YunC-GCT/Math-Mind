@@ -1,38 +1,19 @@
-/**
- * OcrConfigSection.ets — AI 设置页 OCR 端点配置
- *
- * 路径: entry/src/main/ets/pages/AiSettings/OcrConfigSection.ets
- * 职责: 让用户配置 OCR 服务端点 + 启用开关
- *       P0 修复: 之前 OcrTool endpoint 写死 127.0.0.1, 真机连不上
- * 依赖: common (OcrConfig)
- *
- * 数据流:
- *   用户输入 endpoint → onChange 回调 → AiSettingsPage handleSave → OcrConfig.setEndpoint
- *   OcrTool.recognize → OcrConfig.getInstance().getEndpoint() → 实时读
- */
-import { OcrConfig } from 'common';
-import { BG_CARD, TEXT, TEXT_4, R_MD, R_LG, F_XS, F_SM } from 'common';
+import { BG_CARD, TEXT, TEXT_3, TEXT_4, R_MD, R_LG, F_XS, F_SM } from 'common'
 
 @Component
 export struct OcrConfigSection {
-  // OCR 端点 URL (字段名避开 CommonAttribute.enabled 冲突, 用 isEnabled)
-  @Prop endpoint: string = '';
+  @Prop endpoint: string = ''
+  @Prop isEnabled: boolean = true
+  @Prop statusText: string = ''
+  @Prop testing: boolean = false
 
-  // 是否启用 OCR
-  @Prop isEnabled: boolean = true;
-
-  // 端点输入回调
-  onEndpointChange?: (v: string) => void = (_v: string): void => {};
-
-  // 启用开关回调
-  onEnabledChange?: (v: boolean) => void = (_v: boolean): void => {};
-
-  // 恢复默认回调
-  onReset?: () => void = (): void => {};
+  onEndpointChange?: (v: string) => void = (_v: string): void => {}
+  onEnabledChange?: (v: boolean) => void = (_v: boolean): void => {}
+  onReset?: () => void = (): void => {}
+  onTest?: () => void = (): void => {}
 
   build() {
     Column() {
-      // 启用开关
       Row() {
         Text('启用 OCR')
           .fontSize(F_SM)
@@ -40,15 +21,16 @@ export struct OcrConfigSection {
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: this.isEnabled })
           .onChange((v: boolean): void => {
-            if (this.onEnabledChange) { this.onEnabledChange(v); }
+            if (this.onEnabledChange) {
+              this.onEnabledChange(v)
+            }
           })
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
 
-      // 端点输入
       Row() {
-        Text('端点 URL')
+        Text('服务地址')
           .fontSize(F_SM)
           .fontColor(TEXT)
           .layoutWeight(1)
@@ -67,18 +49,33 @@ export struct OcrConfigSection {
           .borderRadius(R_MD)
           .padding({ left: 8, right: 8 })
           .onChange((v: string): void => {
-            if (this.onEndpointChange) { this.onEndpointChange(v); }
+            if (this.onEndpointChange) {
+              this.onEndpointChange(v)
+            }
           })
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 0, bottom: 8 })
 
-      // 恢复默认
       Row() {
-        Text('真机部署时, 把 127.0.0.1 改成本机或内网 IP')
+        Text(this.statusText.length > 0 ? this.statusText : '未测试')
           .fontSize(F_XS)
-          .fontColor(TEXT_4)
+          .fontColor(TEXT_3)
           .layoutWeight(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Button(this.testing ? '...' : '测试连接')
+          .fontSize(F_XS)
+          .fontColor(TEXT)
+          .height(34)
+          .borderRadius(R_MD)
+          .backgroundColor('#0AFFFFFF')
+          .enabled(!this.testing)
+          .onClick((): void => {
+            if (this.onTest) {
+              this.onTest()
+            }
+          })
         Text('恢复默认')
           .fontSize(F_XS)
           .fontColor(TEXT_4)
@@ -86,11 +83,22 @@ export struct OcrConfigSection {
           .borderRadius(R_MD)
           .backgroundColor('#0AFFFFFF')
           .onClick((): void => {
-            if (this.onReset) { this.onReset(); }
+            if (this.onReset) {
+              this.onReset()
+            }
           })
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 4, bottom: 8 })
+
+      Row() {
+        Text('真机填电脑局域网 IP，127.0.0.1 只适合本机或同机服务')
+          .fontSize(F_XS)
+          .fontColor(TEXT_4)
+          .layoutWeight(1)
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 0, bottom: 8 })
     }
     .width('100%')
     .borderRadius(R_LG)

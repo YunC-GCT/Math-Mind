@@ -61,10 +61,11 @@ export class LlmClient {
     };
 
     // 3. 发 HTTP POST
+    const endpointUrl: string = this.resolveEndpointUrl(this.config.getEndpoint());
     const httpRequest = http.createHttp();
     let response: http.HttpResponse;
     try {
-      response = await httpRequest.request(this.config.getEndpoint(), {
+      response = await httpRequest.request(endpointUrl, {
         method: http.RequestMethod.POST,
         header: {
           'Content-Type': 'application/json',
@@ -97,6 +98,9 @@ export class LlmClient {
 
     // 6. 提取 content
     console.info('[LlmClient] raw response: ' + JSON.stringify(parsed).substring(0, 800));
+    if (parsed.choices.length > 0 && parsed.choices[0].finish_reason === 'length') {
+      throw new LlmError('LLM response truncated by max_tokens', 'API_ERROR');
+    }
     return this.extractContent(parsed);
   }
 
@@ -112,7 +116,7 @@ export class LlmClient {
     }
     const content: string = first.message.content;
     if (content === undefined || content === null || content.length === 0) {
-      // deepseek-v4-flash 推理模型: 实际内容在 reasoning_content
+      // 推理模型: 实际内容可能在 reasoning_content
       const reasoning: string = first.message.reasoning_content ?? '';
       if (reasoning.length > 0) { return reasoning; }
       throw new LlmError('LLM returned empty content', 'EMPTY_RESPONSE');
@@ -134,5 +138,23 @@ export class LlmClient {
       return fallback;
     }
     return v;
+  }
+
+  private resolveEndpointUrl(baseUrl: string): string {
+    const endpoint: string = baseUrl.trim();
+    if (endpoint.length === 0) {
+      return 'https://api.deepseek.com/chat/completions';
+    }
+    const lower: string = endpoint.toLowerCase();
+    if (lower.indexOf('/anthropic') >= 0) {
+      throw new LlmError(
+        'Anthropic base_url is not supported by this OpenAI-compatible client. Use https://api.deepseek.com',
+        'API_ERROR',
+      );
+    }
+    if (lower.indexOf('/chat/completions') >= 0) {
+      return endpoint;
+    }
+    return endpoint.replace(/\/+$/, '') + '/chat/completions';
   }
 }

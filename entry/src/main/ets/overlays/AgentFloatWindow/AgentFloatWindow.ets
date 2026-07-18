@@ -11,6 +11,7 @@ import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import window from '@ohos.window';
 import { AgentChatService, AgentChatCallbacks } from '../../services/AgentChatService';
+import { LlmConfig } from 'common';
 import { ChatHeader } from './chat/ChatHeader';
 import { QuickSuggestions } from './chat/QuickSuggestions';
 import { ChatSessionManager, sid } from './chat/ChatSession';
@@ -107,6 +108,14 @@ export struct AgentFloatWindow {
     if (idx > 0 && this.messages[idx - 1].role === 'user') { this.send(this.messages[idx - 1].content); }
   };
 
+  private modelLabel(): string {
+    const model: string = LlmConfig.getInstance().getModel().trim();
+    if (model === 'deepseek-v4-pro') {
+      return 'DeepSeek-V4-Pro'
+    }
+    return model.length > 0 ? model : 'DeepSeek-V4-Pro'
+  }
+
   // ===== build =====
 
   build() {
@@ -121,7 +130,13 @@ export struct AgentFloatWindow {
             .onActionStart((): void => { this.dragStartH = this.floatHeight; })
             .onActionUpdate((event: GestureEvent): void => { this.floatHeight = Math.max(30, Math.min(90, this.dragStartH - event.offsetY / SCREEN_H * 100)); }));
 
-          ChatHeader({ deepThink: this.deepThink, onToggleThink: (): void => { this.deepThink = !this.deepThink; }, onNewChat: (): void => { this.newSession(); }, onClose: this.onClose });
+          ChatHeader({
+            modelName: this.modelLabel(),
+            deepThink: this.deepThink,
+            onToggleThink: (): void => { this.deepThink = !this.deepThink; },
+            onNewChat: (): void => { this.newSession(); },
+            onClose: this.onClose,
+          });
           Row().width('100%').height(0.5).backgroundColor(BORDER);
 
           SessionBar({ sessions: this.sessions, activeSid: this.activeSid, onSwitch: (sid: string): void => { this.switchSession(sid); }, onDelete: (sid: string): void => { this.deleteSession(sid); }, onNew: (): void => { this.newSession(); } });

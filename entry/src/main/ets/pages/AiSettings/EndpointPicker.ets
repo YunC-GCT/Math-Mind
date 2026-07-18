@@ -19,7 +19,7 @@
 import { BG_CARD, TEXT, TEXT_4, R_MD, R_LG, F_XS, F_SM } from "common"
 
 // DeepSeek 官方端点常量
-export const DS_ENDPOINT = "https://api.deepseek.com/chat/completions"
+export const DS_ENDPOINT = "https://api.deepseek.com"
 
 @Component
 export struct EndpointPicker {
@@ -44,7 +44,7 @@ export struct EndpointPicker {
           .onChange((v: boolean): void => {
             if (v && this.onToggle) { this.onToggle(false) }
           })
-        Text("DeepSeek 官方")
+        Text("DeepSeek OpenAI")
           .fontSize(F_SM)
           .fontColor(TEXT)
       }
@@ -59,7 +59,7 @@ export struct EndpointPicker {
             if (v && this.onToggle) { this.onToggle(true) }
           })
 
-        TextInput({ text: this.customText, placeholder: "自定义端点..." })
+        TextInput({ text: this.customText, placeholder: "base_url (OpenAI)" })
           .layoutWeight(1)
           .height(44)
           .fontSize(F_XS)

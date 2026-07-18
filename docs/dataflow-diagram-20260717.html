@@ -28,6 +28,39 @@
   <p class="text-stone-500 text-sm">2026-07-18 · 主 Agent ↔ 子 Agent ↔ 本地 DB ↔ UI · TypeClassifier 五分类 · KnowledgeModel LLM ✓</p>
 </header>
 
+<!-- ==================== 0a. 本轮状态 ==================== -->
+<section>
+<h2 class="section-title text-xl font-semibold mb-4">本轮重构状态 · 2026-07-18</h2>
+<div class="grid md:grid-cols-3 gap-4">
+  <div class="type-block">
+    <h3 class="font-bold text-sm text-indigo-600 mb-2">做了什么</h3>
+    <ul class="text-sm text-stone-600 list-disc pl-5 space-y-1">
+      <li>LLM 设置改为 DeepSeek OpenAI 兼容 <code>base_url</code>。</li>
+      <li><code>LlmClient</code> 内部自动拼接 <code>/chat/completions</code>。</li>
+      <li>测试连接放大 <code>max_tokens</code>,避免 V4-Pro 截断导致假失败。</li>
+      <li>旧 V3 / Flash / R1 配置统一归一化到 V4-Pro。</li>
+    </ul>
+  </div>
+  <div class="type-block">
+    <h3 class="font-bold text-sm text-emerald-600 mb-2">已完成</h3>
+    <ul class="text-sm text-stone-600 list-disc pl-5 space-y-1">
+      <li>DeepSeek API Key、模型名、网络链路已验证可用。</li>
+      <li>AI 设置页测试不再把 token 截断误判为连接失败。</li>
+      <li>拍照/OCR/分类/结构化/入库/UI 渲染主链路已具备端到端基础。</li>
+    </ul>
+  </div>
+  <div class="type-block">
+    <h3 class="font-bold text-sm text-rose-600 mb-2">还需要处理</h3>
+    <ul class="text-sm text-stone-600 list-disc pl-5 space-y-1">
+      <li>用 DevEco Studio 重新编译并真机验收。</li>
+      <li>AI 浮窗多轮对话需要拼接历史 messages。</li>
+      <li>结构化输出需要接入 <code>response_format</code> 和更严格 JSON 校验。</li>
+      <li>降低 OCR/LLM 失败时占位笔记污染数据的风险。</li>
+    </ul>
+  </div>
+</div>
+</section>
+
 <!-- ==================== 0. 架构原则 ==================== -->
 <section>
 <h2 class="section-title text-xl font-semibold mb-4">零 · Agent 调度架构</h2>
@@ -159,8 +192,8 @@ sequenceDiagram
     UI->>AS: realReply(userContent)
 
     par Session 1: 对话
-        AS->>LC: call([system, user])
-        LC->>DS: POST /v1/chat/completions
+        AS->>LC: call(messages, base_url)
+        LC->>DS: POST https://api.deepseek.com/chat/completions
         DS-->>LC: choices[0].message.content
         LC-->>AS: reply
         AS->>UI: addAiMsg(reply)

@@ -26,6 +26,7 @@ export struct AppIcon {
     if (this.name === "feedback") { return "!" }
     if (this.name === "book") { return "Book" }
     if (this.name === "chevron-right") { return "\u203a" }
+    if (this.name === "chevron-down") { return "\u25be" }
     if (this.name === "star") { return "\u2726" }
     if (this.name === "paperclip") { return "Link" }
     return ""

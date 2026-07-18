@@ -17,7 +17,7 @@ export struct NoteSectionView {
           .fontSize(F_SM)
           .fontWeight(W_BOLD)
           .fontColor(MINT)
-          .letterSpacing(0.5)
+          .letterSpacing(0)
           .width('100%')
           .margin({ top: S_3, bottom: S_2 })
       }

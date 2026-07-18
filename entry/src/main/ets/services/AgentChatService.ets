@@ -73,7 +73,10 @@ export class AgentChatService {
           content: '你是 MathMind AI 数学助手。回答要求：\n1. 50字以内直接给答案\n2. 涉及计算时给步骤但每步≤15字\n3. 不展开讨论、不举例、不说"希望对你有帮助"等结尾语\n4. 数学符号用 Unicode 或 LaTeX',
         },
         { role: 'user', content: userContent },
-      ]);
+      ], {
+        maxTokens: 2048,
+        timeoutMs: 120000,
+      });
       this.cbs.addAiMsg(reply);
       this.persistTextNote(userContent);
     } catch (e) {

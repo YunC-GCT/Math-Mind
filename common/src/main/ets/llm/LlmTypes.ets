@@ -13,7 +13,7 @@
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
-  reasoning_content?: string;  // deepseek-v4-flash 推理模型
+  reasoning_content?: string;  // 推理模型
 }
 
 // ==================== LlmRequestBody (OpenAI 兼容请求体)====================

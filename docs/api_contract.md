@@ -89,7 +89,7 @@ const result: ClassificationResult = await classifier.classify(payload: Dispatch
    - system 模板(3×3 分类规则)
    - user 内容:`OCR/text 内容: <text>` + `用户补充: <userText>`(若有)
 4. 调 LlmClient.call(messages) → SiliconFlow DeepSeek-V3
-   - temperature 0.1, max_tokens 256, timeout 5000ms
+   - temperature 0.1, max_tokens 12000, timeout 120000ms
 5. 解析 JSON → `ClassificationResult`
 6. **必须填 `ocrText` 字段** (Dispatcher 用)
 
@@ -347,11 +347,11 @@ const timeoutMs: number = LlmConfig.getInstance().getTimeoutMs();
 ```
 
 **MVP 默认值**(后续可改 runtime 配置):
-- endpoint: `https://api.siliconflow.cn/v1/chat/completions`
-- model: `deepseek-ai/DeepSeek-V3`
+- endpoint/base_url: `https://api.deepseek.com`
+- model: `deepseek-v4-pro`
 - temperature: `0.1`
-- max_tokens: `256`
-- timeout: `5000ms`
+- max_tokens: `12000`
+- timeout: `120000ms`
 
 **存储**: HarmonyOS preferences
 - store name: `llm_config`
