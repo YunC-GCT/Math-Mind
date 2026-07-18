@@ -22,7 +22,7 @@ import { TEXT_2, TEXT_4, BORDER, S_4, F_SM, F_MD } from "common"
 import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
-export struct MenuItemRow {
+export struct ProfileMenuItemRow {
   // AppIcon 名称(对应 lucide 图标)
   @Prop icon: string = "notes"
 

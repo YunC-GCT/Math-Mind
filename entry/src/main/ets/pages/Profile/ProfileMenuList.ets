@@ -16,7 +16,7 @@
 
 import { BG_CARD, S_2, S_4, R_LG } from "common"
 import { router } from "@kit.ArkUI"
-import { MenuItemRow } from "./ProfileMenuItemRow"
+import { ProfileMenuItemRow } from "./ProfileMenuItemRow"
 
 @Component
 export struct ProfileMenuList {
@@ -26,35 +26,35 @@ export struct ProfileMenuList {
   build() {
     Column() {
       // 1. 我的复习计划(W2 计划接入)
-      MenuItemRow({
+      ProfileMenuItemRow({
         icon: "review",
         label: "我的复习计划",
         onTap: (): void => this.onToast("复习计划开发中")
       })
 
       // 2. 错题本
-      MenuItemRow({
+      ProfileMenuItemRow({
         icon: "notes",
         label: "错题本",
         onTap: (): void => this.onToast("错题本开发中")
       })
 
       // 3. 我的收藏
-      MenuItemRow({
+      ProfileMenuItemRow({
         icon: "home",
         label: "我的收藏",
         onTap: (): void => this.onToast("收藏功能开发中")
       })
 
       // 4. 模型配置(已实现,跳 AiSettingsPage)
-      MenuItemRow({
+      ProfileMenuItemRow({
         icon: "ai",
         label: "模型",
         onTap: (): void => { router.pushUrl({ url: "pages/AiSettings/AiSettingsPage" }) }
       })
 
       // 5. 切换账号
-      MenuItemRow({
+      ProfileMenuItemRow({
         icon: "me",
         label: "切换账号",
         onTap: (): void => this.onToast("切换账号开发中")
