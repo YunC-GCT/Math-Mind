@@ -1,7 +1,7 @@
 /**
  * ChipTag.ets — 标签片 / Chip 通用原子
  *
- * 路径: entry/src/main/ets/atoms/ChipTag.ets
+ * 路径: entry/src/main/ets/overlays/NoteDetailOverlay/ChipTag.ets
  * 职责: 对齐 v2-ui .chip / .form-chip / .tag 三种变体
  * 依赖: common (ColorTokens)
  *

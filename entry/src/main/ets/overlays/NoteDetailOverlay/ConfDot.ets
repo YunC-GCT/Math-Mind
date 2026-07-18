@@ -1,7 +1,7 @@
 /**
  * ConfDot.ets — 置信度指示点
  *
- * 路径: entry/src/main/ets/atoms/ConfDot.ets
+ * 路径: entry/src/main/ets/overlays/NoteDetailOverlay/ConfDot.ets
  * 职责: 对齐 v2-ui .cd / .cd-hi / .cd-md / .cd-lo
  *       根据 confidence 值显示不同颜色的状态点
  * 依赖: common

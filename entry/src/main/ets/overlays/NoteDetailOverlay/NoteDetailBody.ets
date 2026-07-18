@@ -3,7 +3,7 @@
  *
  * 路径: entry/src/main/ets/overlays/NoteDetailOverlay/NoteDetailBody.ets
  * 职责: 标题 + 标签 chips + 章节列表 · 对齐 v2-ui .dbody (loose line-height)
- * 依赖: common, utils/NoteSectionParser, ChipTag, NoteSectionView
+ * 依赖: common, utils/NoteSectionParser, local ChipTag, NoteSectionView
  */
 
 import {
@@ -15,7 +15,7 @@ import {
   NoteItem,
 } from 'common';
 import { parseSections, Section } from '../../utils/NoteSectionParser';
-import { ChipTag } from '../../atoms/ChipTag';
+import { ChipTag } from './ChipTag';
 import { NoteSectionView } from './NoteSection';
 
 @Component

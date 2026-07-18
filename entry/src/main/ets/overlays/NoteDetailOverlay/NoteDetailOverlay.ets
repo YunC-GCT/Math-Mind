@@ -9,14 +9,13 @@
 
 import {
   BG_DARK, TEXT, BORDER,
-  F_MD, S_3,
+  F_MD,
   W_SEMIBOLD,
   OVERLAY_MASK_SOLID,
   NoteItem,
 } from 'common';
 import { promptAction } from '@kit.ArkUI';
 import { NoteCloseButton } from './NoteCloseButton';
-import { ChipTag } from '../../atoms/ChipTag';
 import { NoteDetailMeta } from './NoteDetailMeta';
 import { NoteDetailBody } from './NoteDetailBody';
 import { NoteActionBar } from './NoteActionBar';
@@ -26,7 +25,6 @@ export struct NoteDetailOverlay {
   @Prop note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '');
   @StorageProp('statusBarHeight') sbh: number = 0;
   onClose: () => void = (): void => {};
-  onAskAi: (note: NoteItem) => void = (_note: NoteItem): void => {};
   onEdit: (id: number) => void = (_id: number): void => {};
   onDelete: (id: string) => void = (_id: string): void => {};
 
