@@ -48,6 +48,8 @@ export struct AppIcon {
         Image($r("app.media.ic_camera")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
       } else if (this.name === "album") {
         Image($r("app.media.ic_album")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "recycle") {
+        Image($r("app.media.ic_recycle")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
       } else if (this.name === "circle") {
         Circle({ width: this.iconSize * 0.72, height: this.iconSize * 0.72 })
           .fill(Color.Transparent)

@@ -1,7 +1,7 @@
 // ============================================================================
 //  pages/Profile/ProfileMenuList.ets — 我的页菜单列表
 //  ----------------------------------------------------------------------------
-//  职责: 5 个菜单项的容器(复习计划/错题本/我的收藏/模型/切换账号)。
+//  职责: 我的页菜单项容器。
 //
 //  布局: 卡片式列表,每项 1 行
 //    [图标] [标签]                            [›]
@@ -22,6 +22,7 @@ import { ProfileMenuItemRow } from "./ProfileMenuItemRow"
 export struct ProfileMenuList {
   // 菜单点击回调(子菜单传 toast,"模型" 项不走这里)
   onToast: (message: string) => void = (_message: string): void => {}
+  onSwitchAccount: () => void = (): void => {}
 
   build() {
     Column() {
@@ -46,18 +47,32 @@ export struct ProfileMenuList {
         onTap: (): void => this.onToast("收藏功能开发中")
       })
 
-      // 4. 模型配置(已实现,跳 AiSettingsPage)
+      // 4. 回收站
+      ProfileMenuItemRow({
+        icon: "recycle",
+        label: "回收站",
+        onTap: (): void => this.onToast("回收站开发中")
+      })
+
+      // 5. 模型配置(已实现,跳 AiSettingsPage)
       ProfileMenuItemRow({
         icon: "ai",
         label: "模型",
         onTap: (): void => { router.pushUrl({ url: "pages/AiSettings/AiSettingsPage" }) }
       })
 
-      // 5. 切换账号
+      // 6. 帮助反馈
+      ProfileMenuItemRow({
+        icon: "feedback",
+        label: "帮助反馈",
+        onTap: (): void => this.onToast("帮助反馈开发中")
+      })
+
+      // 7. 切换账号
       ProfileMenuItemRow({
         icon: "me",
         label: "切换账号",
-        onTap: (): void => this.onToast("切换账号开发中")
+        onTap: (): void => this.onSwitchAccount()
       })
     }
     .width("100%")
