@@ -7,9 +7,9 @@
  */
 
 import { PURPLE, PURPLE_LIGHT, TEXT_3, F_XS, S_2, S_4 } from 'common';
-import { ChatBubble } from '../../prototypes/chat/ChatBubble';
-import { EmptyStateHint } from '../../prototypes/chat/EmptyStateHint';
-import { ChatMsg } from '../../prototypes/chat/ChatModels';
+import { ChatBubble } from './chat/ChatBubble';
+import { EmptyStateHint } from './chat/EmptyStateHint';
+import { ChatMsg } from './chat/ChatModels';
 
 @Component
 export struct AgentMessageList {

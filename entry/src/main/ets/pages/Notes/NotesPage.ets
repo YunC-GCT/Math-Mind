@@ -13,7 +13,7 @@
 //
 //  依赖:
 //    pages:    NotesHeader / NotesList / NotesEmptyState
-//    prototypes: NoteDetailOverlay
+//    overlays: NoteDetailOverlay
 //    database: NoteDao + DatabaseHelper
 //    utils:    NoteItemMapper
 //  ============================================================================

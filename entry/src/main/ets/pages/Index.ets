@@ -12,7 +12,7 @@ import { ReviewPage } from "./Review/ReviewPage"
 import { ProfilePage } from "./Profile/ProfilePage"
 import { TabBar } from "../molecules/TabBar"
 import { AgentFloatWindow } from "../overlays/AgentFloatWindow/AgentFloatWindow"
-import { CameraOverlay } from "../prototypes/CameraOverlay"
+import { CameraOverlay } from "../overlays/CameraOverlay/CameraOverlay"
 import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
 import { OverlayService } from "../services/OverlayService"
 

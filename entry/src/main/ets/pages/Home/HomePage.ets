@@ -14,7 +14,7 @@
 //    atoms:     FloatingButton
 //    molecules: HeroBanner / ReminderBanner
 //    pages:     HomeTopBar / HomeRecentNotes
-//    prototypes: NoteDetailOverlay
+//    overlays: NoteDetailOverlay
 //    database:  NoteDao + DatabaseHelper
 //    utils:     NoteItemMapper
 //

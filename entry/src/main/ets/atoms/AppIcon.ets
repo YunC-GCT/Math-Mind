@@ -1,5 +1,5 @@
 // ============================================================================
-//  atoms/AppIcon.ets — lightweight icon component
+//  atoms/AppIcon.ets - lightweight icon component
 // ----------------------------------------------------------------------------
 //  Prefer existing SVG resources. For missing assets, use compact glyph marks
 //  with stable sizing instead of hand-rolled Path viewBox math.
@@ -16,17 +16,17 @@ export struct AppIcon {
 
   private glyph(): string {
     if (this.name === "close") { return "x" }
-    if (this.name === "check") { return "✓" }
+    if (this.name === "check") { return "\u2713" }
     if (this.name === "plus") { return "+" }
     if (this.name === "trash") { return "Del" }
     if (this.name === "edit") { return "Edit" }
-    if (this.name === "share") { return "↗" }
+    if (this.name === "share") { return "\u2197" }
     if (this.name === "copy") { return "Copy" }
-    if (this.name === "refresh") { return "↻" }
+    if (this.name === "refresh") { return "\u21bb" }
     if (this.name === "feedback") { return "!" }
     if (this.name === "book") { return "Book" }
-    if (this.name === "chevron-right") { return "›" }
-    if (this.name === "star") { return "✦" }
+    if (this.name === "chevron-right") { return "\u203a" }
+    if (this.name === "star") { return "\u2726" }
     if (this.name === "paperclip") { return "Link" }
     return ""
   }
