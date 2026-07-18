@@ -1,4 +1,4 @@
-// MathMind - LLM 配置管理(单例 + preferences 持久化 + 运行时读写)
+﻿// MathMind - LLM 配置管理(单例 + preferences 持久化 + 运行时读写)
 // 创建: 2026-07-14
 
 import { preferences } from '@kit.ArkData';
@@ -13,11 +13,11 @@ const KEY_MAX_TOKENS = 'max_tokens';
 const KEY_TIMEOUT_MS = 'timeout_ms';
 
 // 默认值 — 用户未配置时使用
-const DEFAULT_ENDPOINT = 'https://api.siliconflow.cn/v1/chat/completions';
-const DEFAULT_MODEL = 'deepseek-ai/DeepSeek-V3';
+const DEFAULT_ENDPOINT = 'https://api.deepseek.com';
+const DEFAULT_MODEL = 'deepseek-v4-pro';
 const DEFAULT_TEMPERATURE = 0.1;
-const DEFAULT_MAX_TOKENS = 256;
-const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_MAX_TOKENS = 12000;
+const DEFAULT_TIMEOUT_MS = 120000;
 
 export class LlmConfig {
   private static instance: LlmConfig | null = null;
@@ -47,7 +47,6 @@ export class LlmConfig {
     }
     try {
       this.store = await preferences.getPreferences(context, STORE_NAME);
-      // 加载所有持久化值(无则用默认)
       await this.loadAll();
       this.inited = true;
       return { ok: true, message: 'LlmConfig initialized' };
@@ -59,9 +58,9 @@ export class LlmConfig {
   private async loadAll(): Promise<void> {
     const s = this.store!;
     const ep: string = await s.get(KEY_ENDPOINT, '') as string;
-    if (ep.length > 0) { this.cachedEndpoint = ep; }
+    this.cachedEndpoint = this.normalizeEndpoint(ep);
     const md: string = await s.get(KEY_MODEL, '') as string;
-    if (md.length > 0) { this.cachedModel = md; }
+    this.cachedModel = this.normalizeModel(md);
     const tp: number = await s.get(KEY_TEMPERATURE, -1) as number;
     if (tp >= 0) { this.cachedTemperature = tp; }
     const mt: number = await s.get(KEY_MAX_TOKENS, -1) as number;
@@ -100,7 +99,7 @@ export class LlmConfig {
   public getEndpoint(): string { return this.cachedEndpoint; }
   public async setEndpoint(v: string): Promise<void> {
     this.requireInited();
-    this.cachedEndpoint = v.trim();
+    this.cachedEndpoint = this.normalizeEndpoint(v);
     await this.store!.put(KEY_ENDPOINT, this.cachedEndpoint);
     await this.store!.flush();
   }
@@ -109,7 +108,7 @@ export class LlmConfig {
   public getModel(): string { return this.cachedModel; }
   public async setModel(v: string): Promise<void> {
     this.requireInited();
-    this.cachedModel = v.trim();
+    this.cachedModel = this.normalizeModel(v);
     await this.store!.put(KEY_MODEL, this.cachedModel);
     await this.store!.flush();
   }
@@ -127,7 +126,7 @@ export class LlmConfig {
   public getMaxTokens(): number { return this.cachedMaxTokens; }
   public async setMaxTokens(v: number): Promise<void> {
     this.requireInited();
-    this.cachedMaxTokens = Math.max(1, Math.min(8192, v));
+    this.cachedMaxTokens = Math.max(1, Math.min(16000, v));
     await this.store!.put(KEY_MAX_TOKENS, this.cachedMaxTokens);
     await this.store!.flush();
   }
@@ -136,7 +135,7 @@ export class LlmConfig {
   public getTimeoutMs(): number { return this.cachedTimeoutMs; }
   public async setTimeoutMs(v: number): Promise<void> {
     this.requireInited();
-    this.cachedTimeoutMs = Math.max(1000, Math.min(60000, v));
+    this.cachedTimeoutMs = Math.max(1000, Math.min(300000, v));
     await this.store!.put(KEY_TIMEOUT_MS, this.cachedTimeoutMs);
     await this.store!.flush();
   }
@@ -164,11 +163,11 @@ export class LlmConfig {
     maxTokens: number, timeoutMs: number,
   ): Promise<void> {
     this.requireInited();
-    this.cachedEndpoint = endpoint.trim();
-    this.cachedModel = model.trim();
+    this.cachedEndpoint = this.normalizeEndpoint(endpoint);
+    this.cachedModel = this.normalizeModel(model);
     this.cachedTemperature = Math.max(0, Math.min(2, temperature));
-    this.cachedMaxTokens = Math.max(1, Math.min(8192, maxTokens));
-    this.cachedTimeoutMs = Math.max(1000, Math.min(60000, timeoutMs));
+    this.cachedMaxTokens = Math.max(1, Math.min(16000, maxTokens));
+    this.cachedTimeoutMs = Math.max(1000, Math.min(300000, timeoutMs));
     const s = this.store!;
     await s.put(KEY_ENDPOINT, this.cachedEndpoint);
     await s.put(KEY_MODEL, this.cachedModel);
@@ -182,5 +181,43 @@ export class LlmConfig {
     if (!this.inited || this.store === null) {
       throw new LlmError('LlmConfig not initialized', 'NOT_INITIALIZED');
     }
+  }
+
+  private normalizeEndpoint(v: string): string {
+    const t: string = v.trim();
+    if (t.length === 0) {
+      return DEFAULT_ENDPOINT;
+    }
+    const lower: string = t.toLowerCase();
+    if (lower.indexOf('siliconflow') >= 0) {
+      return DEFAULT_ENDPOINT;
+    }
+    if (lower.indexOf('api.deepseek.com') >= 0) {
+      const idx: number = lower.indexOf('/chat/completions');
+      if (idx >= 0) {
+        return t.substring(0, idx);
+      }
+      return t;
+    }
+    return t;
+  }
+
+  private normalizeModel(v: string): string {
+    const t: string = v.trim();
+    if (t.length === 0) {
+      return DEFAULT_MODEL;
+    }
+    const lower: string = t.toLowerCase();
+    if (
+      lower === DEFAULT_MODEL ||
+      lower.indexOf('v3') >= 0 ||
+      lower.indexOf('flash') >= 0 ||
+      lower.indexOf('deepseek-chat') >= 0 ||
+      lower.indexOf('deepseek-reasoner') >= 0 ||
+      lower.indexOf('r1') >= 0
+    ) {
+      return DEFAULT_MODEL;
+    }
+    return t;
   }
 }

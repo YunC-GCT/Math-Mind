@@ -1,7 +1,15 @@
-﻿import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+// ============================================================================
+//  entryability/EntryAbility.ets — 应用入口
+//  ----------------------------------------------------------------------------
+//  职责: 初始化 LLM 配置 + 数据库 + 沉浸式状态栏 + 加载首页。
+//  沉浸式状态栏: app 内容延伸到 status bar 下方, status bar 背景透明。
+//  视觉效果: 系统时间/电量/信号/wifi 浮在 app 内容上, 与 app 无缝衔接。
+//  ============================================================================
+
+import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import { LlmConfig } from 'common';
+import { LlmConfig, OcrConfig, DatabaseHelper } from 'common';
 
 const DOMAIN = 0x0000;
 
@@ -16,7 +24,14 @@ export default class EntryAbility extends UIAbility {
     LlmConfig.getInstance().init(this.context).catch((e: Error) => {
       hilog.error(DOMAIN, 'testTag', 'LlmConfig init failed: %{public}s', e.message);
     });
-    // 数据库初始化由 MVP 管线的 NoteDaoMVP 懒加载完成
+    // 初始化 OCR 配置(持久化 endpoint/enabled)
+    OcrConfig.getInstance().init(this.context).catch((e: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'OcrConfig init failed: %{public}s', e.message);
+    });
+    // 初始化数据库
+    DatabaseHelper.init(this.context).catch((e: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'DB init failed: %{public}s', e.message);
+    });
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
@@ -25,21 +40,20 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
-    // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    // ����ʽ״̬��:app �������쵽 status bar ����,status bar ����͸��
-    // �Ӿ�Ч��:ϵͳʱ��/����/�ź�/wifi ���� app ������,�� app �޷��ν�
+    // 沉浸式状态栏: app 内容延伸到 status bar 下方, status bar 背景透明
+    // 视觉效果: 系统时间/电量/信号/wifi 浮在 app 内容上, 与 app 无缝衔接
     windowStage.getMainWindow().then((win: window.Window) => {
-      // 1. ����ʽȫ��(app �������쵽 status bar ����)
+      // 1. 沉浸式全屏(app 内容延伸到 status bar 下方)
       win.setWindowLayoutFullScreen(true);
-      // 2. ״̬������͸��(�� app ����͸����,�� status bar ��Ϊһ��)
+      // 2. 状态栏背景透明(使 app 背景透出, 与 status bar 融为一体)
       win.setSystemBarProperties({
         statusBarColor: '#00000000',
         navigationBarColor: '#00000000',
-        statusBarContentColor: '#FFFFFFFF'  // ��ɫ����(������ɫ app ����)
+        statusBarContentColor: '#FFFFFFFF'  // 白色图标(适配深色 app 背景)
       });
-      // 3. ��ȡ״̬���߶Ȳ����� AppStorage,��ҳ��������ƫ�Ʊ����ص�
+      // 3. 获取状态栏高度存入 AppStorage, 各页面据此偏移避免重叠
       try {
         const avoidArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
         AppStorage.setOrCreate('statusBarHeight', px2vp(avoidArea.topRect.height));
@@ -50,7 +64,7 @@ export default class EntryAbility extends UIAbility {
       hilog.error(DOMAIN, 'testTag', 'Failed to set immersive status bar. Cause: %{public}s', JSON.stringify(err));
     });
 
-    windowStage.loadContent('pages/IndexMVP', (err) => {
+    windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
@@ -59,18 +73,7 @@ export default class EntryAbility extends UIAbility {
     });
   }
 
-  onWindowStageDestroy(): void {
-    // Main window is destroyed, release UI related resources
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageDestroy');
-  }
-
-  onForeground(): void {
-    // Ability has brought to foreground
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
-  }
-
-  onBackground(): void {
-    // Ability has back to background
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
-  }
+  onWindowStageDestroy(): void { hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageDestroy'); }
+  onForeground(): void { hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground'); }
+  onBackground(): void { hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground'); }
 }

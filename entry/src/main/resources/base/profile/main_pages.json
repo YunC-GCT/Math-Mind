@@ -1,6 +1,7 @@
 {
   "src": [
-    "pages/IndexMVP",
-    "pages/AiSettingsPage"
+    "pages/Index",
+    "pages/AiSettings/AiSettingsPage",
+    "pages/StudyPlan/StudyPlanPage"
   ]
 }
