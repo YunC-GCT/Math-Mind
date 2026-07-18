@@ -1,5 +1,5 @@
 // ============================================================================
-//  molecules/TabBar.ets — 底部导航栏分子组件
+//  pages/MainTabs/TabBar.ets — 底部导航栏分子组件
 //  ----------------------------------------------------------------------------
 //  职责: 渲染 5 个 Tab 按钮（4 普通 + 1 中央 AI），含渐变背景和毛玻璃效果。
 //  来源: 从 Index.ets 提取内联 TabBar Row。
@@ -8,7 +8,7 @@
 //    @Prop  cur      — 当前选中 Tab 索引
 //    onTabChange      — (index: number) => void
 //    onAiTap           — AI 按钮点击回调
-//  依赖: TabButton (atoms), AiTabButton (atoms)
+//  依赖: TabButton, AiTabButton (pages/MainTabs)
 //  ============================================================================
 
 import {
@@ -16,8 +16,8 @@ import {
   S_1, S_2,
   TAB_BAR_HEIGHT,
 } from "common"
-import { TabButton } from "../atoms/TabButton"
-import { AiTabButton } from "../atoms/AiTabButton"
+import { TabButton } from "./TabButton"
+import { AiTabButton } from "./AiTabButton"
 
 interface TabItem {
   idx: number
