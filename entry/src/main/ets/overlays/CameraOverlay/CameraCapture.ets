@@ -54,7 +54,8 @@ export struct CameraCapture {
         Column().width(SCREEN_W / 7).height(SCREEN_W / 7)
       }
       .width("100%")
-      .padding({ left: S_4, right: S_4, top: S_4, bottom: S_6 })
+      .height(132)
+      .padding({ left: S_4, right: S_4, top: S_3, bottom: S_6 + S_4 })
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
     }

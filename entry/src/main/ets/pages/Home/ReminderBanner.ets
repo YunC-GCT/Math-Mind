@@ -25,15 +25,17 @@ export struct ReminderBanner {
       AppIcon({ name: this.notesCount === 0 ? "ai" : "review", iconSize: 16, color: MINT, strokeWidth: 1.8 })
         .margin({ right: S_2 })
       Text(this.notesCount === 0
-        ? "欢迎使用 MathMind！试试 AI 对话或拍照，帮你整理知识笔记"
-        : "已有 " + this.notesCount + " 条笔记，继续用 AI 充实知识库")
+        ? "AI 对话或拍照整理笔记"
+        : this.notesCount + " 条笔记，继续整理知识库")
         .fontSize(F_SM).fontColor(MINT).lineHeight(LH_BASE)
-      Blank()
-      AppIcon({ name: "chevron-right", iconSize: 14, color: MINT, strokeWidth: 1.8 })
+        .layoutWeight(1)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
-    .width("100%")
+    .width("92%")
     .padding({ left: S_4, right: S_4, top: S_3, bottom: S_3 })
-    .margin({ left: S_4, right: S_4, top: S_2 })
+    .margin({ top: 0 })
+    .alignSelf(ItemAlign.Center)
     .borderRadius(R_MD)
     .linearGradient({
       angle: 135,

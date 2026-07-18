@@ -74,7 +74,8 @@ export struct CameraPreview {
         CameraConfirmBtn({ busy: this.busy, onTap: (): void => { this.onConfirm() } })
       }
       .width("100%")
-      .padding({ left: S_4, right: S_4, top: S_4, bottom: S_6 })
+      .height(132)
+      .padding({ left: S_4, right: S_4, top: S_3, bottom: S_6 + S_4 })
       .alignItems(VerticalAlign.Center)
     }
     .width("100%")

@@ -16,7 +16,7 @@
 //    onSelect: 笔记卡片点击回调
 //  ============================================================================
 
-import { TEXT, TEXT_3, S_2, S_3, S_5, F_XS, F_BASE, W_SEMIBOLD, NoteItem } from "common"
+import { TEXT, TEXT_3, S_1, S_2, S_3, S_5, F_XS, F_BASE, W_SEMIBOLD, NoteItem } from "common"
 import { NoteCard } from "../../shared/components/NoteCard"
 
 @Component
@@ -26,6 +26,7 @@ export struct HomeRecentNotes {
 
   // 笔记点击回调
   onSelect: (note: NoteItem) => void = (_note: NoteItem): void => {}
+  onSwipeUp: () => void = (): void => {}
 
   build() {
     Column() {
@@ -42,7 +43,15 @@ export struct HomeRecentNotes {
           .fontColor(TEXT_3)
       }
       .width("100%")
-      .padding({ left: S_5, right: S_5, top: S_3, bottom: S_2 })
+      .padding({ left: S_5, right: S_5, top: S_1, bottom: S_2 })
+      .gesture(
+        PanGesture({ direction: PanDirection.Vertical })
+          .onActionEnd((event: GestureEvent): void => {
+            if (event.offsetY < -18) {
+              this.onSwipeUp()
+            }
+          })
+      )
 
       // 滚动列表
       Scroll() {

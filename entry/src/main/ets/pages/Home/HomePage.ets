@@ -2,10 +2,11 @@
 //  pages/Home/HomePage.ets - home page shell
 // ============================================================================
 
-import { BG_DARK, NoteItem } from "common"
+import { BG_DARK, DUR_SLOW, NoteItem } from "common"
 import { promptAction } from "@kit.ArkUI"
 import { FloatingButton } from "./FloatingButton"
 import { HeroBanner } from "./HeroBanner"
+import { HomeCollapsedReview } from "./HomeCollapsedReview"
 import { ReminderBanner } from "./ReminderBanner"
 import { NoteDetailOverlay } from "../../overlays/NoteDetailOverlay/NoteDetailOverlay"
 import { HomeTopBar } from "./HomeTopBar"
@@ -18,6 +19,7 @@ export struct HomePage {
   @StorageProp('notesVersion') @Watch('onNotesVersionChange') notesVersion: number = 0
   @State vm: HomeViewModel = new HomeViewModel()
   @State selectedNote: NoteItem | null = null
+  @State reviewRingCollapsed: boolean = false
   onGoCamera: () => void = (): void => {}
   onGoReview: () => void = (): void => {}
 
@@ -49,30 +51,78 @@ export struct HomePage {
     }
   }
 
+  private collapseReviewRing(): void {
+    if (this.reviewRingCollapsed) {
+      return
+    }
+    animateTo({ duration: DUR_SLOW, curve: Curve.FastOutSlowIn }, (): void => {
+      this.reviewRingCollapsed = true
+    })
+  }
+
+  private expandReviewRing(): void {
+    if (!this.reviewRingCollapsed) {
+      return
+    }
+    animateTo({ duration: DUR_SLOW, curve: Curve.FastOutSlowIn }, (): void => {
+      this.reviewRingCollapsed = false
+    })
+  }
+
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Column() {
-        Row()
-          .width("100%")
-          .height(this.sbh)
-          .backgroundColor(BG_DARK)
-
         HomeTopBar({ statusBarHeight: this.sbh })
-        HeroBanner({
-          greeting: this.vm.greeting,
-          dateText: this.vm.dateText,
-          avg: this.vm.avg,
-          notesCount: this.vm.notes.length,
-          todayCount: this.vm.today,
-          onGoReview: (): void => { this.onGoReview() },
-        })
+        if (this.reviewRingCollapsed) {
+          HomeCollapsedReview({
+            avg: this.vm.avg,
+            notesCount: this.vm.notes.length,
+            todayCount: this.vm.today,
+            dateText: this.vm.dateText,
+            onGoReview: (): void => { this.onGoReview() },
+          })
+          .gesture(
+            PanGesture({ direction: PanDirection.Vertical })
+              .onActionEnd((event: GestureEvent): void => {
+                if (event.offsetY > 24) {
+                  this.expandReviewRing()
+                }
+              })
+          )
+        } else {
+          HeroBanner({
+            greeting: this.vm.greeting,
+            dateText: this.vm.dateText,
+            avg: this.vm.avg,
+            notesCount: this.vm.notes.length,
+            todayCount: this.vm.today,
+            onGoReview: (): void => { this.onGoReview() },
+          })
+          .gesture(
+            PanGesture({ direction: PanDirection.Vertical })
+              .onActionEnd((event: GestureEvent): void => {
+                if (event.offsetY < -18) {
+                  this.collapseReviewRing()
+                }
+              })
+          )
+        }
 
-        if (this.vm.notes.length < 3) {
+        if (!this.reviewRingCollapsed && this.vm.notes.length < 3) {
           ReminderBanner({ notesCount: this.vm.notes.length })
+            .gesture(
+              PanGesture({ direction: PanDirection.Vertical })
+                .onActionEnd((event: GestureEvent): void => {
+                  if (event.offsetY < -18) {
+                    this.collapseReviewRing()
+                  }
+                })
+            )
         }
 
         HomeRecentNotes({
           notes: this.vm.notes,
+          onSwipeUp: (): void => { this.collapseReviewRing() },
           onSelect: (note: NoteItem): void => { this.selectedNote = note },
         })
       }
