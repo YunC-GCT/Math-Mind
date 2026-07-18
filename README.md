@@ -6,35 +6,49 @@
 
 ---
 
-## 当前状态：拍照→AI→入库 整链已跑通 ✨
+## 当前状态：拍照→AI→入库 整链已跑通 ✨ · 2026-07-18
 
-选图 → 发送 → OCR 识别 → AI 分类 → 知识结构化 → RDB 持久化 → 笔记列表自动刷新，全链路闭环。
+选图 → 发送 → OCR 识别 → TypeClassifier 五分类 → KnowledgeModel LLM 结构化 → RDB 持久化 → 笔记列表自动刷新，全链路闭环。
+
+### 本次 Session 关键修复
+
+| 修复 | 说明 |
+|------|------|
+| **deepseek-v4-flash reasoning_content 空响应** | LlmClient 读 `reasoning_content` 字段，Pro 版切换后恢复正常 |
+| **TypeClassifier 五分类对齐** | `type` 从三分类改为 `NoteCategory` (概念/定理/公式/证明题/计算题)，对接 KnowledgeModel |
+| **Subject 自由判定** | 不再限制三选一，LLM 自由输出学科名称 |
+| **KnowledgeModel prompt 精简** | 中文→英文对齐 TypeClassifier 风格 |
+| **maxTokens 8000 · 超时 30 分钟** | 推理模型需要更大输出空间和时间 |
+| **OCR multiFormDataList → 手动 multipart** | HarmonyOS 沙箱兼容，extraData 发送 |
+| **AgentFloatWindow 完整版恢复** | 拖拽缩放 + 多会话 + 自动滚底 + ChatHeader/QuickSuggestions/ChatBubble |
+| **AgentChatService 业务分离** | UI 层零异步逻辑 |
+| **OverlayService 浮层统一调度** | 相机/浮窗互斥，加新浮层不改 Index |
+| **NoteDetailOverlay 拆分** | 8 组件 + v2-ui 风格对齐 |
+| **NoteCard 对齐 v2-ui .note-card** | 简化 meta 行 + 标题 15px + 原文预览 |
+| **GradientRing 删笔记后动画修复** | `@Watch restartAnimation` |
+| **动效令牌对齐 v2-ui motion.css** | DUR_INSTANT/FAST/BASE/SLOW/SLOWER/SLOWEST |
+| **原子层补齐 ChipTag + ConfDot** | 对齐 v2-ui chips/badges |
+| **删除死代码** | TypingIndicator/MessageInput/ChatTextSanitizer/agent/AgentMessageList/ApiClient |
 
 ### 已知不足
 
-| 问题 | 详情 | 影响 |
-|------|------|------|
-| **OCR 速度慢** | PaddleOCR PP-FormulaNet CPU 推理 ~28s/张，总耗时约 30s | 用户体验差，需等待 |
-| **OCR 需本地服务** | 依赖 `D:\OCR\MathMind_OCR_v1.0\start.bat` 启动 FastAPI，模拟器需改 IP 为宿主机 LAN | 不能开箱即用 |
-| **文字 OCR 不可用** | Tesseract 未安装，只有公式识别（LaTeX），普通文字行返回空 | 混合图文场景识别不完整 |
-| **LLM 偶发空响应** | KnowledgeModel 的 ~270 行 prompt 偶尔触发 LLM 返回空 content | 笔记降级为基础框架（标题/标签来自 TypeClassifier） |
-| **HarmonyOS HTTP 文件上传** | `multiFormDataList` 的 `filePath` 和 `data` 模式在沙箱中均 `upload_size=0` | 已绕过：手动拼装 multipart 请求体 + `extraData` |
-| **笔记列表不自动刷新** | Tab 切换不触发 `aboutToAppear` | 已修复：`AppStorage.notesVersion` 计数器通知重载 |
-| **没有单元测试** | 整链无自动化验证 | 每次改完需手动 Build→Run→拍照测试 |
+| 问题 | 详情 |
+|------|------|
+| **OCR 速度慢** | PaddleOCR CPU ~28s/张，总耗时约 30s |
+| **OCR 需本地服务** | 依赖 start.bat 启动 FastAPI，模拟器需改 LAN IP |
+| **文字 OCR 不可用** | Tesseract 未安装，只有公式识别 |
+| **LLM 依赖网络** | DeepSeek API 需联网，免费版不稳定偶发超时/空响应 |
+| **无单元测试** | 整链无自动化验证 |
+| **会话持久化未接入** | ChatSession 有实现但 AgentFloatWindow 未接入 UI |
 
-### 架构审查修正（2026-07-17）
+### 待调整
 
-本次 session 完成 9 项修正，详见 `docs/arch-review-20260717.html`：
-
-- 🔴 **致命**：`Index.ets` 导入旧版 `prototypes/AgentFloatWindow`（无 `captureReply`），拍照链为死代码 → 改为 `overlays/` 版本
-- 🟡 OCR 空占位符泄漏到 LLM prompt → Dispatcher 层直接构造 fallback
-- 🟡 `TypeClassifier.getContext()` 在非 UI 类中越界 → 显式 Context 参数
-- 🟡 MIME 映射逻辑重复 → 提取到 `common/FileUriUtils.ets`
-- 🟡 纯文本对话绕过知识管线 → `realReply` 加 `persistTextNote`
-- 🟡 `captureReply` 缺 API Key 检查 → 对齐 `realReply`
-- ⚪ `ApiClient.ets` 零引用死代码 → 已删除
-- ⚪ `KnowledgeModel` LLM 失败笔记丢失 → 加 `buildFallbackFromClassify`
-- ⚪ OCR `readTimeout` 30s 踩临界线 → 提高到 120s
+| 任务 | 状态 |
+|------|------|
+| SessionBar 会话切换 UI 接入 | 代码已有，待 UI 展示 |
+| CameraOverlay 迁到 overlays/ | 仍在 prototypes/ |
+| NoteTagChip → ChipTag 统一 | 旧 NoteTagChip 可退役 |
+| 首页 Hero + Profile 页 v2-ui 对齐 | 待做 |
 
 ---
 
