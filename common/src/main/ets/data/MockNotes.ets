@@ -93,8 +93,12 @@ export function typeChar(t: string): string {
 export function typeColor(t: string): string {
   return ({
     '概念': MINT,
+    '定理': MINT,
+    '公式': PINK,
     '计算': PURPLE,
+    '计算题': PURPLE,
     '证明': AMBER,
+    '证明题': AMBER,
     '笔记': MINT,
   } as Record<string, string>)[t] || '#FFA8A8B0';
 }
