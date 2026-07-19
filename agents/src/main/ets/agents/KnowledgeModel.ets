@@ -164,8 +164,9 @@ export class KnowledgeModel {
     if (type !== undefined && type.length > 0) { tags.push(type); }
     if (subject !== undefined && subject.length > 0) { tags.push(subject); }
     if (chapter.length > 0) { tags.push(chapter); }
-    const summary: string = ocrText.length > 100
-      ? ocrText.substring(0, 100).replace(/[#*]/g, '').trim()
+    const fallbackSummaryLimit: number = 500;
+    const summary: string = ocrText.length > fallbackSummaryLimit
+      ? ocrText.substring(0, fallbackSummaryLimit).replace(/[#*]/g, '').trim()
       : ocrText.replace(/[#*]/g, '').trim();
 
     console.info('[KnowledgeModel] fallback note created, title=' + title);
@@ -193,12 +194,13 @@ export class KnowledgeModel {
   }
 
   private summaryFromFields(ext: KnowledgeUnitExt): string {
+    const summaryLimit: number = 500;
     let summary: string = '';
     for (let i: number = 0; i < ext.fields.length; i++) {
       if (ext.fields[i].value.length > 0) {
         summary = summary + ext.fields[i].value + '\n';
       }
-      if (summary.length >= 100) {
+      if (summary.length >= summaryLimit) {
         break;
       }
     }
@@ -206,7 +208,7 @@ export class KnowledgeModel {
       summary = ext.content;
     }
     const cleaned: string = summary.replace(/[#*]/g, '').trim();
-    return cleaned.length > 100 ? cleaned.substring(0, 100) : cleaned;
+    return cleaned.length > summaryLimit ? cleaned.substring(0, summaryLimit).trim() : cleaned;
   }
 
   private toDifficultyLevel(value: number): DifficultyLevel {

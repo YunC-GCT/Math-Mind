@@ -8,7 +8,7 @@
 
 ## 2026-07-19 本地同步与首页布局修正
 
-> 主 Agent 显式生成笔记 + Memory 专项改动详见 [`docs/agent-memory-flow-20260719.md`](./docs/agent-memory-flow-20260719.md)。
+> 主 Agent 显式生成笔记 + Memory 专项改动详见 [`docs/agent-memory-flow-20260719.md`](./docs/agent-memory-flow-20260719.md)。回复风格验收测试集详见 [`docs/agent-reply-style-testset-20260719.md`](./docs/agent-reply-style-testset-20260719.md)。
 
 ### 做了什么
 

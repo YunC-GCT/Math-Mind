@@ -196,3 +196,93 @@ BUILD SUCCESSFUL in 1 min 31 s 69 ms
 ```
 
 仍存在既有 warning：签名/混淆配置、ArkTS `Function may throw exceptions`、部分 deprecated API。
+
+## 八、2026-07-19 主 agent 输出长度调整
+
+### 8.1 问题
+
+主 agent 普通回复过短、风格死板，笔记详情中的摘要也容易只有一句话。排查后确认不是 LLM 输出 token 统一截断，而是代码中存在两处硬限制：
+
+- `AgentChatService.buildReplyMessages()` 的系统提示词要求 `50字以内直接给答案`、`每步≤15字`、`不展开讨论`。
+- `KnowledgeModel.summaryFromFields()` 和 fallback 笔记路径将笔记 `summary` 硬截断到 `100` 字。
+
+### 8.2 本次改动
+
+| 文件 | 改动 |
+|------|------|
+| `entry/src/main/ets/services/AgentChatService.ets` | 放宽普通聊天 prompt，改为按意图选择回答形态；解题、概念讲解、总结复盘、学习计划分别给不同结构；普通回复 `maxTokens` 从 `2048` 提升到 `4096`。 |
+| `agents/src/main/ets/agents/KnowledgeModel.ets` | 将结构化笔记和 fallback 笔记的摘要上限从 `100` 字提升到 `500` 字，避免详情摘要只剩一句话。 |
+| `common/src/main/ets/models/CommonTypes.ets` | 更新 `summary` 字段注释，移除 `<= 100 字` 的旧约束描述。 |
+
+### 8.3 预期效果
+
+- 简单问题仍可简短回答。
+- 数学推导、讲解、复盘、总结类问题会保留必要步骤和关键公式。
+- 主 agent 不会因为普通聊天 prompt 主动生成笔记。
+- 笔记详情摘要能展示更完整的结构化概览；列表卡片仍可能因 UI 预览 `maxLines` 只显示前几行。
+
+### 8.4 验证
+
+已再次运行 `hvigor assembleApp`，结果 `BUILD SUCCESSFUL in 7 s 187 ms`。仍存在既有 warning：签名/混淆配置、ArkTS `Function may throw exceptions`、deprecated API。
+
+### 8.5 回复风格测试集
+
+新增 `docs/agent-reply-style-testset-20260719.md`，覆盖简单计算、数学推导、概念讲解、临时总结、明确生成笔记、信息不足、复盘、学习计划、长上下文追问、口语化保存意图等 10 个人工验收用例。
+
+## 九、2026-07-19 用户画像与自适应回答
+
+### 9.1 目标
+
+主 agent 回复不再对所有用户固定使用“直观理解/核心定义/常见误区”等完整结构，而是按用户水平调整解释密度。
+
+画像三档：
+
+```text
+beginner: 小白，少术语、多直观解释、步骤更细
+novice: 初识者，保留关键思路和必要步骤，少量解释
+advanced: 精通者，直接给结论、公式、推导要点和边界条件
+```
+
+无历史画像时默认使用 `advanced`，让主 agent 初始回答更偏简洁、公式和结论。
+
+### 9.2 存储策略
+
+复用 `agent_memory` 表，不新增 DB schema：
+
+| 字段 | 用法 |
+|------|------|
+| `type` | 新增 `profile` |
+| `source` | 固定为 `learner_profile` |
+| `session_id` | 全局画像使用 `__global__`，会话画像使用当前 sessionId |
+| `content` | 保存 `LearnerProfile` JSON |
+
+`queryPendingNotes()`、`queryLatestSummary()`、`markPendingUsed()` 仍只过滤各自类型，不受 `profile` 影响。
+
+### 9.3 更新策略
+
+- `AgentMemoryService.getLearnerProfileContext(sessionId)` 读取全局画像和当前会话画像，生成短文本注入普通回复 prompt。
+- `AgentMemoryService.updateLearnerProfileIfNeeded(sessionId)` 在每 6 条用户消息后尝试更新画像。
+- 无 API Key、LLM 失败、JSON 解析失败、字段非法时跳过，只记录 warning，不阻断普通聊天。
+- 画像证据只保存简短摘要，例如“多次要求基础解释和例子”。
+
+### 9.4 Prompt 策略
+
+`AgentChatService.buildReplyMessages()` 注入 Learner profile：
+
+- `beginner` 可以使用直观解释、例子和关键易错点。
+- `novice` 以思路、必要步骤和结论为主，只在概念题或用户困惑时补直观解释。
+- `advanced` 默认压缩基础定义和比喻，直接给公式、推导主线、结论和边界条件。
+- 当前用户明确要求“详细讲”“像小白一样讲”“直接给答案”“不要展开”时，本轮指令优先于画像。
+
+### 9.5 验收补充
+
+`docs/agent-reply-style-testset-20260719.md` 新增画像差异测试：
+
+- 同一导数概念题在 `beginner`、`novice`、`advanced` 下回答粒度不同。
+- `advanced` 用户说“像小白一样讲”时，本轮按小白讲。
+- `beginner` 用户说“直接给答案，不要展开”时，本轮保持简短。
+- 明确“帮我记一下”仍走生成笔记链路，不受画像逻辑影响。
+
+### 9.6 构建验证
+
+已运行 `hvigor assembleApp`，结果 `BUILD SUCCESSFUL in 13 s 873 ms`。仍存在既有 warning：签名/混淆配置、ArkTS `Function may throw exceptions`、deprecated API。
