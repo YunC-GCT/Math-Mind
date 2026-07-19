@@ -23,8 +23,10 @@
 
 import {
   KnowledgeUnit,
+  ClassificationResult,
   DispatchRequest,
   DispatchResult,
+  DispatchAnalysisResult,
   DispatchPayload,
   Logger,
 } from 'common';
@@ -62,6 +64,31 @@ export class AiService {
       imageUri: resolved.localPath,
       userText: userText,
     });
+  }
+
+  // 图片识别入口: 只 OCR + 分类，返回识别内容，不生成笔记、不入库
+  async analyzeImage(imageUri: string, userText?: string): Promise<ClassificationResult> {
+    log.info('analyzeImage start, imageUri=' + imageUri);
+    if (this.context === undefined) {
+      throw new Error('AiService.analyzeImage 需要 UIAbilityContext 来准备图片文件');
+    }
+
+    const resolved: ResolvedImageFile = await new ImageUriResolver(this.context).resolve(imageUri);
+    const req: DispatchRequest = {
+      source: 'app',
+      payload: {
+        kind: 'image',
+        imageUri: resolved.localPath,
+        userText: userText,
+      },
+    };
+
+    const dispatcher: Dispatcher = new Dispatcher();
+    const result: DispatchAnalysisResult = await dispatcher.analyze(req, this.context);
+    if (!result.success || result.classification === undefined) {
+      throw new Error(result.errorMessage ?? '识别失败');
+    }
+    return result.classification;
   }
 
   // 文本入口:同样的知识入库契约,跳过图像识别
