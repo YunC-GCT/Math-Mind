@@ -44,13 +44,13 @@ export class TypeClassifier {
     if (payload.kind === 'text') { return payload.text; }
     let baseText: string = '';
     if (payload.kind === 'image') {
-      const tool = new OcrTool(context);
+      const tool = new OcrTool();
       baseText = await tool.recognize(payload.imageUri);
       return this.mergeUserText(baseText, payload.userText);
     }
     if (payload.kind === 'file') {
       if (payload.mimeType.startsWith('image/')) {
-        const tool = new OcrTool(context);
+        const tool = new OcrTool();
         baseText = await tool.recognize(payload.fileUri);
       }
       return this.mergeUserText(baseText, payload.userText);
