@@ -151,9 +151,13 @@ struct SubjectDetailPage {
             Blank().height(96)
           }
           .width("100%")
+          .constraintSize({ minHeight: "100%" })
           .padding({ left: 10, right: 10, bottom: 20 })
+          .justifyContent(FlexAlign.Start)
+          .alignItems(HorizontalAlign.Start)
         }
         .layoutWeight(1)
+        .width("100%")
         .scrollBar(BarState.Off)
         .edgeEffect(EdgeEffect.Spring)
       }
