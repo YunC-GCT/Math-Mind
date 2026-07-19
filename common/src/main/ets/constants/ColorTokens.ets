@@ -16,12 +16,12 @@ export const MINT_DARK: string    = "#FF1F8F65"
 export const MINT_LIGHT: string   = "#245BE3B0"
 export const MINT_GLOW: string    = "#6B5BE3B0"
 export const MINT_BORDER: string  = "#475BE3B0"
-export const PURPLE: string       = "#FF9775FA"
-export const PURPLE_DARK: string  = "#FF7C5CE0"
-export const PURPLE_LIGHT: string = "#249775FA"
-export const PINK: string         = "#FFFF6B9D"
+export const PURPLE: string       = "#FF8F95D3"
+export const PURPLE_DARK: string  = "#FF7278BA"
+export const PURPLE_LIGHT: string = "#248F95D3"
+export const PINK: string         = "#FFD989A6"
 export const PINK_LIGHT: string  = "#1AFF6B9D"   // PINK 10% (Hero 梯度收尾)
-export const AMBER: string        = "#FFF0C674"
+export const AMBER: string        = "#FFB8A7D9"
 export const BG_DARK: string      = "#FF0A0C10"
 
 // ========================================================================
@@ -66,8 +66,12 @@ export const SUBJECT_COLORS: Record<string, string> = {
 // ========================================================================
 export const TYPE_COLORS: Record<string, string> = {
   "概念": MINT,
-  "计算": PURPLE,
+  "定理": PURPLE,
+  "公式": PINK,
   "证明": AMBER,
+  "证明题": AMBER,
+  "计算": "#FF64B7C8",
+  "计算题": "#FF64B7C8",
 }
 
 // ========================================================================

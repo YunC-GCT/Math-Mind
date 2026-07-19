@@ -2,11 +2,13 @@
 //  pages/Notes/NotesPage.ets - notes page shell
 // ============================================================================
 
-import { BG_DARK } from "common"
+import { BG_DARK, TEXT, S_4, S_5, F_BASE, W_SEMIBOLD } from "common"
 import { promptAction, router } from "@kit.ArkUI"
 import { NotesHeader } from "./NotesHeader"
 import { NotesEmptyState } from "./NotesEmptyState"
+import { NotesSummaryPanel } from "./NotesSummaryPanel"
 import { SubjectGrid } from "./SubjectGrid"
+import { SubjectViewToggle } from "./SubjectViewToggle"
 import { NotesViewModel } from "../../viewmodels/NotesViewModel"
 
 @Component
@@ -14,6 +16,7 @@ export struct NotesPage {
   @StorageProp("statusBarHeight") sbh: number = 0
   @StorageProp("notesVersion") @Watch("onNotesVersionChange") notesVersion: number = 0
   @State vm: NotesViewModel = new NotesViewModel()
+  @State subjectViewMode: string = "block"
 
   aboutToAppear(): void {
     if (AppStorage.get<number>("notesVersion") === undefined) {
@@ -41,21 +44,58 @@ export struct NotesPage {
     })
   }
 
+  private changeSubjectViewMode = (mode: string): void => {
+    this.subjectViewMode = mode
+  }
+
+  private showSearchTodo = (): void => {
+    try { promptAction.showToast({ message: "搜索功能开发中", duration: 1500 }) } catch (_e) {}
+  }
+
   build() {
     Column() {
       NotesHeader({
         statusBarHeight: this.sbh,
         subjectCount: this.vm.subjectGroups.length,
         totalCount: this.vm.notes.length,
+        onSearchTap: this.showSearchTodo,
       })
 
       if (this.vm.notes.length === 0) {
         NotesEmptyState()
       } else {
-        SubjectGrid({
-          groups: this.vm.subjectGroups,
-          onSelect: this.openSubject,
-        })
+        Column() {
+          NotesSummaryPanel({
+            totalCount: this.vm.notes.length,
+            subjectCount: this.vm.subjectGroups.length,
+            weeklyNewCount: this.vm.weeklyNewCount,
+            groups: this.vm.subjectGroups,
+          })
+            .margin({ left: S_5, right: S_5, top: 0, bottom: S_4 })
+
+          Row() {
+            Text("学科")
+              .fontSize(F_BASE)
+              .fontWeight(W_SEMIBOLD)
+              .fontColor(TEXT)
+            Blank()
+            SubjectViewToggle({
+              mode: this.subjectViewMode,
+              onChange: this.changeSubjectViewMode,
+            })
+          }
+          .width("100%")
+          .padding({ left: S_5, right: S_5, bottom: S_4 })
+          .alignItems(VerticalAlign.Center)
+
+          SubjectGrid({
+            groups: this.vm.subjectGroups,
+            viewMode: this.subjectViewMode,
+            onSelect: this.openSubject,
+          })
+        }
+        .width("100%")
+        .layoutWeight(1)
       }
     }
     .width("100%")

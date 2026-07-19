@@ -27,8 +27,18 @@ export {
 // ========== Mock 绗旇鏁版嵁 (UI 寮€鍙戞湡) ==========
 export {
   NoteItem, NOTES, stripMD, recentDate,
-  typeChar, typeColor, subjectColor,
 } from './data/MockNotes';
+
+// ========== 笔记分类与取色 ==========
+export {
+  NOTE_TYPE_ALL_KEY,
+  NOTE_TYPE_KEYS,
+  noteTypeFilterKeys,
+  typeChar, typeColor, typeGlassColor,
+  subjectColor, subjectColorByIndex, subjectGlassColor, subjectBorderColor,
+  glassToneColor, glassSurfaceColor, glassHighlightColor, glassShadowColor, borderToneColor,
+  normalizeNoteType, isKnownNoteType,
+} from './data/NoteTaxonomy';
 
 // ========== 锟?Agent 鍏变韩绫诲瀷 (Dispatcher 锟? ==========
 export {

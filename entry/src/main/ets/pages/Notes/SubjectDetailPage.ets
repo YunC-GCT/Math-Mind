@@ -2,7 +2,7 @@
 //  pages/Notes/SubjectDetailPage.ets - subject-level notes page
 // ============================================================================
 
-import { BG_DARK, NoteItem, KnowledgeUnit } from "common"
+import { BG_DARK, KnowledgeUnit, normalizeNoteType, NOTE_TYPE_ALL_KEY, NoteItem } from "common"
 import { promptAction, router } from "@kit.ArkUI"
 import { NoteDetailOverlay } from "../../overlays/NoteDetailOverlay/NoteDetailOverlay"
 import { NotesViewModel } from "../../viewmodels/NotesViewModel"
@@ -17,7 +17,7 @@ struct SubjectDetailPage {
   @StorageProp("statusBarHeight") sbh: number = 0
   @StorageProp("notesVersion") @Watch("onNotesVersionChange") notesVersion: number = 0
   @State subject: string = ""
-  @State activeType: string = "all"
+  @State activeType: string = NOTE_TYPE_ALL_KEY
   @State vm: NotesViewModel = new NotesViewModel()
   @State selectedNote: NoteItem | null = null
   @State selectedUnit: KnowledgeUnit | null = null
@@ -58,7 +58,7 @@ struct SubjectDetailPage {
       return
     }
     this.subject = this.vm.subjectGroups[0].subject
-    this.activeType = "all"
+    this.activeType = NOTE_TYPE_ALL_KEY
   }
 
   private hasSubject(subject: string): boolean {
@@ -76,12 +76,12 @@ struct SubjectDetailPage {
 
   private filteredNotes(): NoteItem[] {
     const notes: NoteItem[] = this.subjectNotes()
-    if (this.activeType === "all") {
+    if (this.activeType === NOTE_TYPE_ALL_KEY) {
       return notes
     }
     const result: NoteItem[] = []
     for (const note of notes) {
-      if (this.typeKey(note.type) === this.activeType) {
+      if (normalizeNoteType(note.type) === this.activeType) {
         result.push(note)
       }
     }
@@ -114,12 +114,6 @@ struct SubjectDetailPage {
     } else {
       try { promptAction.showToast({ message: "删除失败", duration: 1500 }) } catch (_e) {}
     }
-  }
-
-  private typeKey(type: string): string {
-    if (type === "计算") { return "计算题" }
-    if (type === "证明") { return "证明题" }
-    return type
   }
 
   build() {

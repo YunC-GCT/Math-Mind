@@ -27,6 +27,7 @@ export class NotesViewModel {
   notes: NoteItem[] = []
   units: KnowledgeUnit[] = []
   subjectGroups: SubjectGroup[] = []
+  weeklyNewCount: number = 0
 
   async loadNotes(context: Context): Promise<boolean> {
     try {
@@ -35,11 +36,13 @@ export class NotesViewModel {
       this.units = units
       this.notes = unitsToNoteItems(units)
       this.subjectGroups = this.groupBySubject(this.notes)
+      this.weeklyNewCount = this.countRecentNotes(this.notes, 7)
       return true
     } catch (_e) {
       this.units = []
       this.notes = []
       this.subjectGroups = []
+      this.weeklyNewCount = 0
       return false
     }
   }
@@ -82,20 +85,24 @@ export class NotesViewModel {
     }
 
     const groups: SubjectGroup[] = []
-    for (let i: number = 0; i < subjectNames.length; i++) {
-      const sortedNotes: NoteItem[] = this.sortByDateDesc(subjectNotes[i])
+    let subjectIndex: number = 0
+    while (subjectIndex < subjectNames.length) {
+      const sortedNotes: NoteItem[] = this.sortByDateDesc(subjectNotes[subjectIndex])
       const previewTitles: string[] = []
       const previewCount: number = Math.min(3, sortedNotes.length)
-      for (let p: number = 0; p < previewCount; p++) {
-        previewTitles.push(sortedNotes[p].title)
+      let previewIndex: number = 0
+      while (previewIndex < previewCount) {
+        previewTitles.push(sortedNotes[previewIndex].title)
+        previewIndex++
       }
       groups.push(new SubjectGroup(
-        subjectNames[i],
-        subjectColor(subjectNames[i]),
+        subjectNames[subjectIndex],
+        subjectColor(subjectNames[subjectIndex], subjectIndex),
         sortedNotes.length,
         sortedNotes,
         previewTitles,
       ))
+      subjectIndex++
     }
 
     return this.sortGroups(groups)
@@ -127,5 +134,18 @@ export class NotesViewModel {
     const sorted: SubjectGroup[] = groups.slice(0)
     sorted.sort((a: SubjectGroup, b: SubjectGroup): number => b.count - a.count)
     return sorted
+  }
+
+  private countRecentNotes(notes: NoteItem[], days: number): number {
+    const now: number = Date.now()
+    const windowMs: number = days * 86400000
+    let count: number = 0
+    for (const note of notes) {
+      const ts: number = new Date(note.date).getTime()
+      if (ts === ts && now - ts >= 0 && now - ts <= windowMs) {
+        count++
+      }
+    }
+    return count
   }
 }

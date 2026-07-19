@@ -1,8 +1,42 @@
-// ============================================================================
-//  pages/Notes/SubjectCard.ets - subject card on notes page
-// ============================================================================
+/**
+ * SubjectCard.ets — 学科入口卡片
+ *
+ * 路径: pages/Notes/SubjectCard.ets
+ * 职责: 渲染 Notes 一级页的学科入口，支持块视图和列视图。
+ * 依赖: common 视觉令牌
+ *
+ * 数据流:
+ *   SubjectGrid(group, viewMode)
+ *     → SubjectCard
+ *       → onTap(subject)
+ *
+ * ArkTS 1.1 strict 适配:
+ *   - 无 any/unknown
+ *   - 无 C 风格 for
+ *   - struct 内只使用 @Builder
+ */
 
-import { BG_CARD, BORDER, TEXT, TEXT_3, TEXT_4, GLASS_8, S_1, S_2, S_3, S_4, R_LG, F_XS, F_MD, W_SEMIBOLD } from "common"
+import {
+  BG_CARD, BORDER, GLASS_8, TEXT, TEXT_2, TEXT_3, TEXT_4,
+  S_1, S_2, S_3, S_4,
+  R_MD, R_LG,
+  F_XS, F_SM, F_MD,
+  W_BOLD, W_SEMIBOLD,
+  glassSurfaceColor,
+} from "common"
+
+function subjectMark(subject: string): string {
+  const trimmed: string = subject.trim()
+  return trimmed.length > 0 ? trimmed.substring(0, 1) : "记"
+}
+
+function fallbackColor(color: string): string {
+  return color.length > 0 ? color : BORDER
+}
+
+function firstPreview(previewTitles: string[]): string {
+  return previewTitles.length > 0 ? previewTitles[0] : "暂无预览"
+}
 
 @Component
 export struct SubjectCard {
@@ -10,106 +44,144 @@ export struct SubjectCard {
   @Prop color: string = ""
   @Prop count: number = 0
   @Prop previewTitles: string[] = []
+  @Prop viewMode: string = "block"
   onTap: () => void = (): void => {}
 
   build() {
+    if (this.viewMode === "list") {
+      this.ListRow()
+    } else {
+      this.BlockCard()
+    }
+  }
+
+  @Builder
+  SubjectBadge(size: number, fontSize: number) {
+    Stack() {
+      Circle({ width: size, height: size })
+        .fill(glassSurfaceColor(fallbackColor(this.color)))
+        .stroke(glassSurfaceColor(fallbackColor(this.color)))
+        .strokeWidth(1)
+      Circle({ width: size - 12, height: size - 12 })
+        .fill(glassSurfaceColor(fallbackColor(this.color)))
+      Text(subjectMark(this.subject))
+        .fontSize(fontSize)
+        .fontWeight(W_BOLD)
+        .fontColor(fallbackColor(this.color))
+    }
+    .width(size)
+    .height(size)
+    .alignContent(Alignment.Center)
+  }
+
+  @Builder
+  BlockCard() {
     Column() {
       Row() {
-        Stack() {
-          Circle({ width: 38, height: 38 })
-            .fill(this.toneBg())
-          Text(this.subjectMark())
-            .fontSize(F_MD - 1)
-            .fontWeight(W_SEMIBOLD)
-            .fontColor(this.color)
-        }
-        .width(38)
-        .height(38)
-        .alignContent(Alignment.Center)
-        .margin({ right: S_3 })
-
-        Column() {
-          Text(this.subject)
-            .fontSize(F_MD - 1)
-            .fontWeight(W_SEMIBOLD)
-            .fontColor(TEXT)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .width("100%")
-
-          Text(this.count.toString() + " 条笔记")
-            .fontSize(F_XS)
-            .fontColor(TEXT_3)
-            .margin({ top: S_1 })
-            .width("100%")
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
+        this.SubjectBadge(38, F_MD - 1)
+        Blank()
+        Text(this.count.toString() + " 条")
+          .fontSize(F_XS)
+          .fontColor(TEXT_3)
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
 
-      Column() {
-        ForEach(this.previewTitles,
-          (title: string): void => {
-            Row() {
-              Circle({ width: 3, height: 3 })
-                .fill(this.color)
-                .margin({ right: 6 })
-                .flexShrink(0)
+      Text(this.subject)
+        .fontSize(F_MD - 1)
+        .fontWeight(W_SEMIBOLD)
+        .fontColor(TEXT)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width("100%")
+        .margin({ top: S_3 })
 
-              Text(title)
-                .fontSize(F_XS)
-                .fontColor(TEXT_4)
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .layoutWeight(1)
-            }
-            .width("100%")
-            .height(18)
-            .alignItems(VerticalAlign.Center)
-          },
-          (title: string): string => title
-        )
-      }
-      .width("100%")
-      .height(58)
-      .margin({ top: S_3 })
-      .padding({ left: 2, right: 2 })
-      .alignItems(HorizontalAlign.Start)
+      Text(firstPreview(this.previewTitles))
+        .fontSize(F_XS)
+        .fontColor(TEXT_4)
+        .maxLines(2)
+        .lineHeight(17)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width("100%")
+        .margin({ top: S_1 })
     }
     .width("100%")
-    .height(142)
-    .padding({ left: S_4, right: S_4, top: S_3, bottom: S_3 })
+    .height(116)
+    .padding({ left: S_3, right: S_3, top: S_3, bottom: S_3 })
     .backgroundColor(BG_CARD)
-    .border({ width: 0.5, color: this.borderTone() })
+    .linearGradient({
+      angle: 145,
+      colors: [
+        [GLASS_8, 0],
+        [glassSurfaceColor(fallbackColor(this.color)), 0.28],
+        [BG_CARD, 1],
+      ],
+    })
+    .border({ width: 0.5, color: glassSurfaceColor(fallbackColor(this.color)) })
     .borderRadius(R_LG)
     .alignItems(HorizontalAlign.Start)
     .justifyContent(FlexAlign.Start)
     .onClick((): void => this.onTap())
   }
 
-  private subjectMark(): string {
-    if (this.subject === "高等代数") { return "代" }
-    if (this.subject === "数学分析") { return "析" }
-    if (this.subject === "解析几何" || this.subject === "空间解析几何") { return "几" }
-    if (this.subject === "概率统计" || this.subject.indexOf("概率") >= 0 || this.subject.indexOf("统计") >= 0) { return "概" }
-    if (this.subject === "未分类") { return "未" }
-    return this.subject.length > 0 ? this.subject.substring(0, 1) : "记"
-  }
+  @Builder
+  ListRow() {
+    Row() {
+      Row() {
+        this.SubjectBadge(36, F_SM + 1)
+      }
+      .margin({ right: S_3 })
 
-  private toneBg(): string {
-    if (this.subject === "高等代数") { return "#249775FA" }
-    if (this.subject === "数学分析") { return "#1AFF6B9D" }
-    if (this.subject === "解析几何" || this.subject === "空间解析几何") { return "#24F0C674" }
-    if (this.subject === "未分类") { return GLASS_8 }
-    return this.color.length > 0 ? "#145BE3B0" : GLASS_8
-  }
+      Column() {
+        Row() {
+          Text(this.subject)
+            .fontSize(F_SM + 1)
+            .fontWeight(W_SEMIBOLD)
+            .fontColor(TEXT)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
 
-  private borderTone(): string {
-    if (this.subject === "未分类" || this.color.length === 0) {
-      return BORDER
+          Text(this.count.toString() + " 条")
+            .fontSize(F_XS)
+            .fontColor(TEXT_3)
+            .margin({ left: S_2 })
+            .flexShrink(0)
+        }
+        .width("100%")
+        .alignItems(VerticalAlign.Center)
+
+        Text(firstPreview(this.previewTitles))
+          .fontSize(F_XS)
+          .fontColor(TEXT_4)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width("100%")
+          .margin({ top: S_1 })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Text("›")
+        .fontSize(F_MD)
+        .fontColor(TEXT_2)
+        .margin({ left: S_2 })
     }
-    return this.color
+    .width("100%")
+    .height(72)
+    .padding({ left: S_4, right: S_4, top: S_2, bottom: S_2 })
+    .backgroundColor(BG_CARD)
+    .linearGradient({
+      angle: 145,
+      colors: [
+        [GLASS_8, 0],
+        [glassSurfaceColor(fallbackColor(this.color)), 0.24],
+        [BG_CARD, 1],
+      ],
+    })
+    .border({ width: 0.5, color: glassSurfaceColor(fallbackColor(this.color)) })
+    .borderRadius(R_MD)
+    .alignItems(VerticalAlign.Center)
+    .onClick((): void => this.onTap())
   }
 }

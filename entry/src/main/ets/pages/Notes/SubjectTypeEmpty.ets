@@ -2,11 +2,11 @@
 //  pages/Notes/SubjectTypeEmpty.ets - empty state for subject type filter
 // ============================================================================
 
-import { TEXT_3, TEXT_4, F_SM, F_XS, W_SEMIBOLD } from "common"
+import { F_SM, F_XS, NOTE_TYPE_ALL_KEY, TEXT_3, TEXT_4, W_SEMIBOLD } from "common"
 
 @Component
 export struct SubjectTypeEmpty {
-  @Prop activeType: string = "all"
+  @Prop activeType: string = NOTE_TYPE_ALL_KEY
 
   build() {
     Column() {
@@ -27,7 +27,7 @@ export struct SubjectTypeEmpty {
   }
 
   private title(): string {
-    if (this.activeType === "all") {
+    if (this.activeType === NOTE_TYPE_ALL_KEY) {
       return "暂无笔记"
     }
     return "暂无 " + this.activeType + " 类型的笔记"

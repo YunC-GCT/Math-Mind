@@ -2,8 +2,6 @@
  * MathMind 共享数据模型 — 对照 app.js NOTES + noteCardHTML()
  */
 
-import { MINT, PURPLE, PINK, AMBER } from '../constants/ColorTokens';
-
 // ========== 笔记数据模型 ==========
 export class NoteItem {
   id: number = 0;
@@ -82,33 +80,4 @@ export function recentDate(dateStr: string): string {
   const m = d.getMonth() + 1;
   const day = d.getDate();
   return `${m}/${day}`;
-}
-
-/** 获取类型首字（对照 JS ts()） */
-export function typeChar(t: string): string {
-  return (t || '笔').charAt(0);
-}
-
-/** 获取类型颜色（对照 CSS + ColorTokens TYPE_COLORS） */
-export function typeColor(t: string): string {
-  return ({
-    '概念': MINT,
-    '定理': MINT,
-    '公式': PINK,
-    '计算': PURPLE,
-    '计算题': PURPLE,
-    '证明': AMBER,
-    '证明题': AMBER,
-    '笔记': MINT,
-  } as Record<string, string>)[t] || '#FFA8A8B0';
-}
-
-/** 获取学科颜色（对照 CSS + ColorTokens SUBJECT_COLORS） */
-export function subjectColor(s: string): string {
-  return ({
-    '高等代数': PURPLE,
-    '数学分析': PINK,
-    '解析几何': AMBER,
-    '空间解析几何': AMBER,
-  } as Record<string, string>)[s] || '#FFA8A8B0';
 }
