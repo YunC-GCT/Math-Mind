@@ -8,11 +8,14 @@
 
 ## 2026-07-19 本地同步与首页布局修正
 
+> 主 Agent 显式生成笔记 + Memory 专项改动详见 [`docs/agent-memory-flow-20260719.md`](./docs/agent-memory-flow-20260719.md)。
+
 ### 做了什么
 
 - 将 `agents/src/main/ets/agents/TypeClassifier.ets`、`agents/src/main/ets/mcp/tools/OcrTool.ets` 和 `common/` 覆盖为 `origin/main` 版本,确认本地 UI 主线可以继续跑通。
 - 首页 `HomeRecentNotes` 增加 `compact` 布局参数: 收起复习环时列表继续占满剩余空间,非收起态按自然高度紧跟在“最近笔记”标题下方。
 - 收紧非收起态“最近笔记”标题与第一条笔记卡片之间的间距,避免生成笔记后卡片位置下沉。
+- 记录 `7ba5169 feat(agent): add explicit note memory flow` 的新增/修改文件、memory 策略、意图识别和生成笔记链路。
 
 ### 验证
 
