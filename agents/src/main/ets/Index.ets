@@ -15,6 +15,7 @@ export { Dispatcher } from './core/Dispatcher';
 //   D 接手: 替换 TypeClassifier.classify body
 //   L 接手: 替换 KnowledgeModel.structure body + NoteDao.insert/queryById
 export { TypeClassifier } from './agents/TypeClassifier';
+export type { TypeClassifierTextResult } from './agents/TypeClassifier';
 export { KnowledgeModel } from './agents/KnowledgeModel';
 export { OcrTool } from './mcp/tools/OcrTool';
 export type { OcrRecognitionResult } from './mcp/tools/OcrTool';
