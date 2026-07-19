@@ -1,4 +1,4 @@
-// MathMind - D1 拍照链共享类型
+﻿// MathMind - D1 拍照链共享类型
 // 跨模块传输的入参/出参/中间结果接口
 // 创建: Z (W1 块 3 主 agent 业务 - 2026-07-13)
 
@@ -11,11 +11,13 @@ export interface ClassificationInput {
   imageBase64?: string;
 }
 
+export type NoteCategory = '概念' | '定理' | '公式' | '证明题' | '计算题';
+
 export interface ClassificationResult {
-  // 笔记类型(三选一)
-  type: '概念' | '计算' | '证明';
-  // 学科(三选一)
-  subject: '高等代数' | '数学分析' | '解析几何';
+  // 笔记类型(五分类, 与 KnowledgeModel 的 KnowledgeCategory 对齐)
+  type: NoteCategory;
+  // 学科(LLM 自由判定, 不限制枚举值; 高等代数/数学分析/解析几何 为推荐类别)
+  subject: string;
   // 章节(可选,如"微分中值定理" / "行列式")
   chapter?: string;
   // 分类置信度 0.0-1.0,主 agent 用作路由门控

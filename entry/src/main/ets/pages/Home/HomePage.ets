@@ -122,6 +122,7 @@ export struct HomePage {
 
         HomeRecentNotes({
           notes: this.vm.notes,
+          compact: this.reviewRingCollapsed,
           onSwipeUp: (): void => { this.collapseReviewRing() },
           onSelect: (note: NoteItem): void => { this.selectedNote = note },
         })

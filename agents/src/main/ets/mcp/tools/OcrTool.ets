@@ -1,6 +1,7 @@
 import { textRecognition } from '@kit.CoreVisionKit';
 import { image } from '@kit.ImageKit';
 import { http } from '@kit.NetworkKit';
+import { OcrConfig } from 'common';
 
 export interface OcrRecognitionResult {
   success: boolean;
@@ -40,13 +41,45 @@ interface OcrError {
  */
 export class OcrTool {
   private formulaEndpoint: string;
-  private fallbackOcrEndpoint: string;
 
-  constructor(formulaEndpoint?: string, fallbackOcrEndpoint?: string) {
+  constructor(formulaEndpoint?: string) {
     this.formulaEndpoint = formulaEndpoint ??
-      'http://10.0.2.2:8000/api/v1/formula/recognize';
-    this.fallbackOcrEndpoint = fallbackOcrEndpoint ??
-      'http://10.0.2.2:8000/api/v1/ocr/recognize';
+      'http://127.0.0.1:8000/api/v1/formula/recognize';
+  }
+
+  async recognizeBytes(imageBytes: ArrayBuffer, fileName: string = 'upload.png'): Promise<OcrRecognitionResult> {
+    return await this.recognizeBytesWithEndpoint(imageBytes, OcrConfig.getInstance().getEndpoint(), fileName);
+  }
+
+  async recognizeBytesWithEndpoint(
+    imageBytes: ArrayBuffer,
+    endpoint: string,
+    fileName: string = 'upload.png',
+  ): Promise<OcrRecognitionResult> {
+    let lastError: string = '';
+    const target: string = endpoint.trim().length > 0 ? endpoint.trim() : OcrConfig.getInstance().getEndpoint();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const raw: string = await this.postBytes(target, imageBytes, fileName);
+        const response: CombinedOcrResponse = JSON.parse(raw) as CombinedOcrResponse;
+        return {
+          success: response.success,
+          formulas: response.formulas ?? [],
+          textLines: response.text_lines ?? [],
+          text: response.text ?? '',
+          message: response.message ?? '',
+        };
+      } catch (e) {
+        lastError = this.errorText(e as OcrError);
+      }
+    }
+    return {
+      success: false,
+      formulas: [],
+      textLines: [],
+      text: '',
+      message: 'OCR request failed: ' + lastError,
+    };
   }
 
   async recognize(imageUri: string): Promise<string> {
@@ -130,33 +163,6 @@ export class OcrTool {
     };
   }
 
-  async recognizeBytes(imageBytes: ArrayBuffer, fileName: string = 'upload.png'): Promise<OcrRecognitionResult> {
-    return this.recognizeBytesWithEndpoint(imageBytes, this.fallbackOcrEndpoint, fileName);
-  }
-
-  async recognizeBytesWithEndpoint(
-    imageBytes: ArrayBuffer,
-    endpoint: string,
-    fileName: string = 'upload.png',
-  ): Promise<OcrRecognitionResult> {
-    let lastError: string = '';
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const responseText: string = await this.postBytesToEndpoint(endpoint, imageBytes, fileName);
-        const response: CombinedOcrResponse = JSON.parse(responseText) as CombinedOcrResponse;
-        return this.toRecognitionResult(response);
-      } catch (e) {
-        lastError = this.errorText(e as OcrError);
-      }
-    }
-    return {
-      success: false,
-      formulas: [],
-      textLines: [],
-      text: '',
-      message: 'OCR request failed: ' + lastError,
-    };
-  }
   private async recognizeLocalText(filePath: string): Promise<string[]> {
     if (!canIUse('SystemCapability.AI.OCR.TextRecognition')) {
       throw new Error('CoreVisionKit text OCR is not supported on this device');
@@ -210,11 +216,26 @@ export class OcrTool {
     return lines;
   }
 
+  private resolveFormulaEndpoint(): string {
+    const ocrEndpoint: string = OcrConfig.getInstance().getEndpoint();
+    const ocrSuffix: string = '/api/v1/ocr/recognize';
+    if (ocrEndpoint.endsWith(ocrSuffix)) {
+      return ocrEndpoint.substring(0, ocrEndpoint.length - ocrSuffix.length) + '/api/v1/formula/recognize';
+    }
+
+    const routerSuffix: string = '/recognize';
+    if (ocrEndpoint.endsWith(routerSuffix)) {
+      return ocrEndpoint.substring(0, ocrEndpoint.length - routerSuffix.length) + '/formula/recognize';
+    }
+
+    return this.formulaEndpoint;
+  }
+
   private async requestFormulaWithRetry(filePath: string): Promise<FormulaResponse> {
     let lastError: string = '';
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const responseText: string = await this.postImage(this.formulaEndpoint, filePath);
+        const responseText: string = await this.postImage(this.resolveFormulaEndpoint(), filePath);
         return JSON.parse(responseText) as FormulaResponse;
       } catch (e) {
         lastError = this.errorText(e as OcrError);
@@ -227,7 +248,7 @@ export class OcrTool {
     let lastError: string = '';
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const responseText: string = await this.postImage(this.fallbackOcrEndpoint, filePath);
+        const responseText: string = await this.postImage(OcrConfig.getInstance().getEndpoint(), filePath);
         return JSON.parse(responseText) as CombinedOcrResponse;
       } catch (e) {
         lastError = this.errorText(e as OcrError);
@@ -269,35 +290,30 @@ export class OcrTool {
     }
   }
 
-  private async postBytesToEndpoint(endpoint: string, imageBytes: ArrayBuffer, fileName: string): Promise<string> {
+  private async postBytes(endpoint: string, imageBytes: ArrayBuffer, fileName: string): Promise<string> {
+    const boundary: string = '----MathMindOcr' + Date.now().toString();
+    const fileBytes: Uint8Array = new Uint8Array(imageBytes);
+    const header: Uint8Array = this.strToUtf8(
+      '--' + boundary + '\r\n' +
+      'Content-Disposition: form-data; name="file"; filename="' + fileName + '"\r\n' +
+      'Content-Type: ' + this.mimeFromName(fileName) + '\r\n\r\n',
+    );
+    const footer: Uint8Array = this.strToUtf8('\r\n--' + boundary + '--\r\n');
+    const body: Uint8Array = new Uint8Array(header.length + fileBytes.length + footer.length);
+    body.set(header, 0);
+    body.set(fileBytes, header.length);
+    body.set(footer, header.length + fileBytes.length);
+
     const httpReq: http.HttpRequest = http.createHttp();
     try {
-      const boundary: string = '----MathMindOcr' + Date.now().toString();
-      const fileBytes: Uint8Array = new Uint8Array(imageBytes);
-      const headerStr: string =
-        '--' + boundary + '\r\n' +
-        'Content-Disposition: form-data; name="file"; filename="' + fileName + '"\r\n' +
-        'Content-Type: ' + this.mimeFromName(fileName) + '\r\n\r\n';
-      const footerStr: string = '\r\n--' + boundary + '--\r\n';
-      const headerBuf: Uint8Array = this.strToUtf8(headerStr);
-      const footerBuf: Uint8Array = this.strToUtf8(footerStr);
-      const totalSize: number = headerBuf.length + fileBytes.length + footerBuf.length;
-      const body: Uint8Array = new Uint8Array(totalSize);
-      body.set(headerBuf, 0);
-      body.set(fileBytes, headerBuf.length);
-      body.set(footerBuf, headerBuf.length + fileBytes.length);
-
       const response: http.HttpResponse = await httpReq.request(endpoint, {
         method: http.RequestMethod.POST,
-        header: {
-          'Content-Type': 'multipart/form-data; boundary=' + boundary,
-        },
+        header: { 'Content-Type': 'multipart/form-data; boundary=' + boundary },
         extraData: body.buffer as ArrayBuffer,
         expectDataType: http.HttpDataType.STRING,
         connectTimeout: 10000,
-        readTimeout: 300000,
+        readTimeout: 120000,
       });
-
       if (response.responseCode < 200 || response.responseCode >= 300) {
         throw new Error('HTTP ' + response.responseCode.toString() + ': ' + (response.result as string));
       }
@@ -307,27 +323,28 @@ export class OcrTool {
     }
   }
 
-  private strToUtf8(s: string): Uint8Array {
-    const buf: Uint8Array = new Uint8Array(s.length * 3);
-    let pos: number = 0;
-    for (let i: number = 0; i < s.length; i++) {
-      const cp: number = s.charCodeAt(i);
-      if (cp < 0x80) {
-        buf[pos] = cp;
-        pos = pos + 1;
-      } else if (cp < 0x800) {
-        buf[pos] = 0xC0 | (cp >> 6);
-        buf[pos + 1] = 0x80 | (cp & 0x3F);
-        pos = pos + 2;
+  private strToUtf8(value: string): Uint8Array {
+    const buffer: Uint8Array = new Uint8Array(value.length * 3);
+    let offset: number = 0;
+    for (let i = 0; i < value.length; i++) {
+      const code: number = value.charCodeAt(i);
+      if (code < 0x80) {
+        buffer[offset] = code;
+        offset = offset + 1;
+      } else if (code < 0x800) {
+        buffer[offset] = 0xC0 | (code >> 6);
+        buffer[offset + 1] = 0x80 | (code & 0x3F);
+        offset = offset + 2;
       } else {
-        buf[pos] = 0xE0 | (cp >> 12);
-        buf[pos + 1] = 0x80 | ((cp >> 6) & 0x3F);
-        buf[pos + 2] = 0x80 | (cp & 0x3F);
-        pos = pos + 3;
+        buffer[offset] = 0xE0 | (code >> 12);
+        buffer[offset + 1] = 0x80 | ((code >> 6) & 0x3F);
+        buffer[offset + 2] = 0x80 | (code & 0x3F);
+        offset = offset + 3;
       }
     }
-    return buf.slice(0, pos);
+    return buffer.slice(0, offset);
   }
+
   private toPromptText(result: OcrRecognitionResult): string {
     const parts: string[] = [];
     const text: string = result.text.trim();
@@ -338,19 +355,6 @@ export class OcrTool {
       parts.push('LaTeX formulas:\n' + result.formulas.join('\n'));
     }
     return parts.join('\n\n');
-  }
-
-  private toRecognitionResult(resp: CombinedOcrResponse): OcrRecognitionResult {
-    const formulas: string[] = resp.formulas ?? [];
-    const textLines: string[] = resp.text_lines ?? [];
-    const text: string = resp.text ?? textLines.join(' ');
-    return {
-      success: resp.success,
-      formulas: formulas,
-      textLines: textLines,
-      text: text,
-      message: resp.message ?? '',
-    };
   }
 
   private errorText(error: OcrError): string {

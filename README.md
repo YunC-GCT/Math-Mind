@@ -2,7 +2,22 @@
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z(由 Mavis 代笔)
-> 最近更新: 2026-07-18
+> 最近更新: 2026-07-19
+
+---
+
+## 2026-07-19 本地同步与首页布局修正
+
+### 做了什么
+
+- 将 `agents/src/main/ets/agents/TypeClassifier.ets`、`agents/src/main/ets/mcp/tools/OcrTool.ets` 和 `common/` 覆盖为 `origin/main` 版本,确认本地 UI 主线可以继续跑通。
+- 首页 `HomeRecentNotes` 增加 `compact` 布局参数: 收起复习环时列表继续占满剩余空间,非收起态按自然高度紧跟在“最近笔记”标题下方。
+- 收紧非收起态“最近笔记”标题与第一条笔记卡片之间的间距,避免生成笔记后卡片位置下沉。
+
+### 验证
+
+- 已做文件级 `git diff --check`。
+- DevEco Studio GUI 编译和真机 smoke test 仍需手动执行。
 
 ---
 

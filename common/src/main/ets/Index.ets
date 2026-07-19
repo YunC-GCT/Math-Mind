@@ -3,7 +3,7 @@
 
 // ========== 璁捐 Token (棰滆壊 / 灏哄 / 瀛楀彿) ==========
 export {
-  COLOR_PRIMARY_500, MINT, MINT_DARK, MINT_LIGHT, MINT_GLOW, MINT_BORDER,
+  MINT, MINT_DARK, MINT_LIGHT, MINT_GLOW, MINT_BORDER,
   PURPLE, PURPLE_DARK, PURPLE_LIGHT, PINK, PINK_LIGHT, AMBER,
   BG_DARK, BG_CARD,
   SUBJECT_COLORS, TYPE_COLORS,
@@ -59,7 +59,7 @@ export {
   API_CODE,
   CLASSIFY_CONFIDENCE_THRESHOLD,
 } from './models/CaptureChain';
-export type { ApiCode, DispatchPayload, ImagePayload, TextPayload, FilePayload } from './models/CaptureChain';
+export type { ApiCode, DispatchPayload, ImagePayload, TextPayload, FilePayload, NoteCategory } from './models/CaptureChain';
 
 // ========== 缁熶竴鏃ュ織 (Dispatcher 锟? ==========
 export {
