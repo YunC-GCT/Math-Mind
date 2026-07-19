@@ -1,109 +1,457 @@
-/**
- * AgentChatService.ets — AI 对话业务逻辑层
- *
- * 路径: entry/src/main/ets/services/AgentChatService.ets
- * 职责: 封装 LLM 对话、拍照整链、文本持久化等异步业务逻辑
- *       通过回调接口操作 UI 状态，不依赖任何 ArkUI 装饰器
- *
- * 依赖: common (LlmClient/LlmConfig/KnowledgeUnit), AiService
- *
- * 设计要点:
- *   - 纯逻辑类，可在非 UI 线程调用
- *   - 所有 UI 操作通过 AgentChatCallbacks 回调
- *   - AgentFloatWindow 只需创建 service + 绑定回调 → 调用方法
- */
-
-import { KnowledgeUnit, LlmClient, LlmConfig } from 'common';
-import { AiService } from './AiService';
+import { KnowledgeUnit, ClassificationResult, LlmClient, LlmConfig, ChatMessage } from 'common';
 import { common } from '@kit.AbilityKit';
+import { AiService } from './AiService';
+import { AgentMemoryService } from './AgentMemoryService';
 
-// 服务回调接口：AgentChatService 通过此接口操作 UI 状态
+type TextIntent = 'note_generation' | 'chat';
+
 export interface AgentChatCallbacks {
-  // 添加一条 AI 消息到列表
   addAiMsg: (content: string) => void;
-  // 通知笔记列表刷新
   bumpNotesVersion: () => void;
-  // 设置 busy 状态
   setBusy: (v: boolean) => void;
-  // 获取 UIAbilityContext (用于 AiService)
   getContext: () => common.UIAbilityContext;
+  getConversationText: (excludeLatestUser: boolean) => string;
+  getSessionId: () => string;
 }
 
 export class AgentChatService {
   private cbs: AgentChatCallbacks;
+  private memory: AgentMemoryService | null = null;
 
   constructor(callbacks: AgentChatCallbacks) {
     this.cbs = callbacks;
   }
 
-  // 图片 + 文字 → 整链 (OCR → 分类 → 结构化 → 入库)
   async captureReply(imageUri: string, userText: string): Promise<void> {
+    const sessionId: string = this.currentSessionId();
+    await this.safeSaveUserMessage(sessionId, userText.trim().length > 0 ? userText : '[图片]');
     this.cbs.setBusy(true);
     try {
-      const configured: boolean = await LlmConfig.getInstance().isConfigured();
-      if (!configured) {
-        this.cbs.addAiMsg('⚠️ 请先在「我的 → 设置」中配置 API Key');
-        this.cbs.setBusy(false);
-        return;
-      }
-      const unit: KnowledgeUnit = await new AiService(this.cbs.getContext()).capture(imageUri, userText);
-      this.cbs.bumpNotesVersion();
-      this.cbs.addAiMsg('📝 ' + unit.title);
+      const result: ClassificationResult = await new AiService(this.cbs.getContext()).analyzeImage(imageUri, userText);
+      await this.safeSaveOcrResult(sessionId, imageUri, userText, result);
+      await this.addAiMessage(sessionId, this.formatAnalyzeReply(result));
     } catch (e) {
-      this.cbs.addAiMsg('图片处理失败: ' + ((e as Error).message ?? String(e)).substring(0, 120));
+      await this.addAiMessage(sessionId, '图片识别失败: ' + AgentChatService.errorMessage(e).substring(0, 120));
     } finally {
       this.cbs.setBusy(false);
     }
   }
 
-  // 纯文字 → LLM 对话
   async realReply(userContent: string): Promise<void> {
+    const intent: TextIntent = await this.classifyTextIntent(userContent);
+    if (intent === 'note_generation') {
+      await this.generateNoteFromConversation(userContent);
+      return;
+    }
+
+    const sessionId: string = this.currentSessionId();
+    const memoryContext: string = await this.safeGetContextForReply(sessionId);
+    await this.safeSaveUserMessage(sessionId, userContent);
     this.cbs.setBusy(true);
     try {
       const configured: boolean = await LlmConfig.getInstance().isConfigured();
       if (!configured) {
-        this.cbs.addAiMsg('⚠️ 请先在「我的 → 设置」中配置 API Key');
-        this.cbs.setBusy(false);
+        await this.addAiMessage(sessionId, '⚠️ 请先在「我的 → 设置」中配置 API Key');
         return;
       }
       const client: LlmClient = new LlmClient();
-      const reply: string = await client.call([
-        {
-          role: 'system',
-          content: '你是 MathMind AI 数学助手。回答要求：\n1. 50字以内直接给答案\n2. 涉及计算时给步骤但每步≤15字\n3. 不展开讨论、不举例、不说"希望对你有帮助"等结尾语\n4. 数学符号用 Unicode 或 LaTeX',
-        },
-        { role: 'user', content: userContent },
-      ], {
+      const reply: string = await client.call(this.buildReplyMessages(memoryContext, userContent), {
         maxTokens: 2048,
         timeoutMs: 120000,
       });
-      this.cbs.addAiMsg(reply);
-      this.persistTextNote(userContent);
+      await this.addAiMessage(sessionId, reply);
+      await this.safeSummarizeIfNeeded(sessionId);
     } catch (e) {
-      const errMsg: string = (e as Error).message ?? String(e);
+      const errMsg: string = AgentChatService.errorMessage(e);
       if (errMsg.indexOf('NO_API_KEY') >= 0) {
-        this.cbs.addAiMsg('⚠️ 请先在「我的 → 设置」中配置 API Key');
+        await this.addAiMessage(sessionId, '⚠️ 请先在「我的 → 设置」中配置 API Key');
       } else if (errMsg.indexOf('NETWORK_ERROR') >= 0) {
-        this.cbs.addAiMsg('⚠️ 网络连接失败,请检查网络后重试');
+        await this.addAiMessage(sessionId, '⚠️ 网络连接失败，请检查网络后重试');
       } else {
-        this.cbs.addAiMsg('⚠️ AI 回复异常: ' + errMsg.substring(0, 100));
+        await this.addAiMessage(sessionId, '⚠️ AI 回复异常: ' + errMsg.substring(0, 100));
       }
     } finally {
       this.cbs.setBusy(false);
     }
   }
 
-  // 文本持久化 (fire-and-forget, 不阻塞 UI)
-  private persistTextNote(content: string): void {
-    try {
-      new AiService(this.cbs.getContext()).captureText(content).then((_unit: KnowledgeUnit): void => {
-        console.info('[AgentChatService] text note persisted, id=' + _unit.id);
-        this.cbs.bumpNotesVersion();
-      }).catch((e: Error): void => {
-        console.warn('[AgentChatService] text note persist failed: ' + e.message);
-      });
-    } catch (e) {
-      console.warn('[AgentChatService] persistTextNote init failed: ' + (e as Error).message);
+  private async generateNoteFromConversation(userInstruction: string): Promise<void> {
+    const sessionId: string = this.currentSessionId();
+    const intent: TextIntent = await this.classifyTextIntent(userInstruction);
+    if (intent !== 'note_generation') {
+      console.warn('[AgentChatService] blocked note generation without explicit intent');
+      return;
     }
+    const memoryContext: string = await this.safeGetContextForNoteGeneration(sessionId);
+    await this.safeSaveUserMessage(sessionId, userInstruction);
+    this.cbs.setBusy(true);
+    try {
+      const configured: boolean = await LlmConfig.getInstance().isConfigured();
+      if (!configured) {
+        await this.addAiMessage(sessionId, '⚠️ 请先在「我的 → 设置」中配置 API Key');
+        return;
+      }
+
+      let conversation: string = memoryContext.trim();
+      if (conversation.length === 0) {
+        conversation = this.cbs.getConversationText(true).trim();
+      }
+      if (conversation.length === 0) {
+        await this.addAiMessage(sessionId, '当前会话还没有可整理的内容');
+        return;
+      }
+
+      const summary: string = await this.summarizeConversation(conversation, userInstruction);
+      const unit: KnowledgeUnit = await new AiService(this.cbs.getContext()).captureText(summary);
+      this.cbs.bumpNotesVersion();
+      await this.safeMarkPendingMaterialUsed(sessionId);
+      await this.addAiMessage(sessionId, '已生成笔记：' + unit.title);
+      await this.safeSummarizeIfNeeded(sessionId);
+    } catch (e) {
+      const errMsg: string = AgentChatService.errorMessage(e);
+      await this.addAiMessage(sessionId, '生成笔记失败: ' + errMsg.substring(0, 120));
+    } finally {
+      this.cbs.setBusy(false);
+    }
+  }
+
+  private async summarizeConversation(conversation: string, userInstruction: string): Promise<string> {
+    const clipped: string = this.clip(conversation, 32000);
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: '你负责把 MathMind 当前对话整理成 KnowledgeModel.structure 可直接使用的“完整笔记原材料”，不是短摘要。请用稳定、结构化的中文输出，包含：主题/标题候选、原题或原始材料、关键公式、推导/步骤、结论、易错点、用户补充、上下文来源。不要丢数学细节，不要只给一句总结，不要输出 markdown 代码块，不要编造对话中没有的信息；无法确定的内容标注为“未提供”或省略。',
+      },
+      {
+        role: 'user',
+        content: '用户生成指令:\n' + userInstruction + '\n\n当前记忆上下文:\n' + clipped,
+      },
+    ];
+    const client: LlmClient = new LlmClient();
+    return await client.call(messages, {
+      maxTokens: 8192,
+      timeoutMs: 120000,
+    });
+  }
+
+  private buildReplyMessages(memoryContext: string, userContent: string): ChatMessage[] {
+    let systemPrompt: string = '你是 MathMind AI 数学助手。回答要求：\n'
+      + '1. 50字以内直接给答案\n'
+      + '2. 涉及计算时给步骤但每步≤15字\n'
+      + '3. 不展开讨论、不举例、不说“希望对你有帮助”等结尾语\n'
+      + '4. 数学符号用 Unicode 或 LaTeX';
+    const context: string = memoryContext.trim();
+    if (context.length > 0) {
+      systemPrompt += '\n\n可参考的会话记忆如下，只在相关时使用，不要主动生成笔记：\n' + this.clip(context, 12000);
+    }
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      {
+        role: 'user',
+        content: userContent,
+      },
+    ];
+    return messages;
+  }
+
+  private async classifyTextIntent(userContent: string): Promise<TextIntent> {
+    const normalized: string = userContent.trim();
+    if (normalized.length === 0) { return 'chat'; }
+    if (this.hasNoteGenerationDenyIntent(normalized)) { return 'chat'; }
+    if (this.hasExplicitNoteGenerationIntent(normalized)) { return 'note_generation'; }
+    if (!this.shouldUseRemoteIntentClassifier(normalized)) { return 'chat'; }
+
+    try {
+      const configured: boolean = await LlmConfig.getInstance().isConfigured();
+      if (!configured) { return 'chat'; }
+      const messages: ChatMessage[] = this.buildIntentMessages(normalized);
+      const raw: string = await new LlmClient().call(messages, {
+        maxTokens: 80,
+        timeoutMs: 30000,
+      });
+      return this.parseTextIntent(raw);
+    } catch (e) {
+      console.warn('[AgentChatService] text intent classify failed: ' + AgentChatService.errorMessage(e));
+      return 'chat';
+    }
+  }
+
+  private buildIntentMessages(userContent: string): ChatMessage[] {
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: 'Classify the MathMind user message intent. Return strict JSON only: {"intent":"note_generation"} or {"intent":"chat"}. note_generation means the user wants current/previous/provided content turned into saveable learning material, such as a note, knowledge point, notebook entry, retained problem record, or material to store for later review. This includes natural requests like remembering/saving the above problem as study material even if the wording is informal. Return chat for normal Q&A, explanation, calculation, practice generation, casual chat, or temporary summarization/organization where the user only wants an answer and does not imply saving or forming reusable learning material. If uncertain, return chat.',
+      },
+      {
+        role: 'user',
+        content: userContent,
+      },
+    ];
+    return messages;
+  }
+
+  private parseTextIntent(raw: string): TextIntent {
+    const jsonText: string = this.extractJsonObject(raw);
+    if (jsonText.length === 0) { return 'chat'; }
+    try {
+      const parsed: Record<string, Object> = JSON.parse(jsonText) as Record<string, Object>;
+      const value: Object | undefined = parsed['intent'];
+      if (typeof value === 'string' && value === 'note_generation') {
+        return 'note_generation';
+      }
+    } catch (e) {
+      console.warn('[AgentChatService] parse intent json failed: ' + AgentChatService.errorMessage(e));
+    }
+    return 'chat';
+  }
+
+  private extractJsonObject(raw: string): string {
+    const trimmed: string = raw.trim();
+    const codeMatch: RegExpMatchArray | null = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    let source: string = trimmed;
+    if (codeMatch !== null && codeMatch.length >= 2) {
+      source = codeMatch[1].trim();
+    }
+    const braceMatch: RegExpMatchArray | null = source.match(/\{[\s\S]*\}/);
+    if (braceMatch !== null && braceMatch.length > 0) {
+      return braceMatch[0];
+    }
+    return '';
+  }
+
+  private shouldUseRemoteIntentClassifier(text: string): boolean {
+    const intentWords: string[] = [
+      '生成',
+      '创建',
+      '新建',
+      '整理',
+      '保存',
+      '存',
+      '记',
+      '总结',
+      '归纳',
+      '提炼',
+      '收进',
+      '加入',
+      '转成',
+      '转为',
+      '做成',
+      '笔记',
+      '知识点',
+      '上面',
+      '上文',
+      '刚才',
+      '这段',
+      '这些',
+      '内容',
+    ];
+    return this.includesAny(text, intentWords);
+  }
+
+  private hasNoteGenerationDenyIntent(text: string): boolean {
+    const denyPhrases: string[] = [
+      '不要生成',
+      '别生成',
+      '无需生成',
+      '不用生成',
+      '不要创建',
+      '别创建',
+      '不要保存',
+      '别保存',
+      '不要记',
+      '别记',
+      '不用记',
+      '不要笔记',
+      '不用笔记',
+      '无需笔记',
+    ];
+    return this.includesAny(text, denyPhrases);
+  }
+
+  private hasExplicitNoteGenerationIntent(text: string): boolean {
+    const phrases: string[] = [
+      '生成笔记',
+      '创建笔记',
+      '新建笔记',
+      '整理成笔记',
+      '整理为笔记',
+      '保存为笔记',
+      '保存成笔记',
+      '总结成笔记',
+      '总结为笔记',
+      '归纳成笔记',
+      '归纳为笔记',
+      '做成笔记',
+      '转成笔记',
+      '转为笔记',
+      '记一下',
+      '记下',
+      '记下来',
+      '帮我记下来',
+      '这个记下来',
+      '把这个记下来',
+      '把这题记下来',
+      '把上面记下来',
+      '把刚才记下来',
+      '收进笔记',
+      '加入笔记',
+      '存到笔记',
+      '存进笔记',
+      '留作笔记',
+      '保存这个知识点',
+      '把这个知识点存起来',
+      '这个知识点存起来',
+      '知识点存起来',
+      '生成知识点',
+      '整理成知识点',
+      '整理为知识点',
+      '总结成知识点',
+      '总结为知识点',
+      '提炼成知识点',
+      '提炼为知识点',
+    ];
+    if (this.includesAny(text, phrases)) { return true; }
+
+    const createActions: string[] = ['生成', '创建', '新建'];
+    const transformActions: string[] = ['整理成', '整理为', '保存为', '保存成', '总结成', '总结为', '归纳成', '归纳为', '做成', '转成', '转为', '提炼成', '提炼为', '收进', '加入', '存到', '存进', '留作'];
+    const noteTargets: string[] = ['笔记', '知识点'];
+    const rememberActions: string[] = ['记', '保存', '存'];
+    const currentTargets: string[] = ['这个', '这题', '上面', '上文', '刚才', '这段', '这些', '知识点'];
+    return this.hasActionNearTarget(text, createActions, noteTargets, 4)
+      || this.hasActionNearTarget(text, transformActions, noteTargets, 6)
+      || this.hasActionNearTarget(text, currentTargets, rememberActions, 8);
+  }
+
+  private formatAnalyzeReply(result: ClassificationResult): string {
+    const ocrText: string = (result.ocrText ?? '').trim();
+    const body: string = ocrText.length > 0 ? this.clip(ocrText, 1600) : '未识别到可展示文本';
+    const chapter: string = result.chapter !== undefined && result.chapter.length > 0 ? result.chapter : '未识别';
+    return '已识别内容，暂不生成笔记。\n\n'
+      + '类型：' + result.type + '\n'
+      + '学科：' + result.subject + '\n'
+      + '章节：' + chapter + '\n'
+      + '置信度：' + result.confidence.toString() + '\n\n'
+      + '识别内容：\n' + body + '\n\n'
+      + '需要保存时，请发送“生成笔记”或“整理成笔记”。';
+  }
+
+  private includesAny(text: string, phrases: string[]): boolean {
+    for (const phrase of phrases) {
+      if (text.indexOf(phrase) >= 0) { return true; }
+    }
+    return false;
+  }
+
+  private hasActionNearTarget(text: string, actions: string[], targets: string[], maxGap: number): boolean {
+    for (const action of actions) {
+      let actionIndex: number = text.indexOf(action);
+      while (actionIndex >= 0) {
+        const afterAction: number = actionIndex + action.length;
+        for (const target of targets) {
+          const targetIndex: number = text.indexOf(target, afterAction);
+          if (targetIndex >= 0 && targetIndex - afterAction <= maxGap) {
+            return true;
+          }
+        }
+        actionIndex = text.indexOf(action, afterAction);
+      }
+    }
+    return false;
+  }
+
+  private clip(text: string, limit: number): string {
+    if (text.length <= limit) { return text; }
+    return text.substring(0, limit) + '\n...';
+  }
+
+  private currentSessionId(): string {
+    const sessionId: string = this.cbs.getSessionId();
+    return sessionId.length > 0 ? sessionId : 's1';
+  }
+
+  private getMemory(): AgentMemoryService {
+    if (this.memory === null) {
+      this.memory = new AgentMemoryService(this.cbs.getContext());
+    }
+    return this.memory;
+  }
+
+  private async addAiMessage(sessionId: string, content: string): Promise<void> {
+    this.cbs.addAiMsg(content);
+    await this.safeSaveAssistantMessage(sessionId, content);
+  }
+
+  private async safeSaveUserMessage(sessionId: string, content: string): Promise<void> {
+    try {
+      await this.getMemory().saveMessage(sessionId, 'user', content);
+    } catch (e) {
+      console.warn('[AgentChatService] save user memory failed: ' + AgentChatService.errorMessage(e));
+    }
+  }
+
+  private async safeSaveAssistantMessage(sessionId: string, content: string): Promise<void> {
+    try {
+      await this.getMemory().saveMessage(sessionId, 'assistant', content);
+    } catch (e) {
+      console.warn('[AgentChatService] save assistant memory failed: ' + AgentChatService.errorMessage(e));
+    }
+  }
+
+  private async safeSaveOcrResult(
+    sessionId: string,
+    imageUri: string,
+    userText: string,
+    result: ClassificationResult,
+  ): Promise<void> {
+    try {
+      await this.getMemory().saveOcrResult(sessionId, imageUri, userText, result);
+    } catch (e) {
+      console.warn('[AgentChatService] save ocr memory failed: ' + AgentChatService.errorMessage(e));
+    }
+  }
+
+  private async safeGetContextForReply(sessionId: string): Promise<string> {
+    try {
+      return await this.getMemory().getContextForReply(sessionId);
+    } catch (e) {
+      console.warn('[AgentChatService] load reply memory failed: ' + AgentChatService.errorMessage(e));
+      return '';
+    }
+  }
+
+  private async safeGetContextForNoteGeneration(sessionId: string): Promise<string> {
+    try {
+      return await this.getMemory().getContextForNoteGeneration(sessionId);
+    } catch (e) {
+      console.warn('[AgentChatService] load note memory failed: ' + AgentChatService.errorMessage(e));
+      return '';
+    }
+  }
+
+  private async safeMarkPendingMaterialUsed(sessionId: string): Promise<void> {
+    try {
+      await this.getMemory().markPendingMaterialUsed(sessionId);
+    } catch (e) {
+      console.warn('[AgentChatService] mark pending memory failed: ' + AgentChatService.errorMessage(e));
+    }
+  }
+
+  private async safeSummarizeIfNeeded(sessionId: string): Promise<void> {
+    try {
+      await this.getMemory().summarizeSessionIfNeeded(sessionId);
+    } catch (e) {
+      console.warn('[AgentChatService] summarize memory failed: ' + AgentChatService.errorMessage(e));
+    }
+  }
+
+  private static errorMessage(e: Object): string {
+    const message: string | undefined = (e as Error).message;
+    if (message !== undefined && message.length > 0) {
+      return message;
+    }
+    return JSON.stringify(e);
   }
 }

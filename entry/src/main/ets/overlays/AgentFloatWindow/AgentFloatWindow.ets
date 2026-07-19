@@ -72,6 +72,8 @@ export struct AgentFloatWindow {
       bumpNotesVersion: (): void => { const v: number = AppStorage.get<number>('notesVersion') ?? 0; AppStorage.setOrCreate('notesVersion', v + 1); },
       setBusy: (v: boolean): void => { this.busy = v; },
       getContext: (): common.UIAbilityContext => getContext(this) as common.UIAbilityContext,
+      getConversationText: (excludeLatestUser: boolean): string => this.buildConversationText(excludeLatestUser),
+      getSessionId: (): string => this.activeSid,
     };
     this.service = new AgentChatService(cbs);
     const ss: ChatSession[] = await this.sm.init(getContext(this));
@@ -82,6 +84,22 @@ export struct AgentFloatWindow {
   private sync(): void {
     const s: ChatSession | undefined = this.sessions.find((item: ChatSession): boolean => item.id === this.activeSid);
     if (s !== undefined) { s.messages = this.messages; }
+  }
+  private buildConversationText(excludeLatestUser: boolean): string {
+    const parts: string[] = [];
+    const end: number = excludeLatestUser
+      && this.messages.length > 0
+      && this.messages[this.messages.length - 1].role === 'user'
+      ? this.messages.length - 1
+      : this.messages.length;
+    for (let i: number = 0; i < end; i++) {
+      const msg: ChatMsg = this.messages[i];
+      const role: string = msg.role === 'user' ? '用户' : 'AI';
+      if (msg.content.trim().length > 0) {
+        parts.push(role + ': ' + msg.content.trim());
+      }
+    }
+    return parts.join('\n\n');
   }
   private switchSession(sid: string): void { this.sync(); const s = this.sessions.find((item: ChatSession): boolean => item.id === sid); if (s !== undefined) { this.activeSid = sid; this.messages = s.messages; } }
   private newSession(): void { this.sync(); const s: ChatSession = { id: sid(), name: '会话 ' + (this.sessions.length + 1).toString(), messages: [] }; this.sessions = [...this.sessions, s]; this.activeSid = s.id; this.messages = []; this.sm.save(this.sessions); }

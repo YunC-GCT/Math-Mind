@@ -43,6 +43,7 @@ import {
   KnowledgeUnit,
   DispatchRequest,
   DispatchResult,
+  DispatchAnalysisResult,
   ClassificationResult,
   ReviewStatus,
   DifficultyLevel,
@@ -53,6 +54,39 @@ const log = new Logger('Dispatcher');
 // ==================== 主类 ====================
 
 export class Dispatcher {
+  // 只做 OCR + 分类，不调用 KnowledgeModel，不生成笔记
+  async analyze(req: DispatchRequest, context?: Context): Promise<DispatchAnalysisResult> {
+    const t0: number = Date.now();
+    log.info('analyze enter, source=' + req.source
+      + ', payload.kind=' + req.payload.kind);
+
+    try {
+      const classifier = new TypeClassifier();
+      const classification: ClassificationResult = await classifier.classify(req.payload, context);
+      let recognizedText: string = classification.ocrText ?? '';
+      if (recognizedText.length === 0 && req.payload.kind === 'text') {
+        recognizedText = req.payload.text;
+      }
+
+      return {
+        success: true,
+        route: 'D1',
+        classification: classification,
+        recognizedText: recognizedText,
+        durationMs: Date.now() - t0,
+      };
+    } catch (e) {
+      const errMsg: string = (e as Error).message ?? String(e);
+      log.error('analyze failed: ' + errMsg);
+      return {
+        success: false,
+        route: 'D1',
+        errorMessage: '识别失败: ' + errMsg,
+        durationMs: Date.now() - t0,
+      };
+    }
+  }
+
   // 主入口(精简拍照链 D1)
   // context: 由 AiService 显式传入, 避免 agent 层调用 getContext()
   async dispatch(req: DispatchRequest, context?: Context): Promise<DispatchResult> {
