@@ -58,7 +58,7 @@ export interface KnowledgeUnit {
   id: string; // 唯一标识(UUID)
   title: string; // 标题
   content: string; // 完整内容
-  summary: string; // 摘要(<= 100 字)
+  summary: string; // 摘要，详情页可展示较完整的结构化概览
   tags: string[]; // 标签
   difficulty: DifficultyLevel; // 难度
   source: string; // 来源(教材/网页/笔记路径)

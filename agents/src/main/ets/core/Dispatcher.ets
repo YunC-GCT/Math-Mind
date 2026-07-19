@@ -4,15 +4,15 @@
 // 状态: 实现完成(2026-07-14) · 升级 DispatchPayload signature
 //
 // 职责:
-//   接收 DispatchRequest → 调 TypeClassifier → 调 KnowledgeModel → 返回 KnowledgeUnit
+//   接收 DispatchRequest → 调 TypeClassifier 提取文本 → 调 KnowledgeModel → 返回 KnowledgeUnit
 //
 // 通信模式(按 AGENT_COMMUNICATION.md):
 //   - 同进程 import 调函数,无 HTTP / 无 MCP / 无 JWT
 //   - 调用方: AiService.capture(imageUri, userText?) 内部 new Dispatcher().dispatch(req)
 //
 // 精简拍照链(D1 · 7 文件中的 1 个):
-//   1) new TypeClassifier().classify(req.payload) → ClassificationResult(含 ocrText)
-//   2) new KnowledgeModel().structure(ocrText, type, subject, chapter) → KnowledgeUnit
+//   1) new TypeClassifier().classify(req.payload) → ClassificationResult(含预处理后的 ocrText)
+//   2) new KnowledgeModel().structure(ocrText) → KnowledgeUnit
 //   3) 失败 catch → errorMessage(不抛异常,UI 用 Toast 提示)
 //
 // 不做的(按 DISPATCHER_TONIGHT.md 边界):
@@ -36,13 +36,14 @@
 //   });
 //   // result.success === true, result.data 是 KnowledgeUnit
 
-import { TypeClassifier } from '../agents/TypeClassifier';
+import { TypeClassifier, TypeClassifierTextResult } from '../agents/TypeClassifier';
 import { KnowledgeModel } from '../agents/KnowledgeModel';
 import {
   Logger,
   KnowledgeUnit,
   DispatchRequest,
   DispatchResult,
+  DispatchAnalysisResult,
   ClassificationResult,
   ReviewStatus,
   DifficultyLevel,
@@ -53,6 +54,39 @@ const log = new Logger('Dispatcher');
 // ==================== 主类 ====================
 
 export class Dispatcher {
+  // 只做 OCR + 分类，不调用 KnowledgeModel，不生成笔记
+  async analyze(req: DispatchRequest, context?: Context): Promise<DispatchAnalysisResult> {
+    const t0: number = Date.now();
+    log.info('analyze enter, source=' + req.source
+      + ', payload.kind=' + req.payload.kind);
+
+    try {
+      const classifier = new TypeClassifier();
+      const classification: ClassificationResult = await classifier.classify(req.payload, context);
+      let recognizedText: string = classification.ocrText ?? '';
+      if (recognizedText.length === 0 && req.payload.kind === 'text') {
+        recognizedText = req.payload.text;
+      }
+
+      return {
+        success: true,
+        route: 'D1',
+        classification: classification,
+        recognizedText: recognizedText,
+        durationMs: Date.now() - t0,
+      };
+    } catch (e) {
+      const errMsg: string = (e as Error).message ?? String(e);
+      log.error('analyze failed: ' + errMsg);
+      return {
+        success: false,
+        route: 'D1',
+        errorMessage: '识别失败: ' + errMsg,
+        durationMs: Date.now() - t0,
+      };
+    }
+  }
+
   // 主入口(精简拍照链 D1)
   // context: 由 AiService 显式传入, 避免 agent 层调用 getContext()
   async dispatch(req: DispatchRequest, context?: Context): Promise<DispatchResult> {
@@ -61,18 +95,16 @@ export class Dispatcher {
       + ', payload.kind=' + req.payload.kind);
 
     try {
-      // Step 1: 分类(图片走 OCR+分类,文本直接分类,TypeClassifier 内部判断)
+      // Step 1: OCR/文本提取。类型识别已下沉到 KnowledgeModel，这里只暴露识别内容。
       const classifier = new TypeClassifier();
-      const classification: ClassificationResult = await classifier.classify(req.payload, context);
-      log.info('classification done, type=' + classification.type
-        + ', subject=' + classification.subject
-        + ', confidence=' + classification.confidence.toString());
+      const recognized: TypeClassifierTextResult = await classifier.recognizeText(req.payload, context);
+      log.info('recognized text prepared, length=' + recognized.text.length.toString());
 
-      // Step 2: 拿 ocrText(优先用 classification 返的,fallback 到 payload.text)
+      // Step 2: 拿识别文本；文本输入如果被预处理成空，fallback 到 payload.text。
       // P0 修复 v2: OCR 空时不再把中文占位符传给 KnowledgeModel
       //   改为在 Dispatcher 层直接构造 fallback KnowledgeUnit，
       //   不调 AI——避免 LLM 把错误提示当数学题处理。
-      let ocrText: string = classification.ocrText ?? '';
+      let ocrText: string = recognized.text;
       if (ocrText === '') {
         if (req.payload.kind === 'text') {
           ocrText = req.payload.text;
@@ -81,9 +113,9 @@ export class Dispatcher {
           // image / file 拿到空 ocrText — 跳过 AI，直接返回 fallback 笔记框架
           log.warn('OCR 返回空, 跳过 KnowledgeModel, 构造 fallback KnowledgeUnit, payload.kind=' + req.payload.kind);
           const fallbackUnit: KnowledgeUnit = this.buildFallbackUnit(
-            classification.type,
-            classification.subject,
-            classification.chapter ?? '',
+            '概念',
+            '',
+            '',
           );
           return {
             success: true,
@@ -96,12 +128,7 @@ export class Dispatcher {
 
       // Step 3: 建模 + 真值检验(由 KnowledgeModel 内部完成)
       const model = new KnowledgeModel();
-      const unit: KnowledgeUnit = await model.structure(
-        ocrText,
-        classification.type,
-        classification.subject,
-        classification.chapter ?? '',
-      );
+      const unit: KnowledgeUnit = await model.structure(ocrText);
       log.info('structure done, note.id=' + unit.id);
 
       // Step 4: 返回成功

@@ -72,9 +72,8 @@ export class KnowledgeModel {
   /**
    * 主入口：AI 自分词 + 结构化 + 真值检验，返回主线 KnowledgeUnit。
    *
-   * P0 修复: type/subject 不再被忽略，作为 hint 注入到 AI prompt。
-   * TypeClassifier 已做过 3 类分类 (概念/计算/证明) + 学科判定 (高代/数分/几何)，
-   * KnowledgeModel 不该再做完全独立的 5 类自分词 — 把分类作为 hint 给 AI 参考。
+   * TypeClassifier 现在只负责 OCR/文本提取。
+   * type/subject 仍作为可选 hint 保留给兼容调用方；未传入时由 KnowledgeModel 自行判断。
    */
   async structure(
     ocrText: string,
@@ -165,8 +164,9 @@ export class KnowledgeModel {
     if (type !== undefined && type.length > 0) { tags.push(type); }
     if (subject !== undefined && subject.length > 0) { tags.push(subject); }
     if (chapter.length > 0) { tags.push(chapter); }
-    const summary: string = ocrText.length > 100
-      ? ocrText.substring(0, 100).replace(/[#*]/g, '').trim()
+    const fallbackSummaryLimit: number = 500;
+    const summary: string = ocrText.length > fallbackSummaryLimit
+      ? ocrText.substring(0, fallbackSummaryLimit).replace(/[#*]/g, '').trim()
       : ocrText.replace(/[#*]/g, '').trim();
 
     console.info('[KnowledgeModel] fallback note created, title=' + title);
@@ -194,12 +194,13 @@ export class KnowledgeModel {
   }
 
   private summaryFromFields(ext: KnowledgeUnitExt): string {
+    const summaryLimit: number = 500;
     let summary: string = '';
     for (let i: number = 0; i < ext.fields.length; i++) {
       if (ext.fields[i].value.length > 0) {
         summary = summary + ext.fields[i].value + '\n';
       }
-      if (summary.length >= 100) {
+      if (summary.length >= summaryLimit) {
         break;
       }
     }
@@ -207,7 +208,7 @@ export class KnowledgeModel {
       summary = ext.content;
     }
     const cleaned: string = summary.replace(/[#*]/g, '').trim();
-    return cleaned.length > 100 ? cleaned.substring(0, 100) : cleaned;
+    return cleaned.length > summaryLimit ? cleaned.substring(0, summaryLimit).trim() : cleaned;
   }
 
   private toDifficultyLevel(value: number): DifficultyLevel {
@@ -221,7 +222,7 @@ export class KnowledgeModel {
     return 'KB-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
   }
   private async callAi(ocrText: string, typeHint?: string, subjectHint?: string): Promise<AiRawResponse> {
-    // P0 修复: 把 TypeClassifier 的分类结果作为 hint 注入 prompt
+    // 可选分类 hint：当前主链不再传入，保留给兼容调用方。
     const hint: string = (typeHint !== undefined && typeHint.length > 0) || (subjectHint !== undefined && subjectHint.length > 0)
       ? '\n\n## 分类 hint (来自 TypeClassifier 粗分类, AI 自行决定是否采纳)\n' +
         '- 粗分类: ' + (typeHint ?? '未知') + '\n' +

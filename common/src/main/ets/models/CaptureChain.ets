@@ -94,6 +94,16 @@ export interface DispatchResult {
   durationMs: number;
 }
 
+// 只识别/分类，不生成 KnowledgeUnit，不入库
+export interface DispatchAnalysisResult {
+  success: boolean;
+  route: 'D1';
+  classification?: ClassificationResult;
+  recognizedText?: string;
+  errorMessage?: string;
+  durationMs: number;
+}
+
 // ==================== 通用 API 响应包装 ====================
 // ApiClient.request() 的返回类型
 // 后端真实返回结构:{code, message, data, success}

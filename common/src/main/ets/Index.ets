@@ -65,6 +65,7 @@ export {
   TruthCheckResult,
   DispatchRequest,
   DispatchResult,
+  DispatchAnalysisResult,
   ApiResponse,
   API_CODE,
   CLASSIFY_CONFIDENCE_THRESHOLD,

@@ -11,6 +11,8 @@ const STORE_CONFIG: relationalStore.StoreConfig = {
   securityLevel: relationalStore.SecurityLevel.S1,
 };
 
+const DB_SCHEMA_VERSION: number = 2;
+
 const SQL_CREATE_KNOWLEDGE: string = `
 CREATE TABLE IF NOT EXISTS knowledge_unit (
   id TEXT PRIMARY KEY,
@@ -45,12 +47,39 @@ CREATE TABLE IF NOT EXISTS study_plan (
   due_date INTEGER NOT NULL DEFAULT 0
 )`;
 
+const SQL_CREATE_CHAT_MESSAGE: string = `
+CREATE TABLE IF NOT EXISTS chat_message (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT "",
+  created_at INTEGER NOT NULL
+)`;
+
+const SQL_CREATE_AGENT_MEMORY: string = `
+CREATE TABLE IF NOT EXISTS agent_memory (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT "",
+  source TEXT NOT NULL DEFAULT "",
+  used INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+)`;
+
 const SQL_INDEX_KNOWLEDGE_CREATED: string =
   "CREATE INDEX IF NOT EXISTS idx_knowledge_unit_created_at ON knowledge_unit(created_at)";
 const SQL_INDEX_KNOWLEDGE_REVIEW: string =
   "CREATE INDEX IF NOT EXISTS idx_knowledge_unit_review_status ON knowledge_unit(review_status)";
 const SQL_INDEX_STUDY_PLAN_DONE: string =
   "CREATE INDEX IF NOT EXISTS idx_study_plan_is_done ON study_plan(is_done)";
+const SQL_INDEX_CHAT_MESSAGE_SESSION_CREATED: string =
+  "CREATE INDEX IF NOT EXISTS idx_chat_message_session_created ON chat_message(session_id, created_at)";
+const SQL_INDEX_AGENT_MEMORY_PENDING: string =
+  "CREATE INDEX IF NOT EXISTS idx_agent_memory_pending ON agent_memory(session_id, type, used, created_at)";
+const SQL_INDEX_AGENT_MEMORY_SUMMARY: string =
+  "CREATE INDEX IF NOT EXISTS idx_agent_memory_summary ON agent_memory(session_id, type, created_at)";
 
 export class DatabaseHelper {
   private static store: relationalStore.RdbStore | null = null;
@@ -65,18 +94,11 @@ export class DatabaseHelper {
           reject(new Error("RDB init failed: " + err.message));
           return;
         }
-        // 串行建表：先 knowledge_unit，再 study_plan
-        store.executeSql(SQL_CREATE_KNOWLEDGE, [], () => {
-          store.executeSql(SQL_CREATE_STUDY_PLAN, [], () => {
-            store.executeSql(SQL_INDEX_KNOWLEDGE_CREATED, [], () => {
-              store.executeSql(SQL_INDEX_KNOWLEDGE_REVIEW, [], () => {
-                store.executeSql(SQL_INDEX_STUDY_PLAN_DONE, [], () => {
-                  DatabaseHelper.store = store;
-                  resolve(store);
-                });
-              });
-            });
-          });
+        DatabaseHelper.ensureSchema(store).then(() => {
+          DatabaseHelper.store = store;
+          resolve(store);
+        }).catch((schemaErr: Error) => {
+          reject(schemaErr);
         });
       });
     });
@@ -84,5 +106,40 @@ export class DatabaseHelper {
 
   static getStore(): relationalStore.RdbStore | null {
     return DatabaseHelper.store;
+  }
+
+  private static async ensureSchema(store: relationalStore.RdbStore): Promise<void> {
+    const statements: string[] = [
+      SQL_CREATE_KNOWLEDGE,
+      SQL_CREATE_STUDY_PLAN,
+      SQL_CREATE_CHAT_MESSAGE,
+      SQL_CREATE_AGENT_MEMORY,
+      SQL_INDEX_KNOWLEDGE_CREATED,
+      SQL_INDEX_KNOWLEDGE_REVIEW,
+      SQL_INDEX_STUDY_PLAN_DONE,
+      SQL_INDEX_CHAT_MESSAGE_SESSION_CREATED,
+      SQL_INDEX_AGENT_MEMORY_PENDING,
+      SQL_INDEX_AGENT_MEMORY_SUMMARY,
+    ];
+
+    for (const sql of statements) {
+      await DatabaseHelper.executeSql(store, sql);
+    }
+
+    if (store.version < DB_SCHEMA_VERSION) {
+      store.version = DB_SCHEMA_VERSION;
+    }
+  }
+
+  private static async executeSql(store: relationalStore.RdbStore, sql: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      store.executeSql(sql, [], (err: BusinessError) => {
+        if (err) {
+          reject(new Error("DatabaseHelper.executeSql failed: " + err.message));
+          return;
+        }
+        resolve();
+      });
+    });
   }
 }
