@@ -1,7 +1,7 @@
 # MathMind · 数学学习助手
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
-> 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z(由 Mavis 代笔)
+> 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z
 > 最近更新: 2026-07-19
 
 ---
