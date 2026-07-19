@@ -1,6 +1,8 @@
 export type ChatRole = 'system' | 'user' | 'assistant';
 
-export type AgentMemoryType = 'pending_note' | 'summary' | 'ocr_result';
+export type AgentMemoryType = 'pending_note' | 'summary' | 'ocr_result' | 'profile';
+
+export type LearnerLevel = 'beginner' | 'novice' | 'advanced';
 
 export interface ChatMessageRecord {
   id: string;
@@ -18,6 +20,15 @@ export interface AgentMemoryRecord {
   source: string;
   used: number;
   createdAt: number;
+  updatedAt: number;
+}
+
+export interface LearnerProfile {
+  globalLevel: LearnerLevel;
+  sessionLevel: LearnerLevel;
+  effectiveLevel: LearnerLevel;
+  confidence: number;
+  evidence: string;
   updatedAt: number;
 }
 

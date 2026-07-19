@@ -46,6 +46,7 @@ export class AgentChatService {
 
     const sessionId: string = this.currentSessionId();
     const memoryContext: string = await this.safeGetContextForReply(sessionId);
+    const learnerProfileContext: string = await this.safeGetLearnerProfileContext(sessionId);
     await this.safeSaveUserMessage(sessionId, userContent);
     this.cbs.setBusy(true);
     try {
@@ -55,11 +56,12 @@ export class AgentChatService {
         return;
       }
       const client: LlmClient = new LlmClient();
-      const reply: string = await client.call(this.buildReplyMessages(memoryContext, userContent), {
-        maxTokens: 2048,
+      const reply: string = await client.call(this.buildReplyMessages(memoryContext, learnerProfileContext, userContent), {
+        maxTokens: 4096,
         timeoutMs: 120000,
       });
       await this.addAiMessage(sessionId, reply);
+      await this.safeUpdateLearnerProfileIfNeeded(sessionId);
       await this.safeSummarizeIfNeeded(sessionId);
     } catch (e) {
       const errMsg: string = AgentChatService.errorMessage(e);
@@ -134,12 +136,22 @@ export class AgentChatService {
     });
   }
 
-  private buildReplyMessages(memoryContext: string, userContent: string): ChatMessage[] {
+  private buildReplyMessages(memoryContext: string, learnerProfileContext: string, userContent: string): ChatMessage[] {
     let systemPrompt: string = '你是 MathMind AI 数学助手。回答要求：\n'
-      + '1. 50字以内直接给答案\n'
-      + '2. 涉及计算时给步骤但每步≤15字\n'
-      + '3. 不展开讨论、不举例、不说“希望对你有帮助”等结尾语\n'
-      + '4. 数学符号用 Unicode 或 LaTeX';
+      + '1. 先判断用户当前意图，再结合 Learner profile 的生效水平调整解释密度；不要把所有问题套成同一种结构。\n'
+      + '2. 当前用户明确要求“详细讲”“像小白一样讲”“直接给答案”“不要展开”时，本轮优先服从当前指令，而不是画像。\n'
+      + '3. beginner：少术语，多直观解释、例子和关键易错点；步骤可以更细，但仍要避免空泛寒暄。\n'
+      + '4. novice：默认给思路、必要步骤和结论；只在概念题、用户困惑或关键门槛处补直观解释，不要每题都写完整四段式。\n'
+      + '5. advanced：默认直接给公式、推导主线、结论和边界条件；压缩基础定义、直观比喻和常见误区，除非用户要求展开。\n'
+      + '6. 简单事实或短计算：先给答案，再用 1-3 个短步骤说明理由。\n'
+      + '7. 总结/整理/复盘：使用标题和要点，覆盖核心结论、原因、方法、待补充内容；不要只输出一句总结。\n'
+      + '8. 信息不足时先说明缺少什么，可以基于上文给出合理假设；无法确定时追问，不编造题目或结论。\n'
+      + '9. 不要主动生成笔记；只有系统已判定用户明确要保存/生成笔记时，才会走笔记生成链路。\n'
+      + '10. 数学符号用 Unicode 或 LaTeX，排版要便于手机端阅读。';
+    const profileContext: string = learnerProfileContext.trim();
+    if (profileContext.length > 0) {
+      systemPrompt += '\n\n用户画像如下，只用于控制解释密度和回答粒度，不要在回答中复述画像：\n' + profileContext;
+    }
     const context: string = memoryContext.trim();
     if (context.length > 0) {
       systemPrompt += '\n\n可参考的会话记忆如下，只在相关时使用，不要主动生成笔记：\n' + this.clip(context, 12000);
@@ -428,6 +440,23 @@ export class AgentChatService {
     } catch (e) {
       console.warn('[AgentChatService] load note memory failed: ' + AgentChatService.errorMessage(e));
       return '';
+    }
+  }
+
+  private async safeGetLearnerProfileContext(sessionId: string): Promise<string> {
+    try {
+      return await this.getMemory().getLearnerProfileContext(sessionId);
+    } catch (e) {
+      console.warn('[AgentChatService] load learner profile failed: ' + AgentChatService.errorMessage(e));
+      return '';
+    }
+  }
+
+  private async safeUpdateLearnerProfileIfNeeded(sessionId: string): Promise<void> {
+    try {
+      await this.getMemory().updateLearnerProfileIfNeeded(sessionId);
+    } catch (e) {
+      console.warn('[AgentChatService] update learner profile failed: ' + AgentChatService.errorMessage(e));
     }
   }
 

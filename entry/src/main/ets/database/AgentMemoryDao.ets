@@ -70,6 +70,31 @@ export class AgentMemoryDao {
     });
   }
 
+  async queryLatestProfile(sessionId: string, source: string): Promise<AgentMemoryRecord | null> {
+    const predicates: relationalStore.RdbPredicates = new relationalStore.RdbPredicates('agent_memory');
+    predicates.equalTo('session_id', sessionId);
+    predicates.equalTo('type', 'profile');
+    predicates.equalTo('source', source);
+    predicates.orderByDesc('created_at');
+
+    return new Promise<AgentMemoryRecord | null>((resolve, reject) => {
+      this.store.query(predicates, ['*'], (err: Error, rs: relationalStore.ResultSet) => {
+        if (err) {
+          reject(new Error('AgentMemoryDao.queryLatestProfile failed: ' + err.message));
+          return;
+        }
+        if (rs.goToFirstRow()) {
+          const record: AgentMemoryRecord = AgentMemoryDao.rowToRecord(rs);
+          rs.close();
+          resolve(record);
+          return;
+        }
+        rs.close();
+        resolve(null);
+      });
+    });
+  }
+
   async markPendingUsed(sessionId: string): Promise<void> {
     const bucket: relationalStore.ValuesBucket = {
       'used': 1,
@@ -135,6 +160,7 @@ export class AgentMemoryDao {
   private static parseType(value: string): AgentMemoryType {
     if (value === 'summary') { return 'summary'; }
     if (value === 'ocr_result') { return 'ocr_result'; }
+    if (value === 'profile') { return 'profile'; }
     return 'pending_note';
   }
 }
