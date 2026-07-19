@@ -24,6 +24,58 @@
  */
 import { KnowledgeUnit, NoteItem, ReviewStatus } from "common"
 
+function isTypeTag(tag: string): boolean {
+  const t: string = tag.trim()
+  return t === "概念" ||
+    t === "定理" ||
+    t === "公式" ||
+    t === "证明题" ||
+    t === "计算题" ||
+    t === "证明" ||
+    t === "计算" ||
+    t === "笔记"
+}
+
+function normalizeType(tag: string): string {
+  if (tag === "计算") { return "计算题" }
+  if (tag === "证明") { return "证明题" }
+  return tag
+}
+
+function resolveType(tags: string[]): string {
+  for (const tag of tags) {
+    const t: string = tag.trim()
+    if (isTypeTag(t)) {
+      return normalizeType(t)
+    }
+  }
+  return "笔记"
+}
+
+function resolveSubject(tags: string[]): string {
+  for (const tag of tags) {
+    const t: string = tag.trim()
+    if (isSubjectTag(t)) {
+      return t
+    }
+  }
+  return ""
+}
+
+function isSubjectTag(tag: string): boolean {
+  if (tag.length === 0 || isTypeTag(tag) || tag === "camera_capture") {
+    return false
+  }
+  return tag.indexOf("数学") >= 0 ||
+    tag.indexOf("代数") >= 0 ||
+    tag.indexOf("几何") >= 0 ||
+    tag.indexOf("分析") >= 0 ||
+    tag.indexOf("概率") >= 0 ||
+    tag.indexOf("统计") >= 0 ||
+    tag.indexOf("数论") >= 0 ||
+    tag.indexOf("拓扑") >= 0
+}
+
 function stableNumericId(id: string): number {
   let hash: number = 0
   for (const ch of id) {
@@ -51,9 +103,9 @@ function confidence(unit: KnowledgeUnit): number {
 
 export function unitToNoteItem(unit: KnowledgeUnit): NoteItem {
   const rawId: string = unit.id.length > 0 ? unit.id : unit.title + unit.createdAt.toString()
-  const subject: string = unit.tags.length > 0 ? unit.tags[0] : "数学"
-  const type: string = unit.tags.length > 1 ? unit.tags[1] : "笔记"
-  const chapter: string = unit.source.length > 0 ? unit.source : subject
+  const subject: string = resolveSubject(unit.tags)
+  const type: string = resolveType(unit.tags)
+  const chapter: string = unit.source.length > 0 && unit.source !== "camera_capture" ? unit.source : subject
   const body: string = unit.content.length > 0 ? unit.content : unit.summary
 
   console.info('[NoteItemMapper] unit.id=' + unit.id + ' title=' + unit.title

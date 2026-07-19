@@ -1,0 +1,182 @@
+// ============================================================================
+//  pages/Notes/SubjectDetailPage.ets - subject-level notes page
+// ============================================================================
+
+import { BG_DARK, NoteItem, KnowledgeUnit } from "common"
+import { promptAction, router } from "@kit.ArkUI"
+import { NoteDetailOverlay } from "../../overlays/NoteDetailOverlay/NoteDetailOverlay"
+import { NotesViewModel } from "../../viewmodels/NotesViewModel"
+import { SubjectHeader } from "./SubjectHeader"
+import { TypeTabRow } from "./TypeTabRow"
+import { SubjectNoteList } from "./SubjectNoteList"
+import { SubjectTypeEmpty } from "./SubjectTypeEmpty"
+
+@Entry
+@Component
+struct SubjectDetailPage {
+  @StorageProp("statusBarHeight") sbh: number = 0
+  @StorageProp("notesVersion") @Watch("onNotesVersionChange") notesVersion: number = 0
+  @State subject: string = ""
+  @State activeType: string = "all"
+  @State vm: NotesViewModel = new NotesViewModel()
+  @State selectedNote: NoteItem | null = null
+  @State selectedUnit: KnowledgeUnit | null = null
+
+  aboutToAppear(): void {
+    this.readParams()
+    this.reloadNotes()
+  }
+
+  onNotesVersionChange(): void {
+    this.reloadNotes()
+  }
+
+  private readParams(): void {
+    const params = router.getParams() as Record<string, Object>
+    const subjectParam: Object | undefined = params["subject"]
+    if (typeof subjectParam === "string") {
+      this.subject = subjectParam
+    }
+  }
+
+  private reloadNotes(): void {
+    this.vm.loadNotes(getContext(this)).then((ok: boolean): void => {
+      if (!ok) {
+        try { promptAction.showToast({ message: "笔记加载失败", duration: 1500 }) } catch (_e) {}
+        return
+      }
+      this.ensureSubject()
+    })
+  }
+
+  private ensureSubject(): void {
+    if (this.vm.subjectGroups.length === 0) {
+      this.subject = ""
+      return
+    }
+    if (this.hasSubject(this.subject)) {
+      return
+    }
+    this.subject = this.vm.subjectGroups[0].subject
+    this.activeType = "all"
+  }
+
+  private hasSubject(subject: string): boolean {
+    for (const group of this.vm.subjectGroups) {
+      if (group.subject === subject) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private subjectNotes(): NoteItem[] {
+    return this.vm.notesForSubject(this.subject)
+  }
+
+  private filteredNotes(): NoteItem[] {
+    const notes: NoteItem[] = this.subjectNotes()
+    if (this.activeType === "all") {
+      return notes
+    }
+    const result: NoteItem[] = []
+    for (const note of notes) {
+      if (this.typeKey(note.type) === this.activeType) {
+        result.push(note)
+      }
+    }
+    return result
+  }
+
+  private openDetail = (note: NoteItem): void => {
+    this.selectedNote = note
+    this.selectedUnit = null
+    this.vm.loadNote(getContext(this), note.rawId).then((unit: KnowledgeUnit | null): void => {
+      if (this.selectedNote !== null && this.selectedNote.id === note.id) {
+        this.selectedUnit = unit
+      }
+    })
+  }
+
+  private closeDetail = (): void => {
+    this.selectedNote = null
+    this.selectedUnit = null
+  }
+
+  private deleteNote = async (id: string): Promise<void> => {
+    const ok: boolean = await this.vm.deleteNote(getContext(this), id)
+    if (ok) {
+      this.selectedNote = null
+      this.selectedUnit = null
+      const v: number = AppStorage.get<number>("notesVersion") ?? 0
+      AppStorage.setOrCreate("notesVersion", v + 1)
+      try { promptAction.showToast({ message: "笔记已删除", duration: 1200 }) } catch (_e) {}
+    } else {
+      try { promptAction.showToast({ message: "删除失败", duration: 1500 }) } catch (_e) {}
+    }
+  }
+
+  private typeKey(type: string): string {
+    if (type === "计算") { return "计算题" }
+    if (type === "证明") { return "证明题" }
+    return type
+  }
+
+  build() {
+    Stack() {
+      Column() {
+        SubjectHeader({
+          statusBarHeight: this.sbh,
+          subject: this.subject,
+          count: this.subjectNotes().length,
+          onBack: (): void => router.back(),
+        })
+
+        TypeTabRow({
+          activeType: this.activeType,
+          notes: this.subjectNotes(),
+          onSelect: (type: string): void => { this.activeType = type },
+        })
+
+        Scroll() {
+          Column() {
+            if (this.filteredNotes().length === 0) {
+              SubjectTypeEmpty({ activeType: this.activeType })
+            } else {
+              SubjectNoteList({
+                notes: this.filteredNotes(),
+                onSelect: this.openDetail,
+              })
+            }
+            Blank().height(96)
+          }
+          .width("100%")
+          .constraintSize({ minHeight: "100%" })
+          .padding({ left: 10, right: 10, bottom: 20 })
+          .justifyContent(FlexAlign.Start)
+          .alignItems(HorizontalAlign.Start)
+        }
+        .layoutWeight(1)
+        .width("100%")
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.Spring)
+      }
+      .width("100%")
+      .height("100%")
+      .backgroundColor(BG_DARK)
+
+      if (this.selectedNote !== null) {
+        NoteDetailOverlay({
+          note: this.selectedNote,
+          unit: this.selectedUnit,
+          units: this.vm.units,
+          onClose: this.closeDetail,
+          onDelete: this.deleteNote,
+        })
+      }
+    }
+    .width("100%")
+    .height("100%")
+    .backgroundColor(BG_DARK)
+  }
+}

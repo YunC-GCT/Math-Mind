@@ -79,9 +79,15 @@ entry/src/main/ets/
 - **数据**：NoteDao + unitsToNoteItems
 - **Props**：`onGoCamera`, `onGoReview`
 
-### NotesPage · 4.5 KB
-- **子组件**：NotesHeader · NotesList (NoteCard) · NotesEmptyState · NoteDetailOverlay
-- **数据**：NoteDao + unitsToNoteItems
+### NotesPage · 两级笔记页
+- **职责**：底部 Tab 内的笔记入口。一级只展示学科块，点击进入学科详情。
+- **子组件**：NotesHeader · SubjectGrid · SubjectCard · NotesEmptyState
+- **数据**：NotesViewModel · NoteDao · unitsToNoteItems · subjectGroups
+
+### SubjectDetailPage · 子路由
+- **职责**：学科内笔记浏览。按类型 Tab 过滤原子笔记，点击行打开现有 NoteDetailOverlay。
+- **子组件**：SubjectHeader · TypeTabRow · SubjectNoteList · SubjectTypeEmpty · NoteDetailOverlay
+- **路由**：`pages/Notes/SubjectDetailPage`
 
 ### ReviewPage · 3.0 KB
 - **子组件**：StudyPlan 跳转 (router.pushUrl)

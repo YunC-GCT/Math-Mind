@@ -2,14 +2,31 @@
 //  viewmodels/NotesViewModel.ets - notes list data logic
 // ============================================================================
 
-import { DatabaseHelper, KnowledgeUnit, NoteItem } from "common"
+import { DatabaseHelper, KnowledgeUnit, NoteItem, subjectColor } from "common"
 import { NoteDao } from "../database/NoteDao"
 import { unitsToNoteItems } from "../utils/NoteItemMapper"
+
+export class SubjectGroup {
+  subject: string = ""
+  color: string = ""
+  count: number = 0
+  notes: NoteItem[] = []
+  previewTitles: string[] = []
+
+  constructor(subject: string, color: string, count: number, notes: NoteItem[], previewTitles: string[]) {
+    this.subject = subject
+    this.color = color
+    this.count = count
+    this.notes = notes
+    this.previewTitles = previewTitles
+  }
+}
 
 @Observed
 export class NotesViewModel {
   notes: NoteItem[] = []
   units: KnowledgeUnit[] = []
+  subjectGroups: SubjectGroup[] = []
 
   async loadNotes(context: Context): Promise<boolean> {
     try {
@@ -17,10 +34,12 @@ export class NotesViewModel {
       const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
       this.units = units
       this.notes = unitsToNoteItems(units)
+      this.subjectGroups = this.groupBySubject(this.notes)
       return true
     } catch (_e) {
       this.units = []
       this.notes = []
+      this.subjectGroups = []
       return false
     }
   }
@@ -45,5 +64,68 @@ export class NotesViewModel {
     } catch (_e) {
       return false
     }
+  }
+
+  groupBySubject(notes: NoteItem[]): SubjectGroup[] {
+    const subjectNames: string[] = []
+    const subjectNotes: NoteItem[][] = []
+
+    for (const note of notes) {
+      const subject: string = this.resolveSubject(note)
+      let idx: number = subjectNames.indexOf(subject)
+      if (idx < 0) {
+        subjectNames.push(subject)
+        subjectNotes.push([])
+        idx = subjectNames.length - 1
+      }
+      subjectNotes[idx].push(note)
+    }
+
+    const groups: SubjectGroup[] = []
+    for (let i: number = 0; i < subjectNames.length; i++) {
+      const sortedNotes: NoteItem[] = this.sortByDateDesc(subjectNotes[i])
+      const previewTitles: string[] = []
+      const previewCount: number = Math.min(3, sortedNotes.length)
+      for (let p: number = 0; p < previewCount; p++) {
+        previewTitles.push(sortedNotes[p].title)
+      }
+      groups.push(new SubjectGroup(
+        subjectNames[i],
+        subjectColor(subjectNames[i]),
+        sortedNotes.length,
+        sortedNotes,
+        previewTitles,
+      ))
+    }
+
+    return this.sortGroups(groups)
+  }
+
+  notesForSubject(subject: string): NoteItem[] {
+    for (const group of this.subjectGroups) {
+      if (group.subject === subject) {
+        return group.notes
+      }
+    }
+    return []
+  }
+
+  private resolveSubject(note: NoteItem): string {
+    const subject: string = note.subject.trim()
+    return subject.length > 0 ? subject : "未分类"
+  }
+
+  private sortByDateDesc(notes: NoteItem[]): NoteItem[] {
+    const sorted: NoteItem[] = notes.slice(0)
+    sorted.sort((a: NoteItem, b: NoteItem): number => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime()
+    })
+    return sorted
+  }
+
+  private sortGroups(groups: SubjectGroup[]): SubjectGroup[] {
+    const sorted: SubjectGroup[] = groups.slice(0)
+    sorted.sort((a: SubjectGroup, b: SubjectGroup): number => b.count - a.count)
+    return sorted
   }
 }
