@@ -2,7 +2,26 @@
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z
-> 最近更新: 2026-07-19
+> 最近更新: 2026-07-20
+
+---
+
+## 2026-07-20 远端同步与 Notes 页结构优化
+
+### 做了什么
+
+- 将 `origin/main` 的 Agent memory、OCR 文本识别 API、Dispatcher/AiService 调整合入本地 `main`，本地生成 merge commit `238b1d1 merge: sync origin main`。
+- 新增 `common/src/main/ets/data/NoteTaxonomy.ets`，集中管理笔记五类、旧类型别名、类型字符、类型取色和学科顺序取色；Notes 页面不再在组件里散落本地 `TYPE_KEYS` / `typeKey()` / 类型别名判断。
+- Notes 一级页改为“概览统计 + 学科入口”结构，去掉最近笔记重复展示；新增 `NotesSummaryPanel.ets` 和 `SubjectViewToggle.ets`，支持学科入口列/块切换。
+- 学科块图标按学科动态取首字，笔记图标按真实笔记类型/特征取首字；颜色以薄荷主色为基准，低曝光混色，避免按学科名硬编码。
+- 新增 Notes 页结构视觉稿 [`docs/notes-page-structure-proposal-20260719.html`](./docs/notes-page-structure-proposal-20260719.html)，记录一级页、二级页、验收标准和实施路线。
+- `KnowledgeModel` 提示词中的 5 类返回值已切到中文类别：`概念` / `定理` / `公式` / `证明题` / `计算题`。
+
+### 验证
+
+- 合并远端时无冲突文件，`git diff --name-only --diff-filter=U` 为空。
+- 已做文件级 `git diff --check`，仅有 CRLF 提示。
+- DevEco Studio GUI 编译和真机 smoke test 仍需手动执行。
 
 ---
 
@@ -278,7 +297,7 @@ MathMind/
 
 ---
 
-## 四、当前文件结构(2026-07-17 最新)
+## 四、当前文件结构(2026-07-20 最新)
 
 ```
 entry/src/main/ets/
@@ -288,10 +307,19 @@ entry/src/main/ets/
 │   │   ├── HomePage.ets
 │   │   ├── HomeTopBar.ets
 │   │   └── HomeRecentNotes.ets
-│   ├── Notes/                          # 笔记列表(拆 4 个组件)
+│   ├── Notes/                          # 笔记页: 一级学科总览 + 二级学科笔记列表
 │   │   ├── NotesPage.ets
 │   │   ├── NotesHeader.ets
 │   │   ├── NotesList.ets
+│   │   ├── NotesSummaryPanel.ets
+│   │   ├── SubjectGrid.ets
+│   │   ├── SubjectCard.ets
+│   │   ├── SubjectViewToggle.ets
+│   │   ├── SubjectDetailPage.ets
+│   │   ├── SubjectHeader.ets
+│   │   ├── SubjectNoteList.ets
+│   │   ├── SubjectTypeEmpty.ets
+│   │   ├── TypeTabRow.ets
 │   │   └── NotesEmptyState.ets
 │   ├── Profile/                        # 我的(原 MePage,拆 5 个组件)
 │   │   ├── ProfilePage.ets

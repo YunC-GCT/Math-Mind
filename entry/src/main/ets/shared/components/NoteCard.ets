@@ -7,10 +7,11 @@
 //  ============================================================================
 
 import {
-  BG_DARK, S_1, S_3, BORDER, TEXT, TEXT_3, TEXT_4,
+  S_1, S_3, BORDER, GLASS_8, TEXT, TEXT_3, TEXT_4,
   R_MD, F_XS, F_SM, F_MD,
-  W_MEDIUM, W_SEMIBOLD, W_BOLD,
-  NOTE_ICON_SIZE, NoteItem, recentDate, typeChar, typeColor,
+  W_SEMIBOLD, W_BOLD,
+  NOTE_ICON_SIZE, NoteItem, recentDate, typeChar, typeColor, typeGlassColor,
+  borderToneColor, glassHighlightColor, glassShadowColor,
 } from "common"
 
 @Component
@@ -25,12 +26,19 @@ export struct NoteCard {
       Stack() {
         Stack()
           .width(NOTE_ICON_SIZE).height(NOTE_ICON_SIZE).borderRadius(R_MD + 1)
+          .backgroundColor(typeGlassColor(this.note.type))
           .linearGradient({
-            angle: 135,
-            colors: [[typeColor(this.note.type), 0], [typeColor(this.note.type), 1]],
+            angle: 145,
+            colors: [
+              [glassHighlightColor(typeColor(this.note.type)), 0],
+              [typeGlassColor(this.note.type), 0.62],
+              [GLASS_8, 1],
+            ],
           })
+          .border({ width: 0.5, color: borderToneColor(typeColor(this.note.type)) })
+          .shadow({ radius: 8, color: glassShadowColor(typeColor(this.note.type)), offsetX: 0, offsetY: 3 })
         Text(typeChar(this.note.type))
-          .fontSize(F_MD + 2).fontWeight(W_BOLD).fontColor(BG_DARK)
+          .fontSize(F_MD + 2).fontWeight(W_BOLD).fontColor(typeColor(this.note.type))
       }
       .width(NOTE_ICON_SIZE).height(NOTE_ICON_SIZE).alignContent(Alignment.Center)
 

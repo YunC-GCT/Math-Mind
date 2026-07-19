@@ -16,11 +16,13 @@
 //  ============================================================================
 
 import {
-  BG_DARK, TEXT, TEXT_3,
+  BG_DARK, BORDER, GLASS_8, TEXT, TEXT_3,
   S_4, S_5,
   F_XS, F_MD,
+  R_MD,
   W_SEMIBOLD,
 } from "common"
+import { AppIcon } from "../../shared/components/AppIcon"
 
 @Component
 export struct NotesHeader {
@@ -29,6 +31,7 @@ export struct NotesHeader {
 
   @Prop subjectCount: number = 0
   @Prop totalCount: number = 0
+  onSearchTap: () => void = (): void => {}
 
   build() {
     Column() {
@@ -47,9 +50,22 @@ export struct NotesHeader {
         Text(this.subjectCount + " 门学科 · " + this.totalCount + " 条")
           .fontSize(F_XS)
           .fontColor(TEXT_3)
+          .margin({ right: 10 })
+        Row() {
+          AppIcon({ name: "search", iconSize: 16, color: TEXT_3, strokeWidth: 1.8 })
+        }
+        .width(32)
+        .height(32)
+        .borderRadius(R_MD)
+        .backgroundColor(GLASS_8)
+        .border({ width: 0.5, color: BORDER })
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick((): void => this.onSearchTap())
       }
       .width("100%")
       .padding({ left: S_5, right: S_5, top: S_4, bottom: S_4 })
+      .alignItems(VerticalAlign.Center)
     }
     .width("100%")
   }

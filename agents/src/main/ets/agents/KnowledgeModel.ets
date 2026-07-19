@@ -276,25 +276,25 @@ export class KnowledgeModel {
   // === Build AI Prompt ===
 
   buildPrompt(ocrText: string): string {
-    return `You analyze math content. Return strict JSON only, no markdown.
-Fields:
-- category: concept/theorem/formula/proof/computation
-- title: precise name or topic summary
-- tags: 2-5 keywords
-- difficulty: 1-5 (1=easy 5=hard)
-- importance: 1-5 (1=low 5=core)
-- fields: [{key, label, value}] per category:
-  concept: definition/properties/examples/related_concepts
-  theorem: statement/conditions/conclusion/proof_sketch/applications
-  formula: expression/parameters/applicable_range/derivation/notes
-  proof: proposition/given/proof_process/key_insight/conclusion
-  computation: problem/steps/answer/method_summary/common_mistakes
+    return `你是数学学习笔记结构化助手。只返回严格 JSON，不要 markdown。
+字段:
+- category: 必须是 "概念" / "定理" / "公式" / "证明题" / "计算题" 之一，不要返回 concept/theorem/formula/proof/computation
+- title: 严谨名称或题目摘要
+- tags: 2-5 个中文关键词，不要重复 category
+- difficulty: 1-5，1=简单，5=困难
+- importance: 1-5，1=低，5=核心
+- fields: 按 category 返回结构化字段数组 [{key, label, value}]
+  概念: definition/properties/examples/related_concepts
+  定理: statement/conditions/conclusion/proof_sketch/applications
+  公式: expression/parameters/applicable_range/derivation/notes
+  证明题: proposition/given/proof_process/key_insight/conclusion
+  计算题: problem/steps/answer/method_summary/common_mistakes
 
-For display rendering:
-- Put formulas as plain text inside the field value.
-- Put important formulas on their own line.
-- Prefer one field per section.
-- Keep all field values complete and do not summarize away the source content.`;
+渲染要求:
+- 公式保留为普通 LaTeX 文本，放在 field.value 内。
+- 重要公式单独成行。
+- 尽量一个字段对应一个页面分区。
+- 保留完整信息，不要把原题和关键步骤摘要丢失。`;
   }
   /**
    * 合并标签：AI 返回的标签 + 最小类名，去重

@@ -50,6 +50,24 @@ export struct AppIcon {
         Image($r("app.media.ic_album")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
       } else if (this.name === "recycle") {
         Image($r("app.media.ic_recycle")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "search") {
+        Stack() {
+          Circle({ width: this.iconSize * 0.62, height: this.iconSize * 0.62 })
+            .fill(Color.Transparent)
+            .stroke(this.color)
+            .strokeWidth(this.strokeWidth)
+            .translate({ x: -this.iconSize * 0.08, y: -this.iconSize * 0.08 })
+          Row()
+            .width(this.iconSize * 0.38)
+            .height(this.strokeWidth)
+            .backgroundColor(this.color)
+            .borderRadius(this.strokeWidth / 2)
+            .rotate({ angle: 45 })
+            .translate({ x: this.iconSize * 0.22, y: this.iconSize * 0.22 })
+        }
+        .width(this.iconSize)
+        .height(this.iconSize)
+        .alignContent(Alignment.Center)
       } else if (this.name === "circle") {
         Circle({ width: this.iconSize * 0.72, height: this.iconSize * 0.72 })
           .fill(Color.Transparent)

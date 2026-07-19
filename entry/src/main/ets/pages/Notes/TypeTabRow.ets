@@ -2,20 +2,21 @@
 //  pages/Notes/TypeTabRow.ets - note type filter tabs
 // ============================================================================
 
-import { BORDER, MINT, MINT_LIGHT, TEXT_3, S_2, F_XS, R_FULL, NoteItem } from "common"
-
-const TYPE_KEYS: string[] = ["all", "概念", "定理", "公式", "证明题", "计算题"]
+import {
+  BORDER, MINT, MINT_LIGHT, TEXT_3, S_2, F_XS, R_FULL,
+  NOTE_TYPE_ALL_KEY, normalizeNoteType, noteTypeFilterKeys, NoteItem,
+} from "common"
 
 @Component
 export struct TypeTabRow {
-  @Prop activeType: string = "all"
+  @Prop activeType: string = NOTE_TYPE_ALL_KEY
   @Prop notes: NoteItem[] = []
   onSelect: (type: string) => void = (_type: string): void => {}
 
   build() {
     Scroll() {
       Row({ space: 6 }) {
-        ForEach(TYPE_KEYS,
+        ForEach(noteTypeFilterKeys(),
           (type: string): void => {
             Text(this.tabText(type))
               .fontSize(F_XS)
@@ -45,12 +46,12 @@ export struct TypeTabRow {
   }
 
   private countOf(type: string): number {
-    if (type === "all") {
+    if (type === NOTE_TYPE_ALL_KEY) {
       return this.notes.length
     }
     let count: number = 0
     for (const note of this.notes) {
-      if (this.typeKey(note.type) === type) {
+      if (normalizeNoteType(note.type) === type) {
         count++
       }
     }
@@ -58,12 +59,6 @@ export struct TypeTabRow {
   }
 
   private labelOf(type: string): string {
-    return type === "all" ? "全部" : type
-  }
-
-  private typeKey(type: string): string {
-    if (type === "计算") { return "计算题" }
-    if (type === "证明") { return "证明题" }
-    return type
+    return type === NOTE_TYPE_ALL_KEY ? "全部" : type
   }
 }

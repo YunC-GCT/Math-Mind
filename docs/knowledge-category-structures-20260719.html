@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathMind KnowledgeModel 五类结构化输出</title>
+<style>
+  :root {
+    --bg: #f7f8fb;
+    --panel: #ffffff;
+    --ink: #17202a;
+    --muted: #667085;
+    --line: #d9e0ea;
+    --mint: #10b981;
+    --blue: #2563eb;
+    --purple: #7c3aed;
+    --amber: #d97706;
+    --rose: #e11d48;
+    --code-bg: #101828;
+    --code-fg: #e6edf7;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+    line-height: 1.65;
+  }
+
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 36px 24px 56px;
+  }
+
+  header {
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    line-height: 1.25;
+  }
+
+  h2 {
+    margin: 34px 0 14px;
+    padding-left: 12px;
+    border-left: 4px solid var(--blue);
+    font-size: 22px;
+  }
+
+  h3 {
+    margin: 0 0 10px;
+    font-size: 17px;
+  }
+
+  p { margin: 0 0 12px; }
+  code {
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: #eef2f7;
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 13px;
+  }
+
+  pre {
+    margin: 0;
+    padding: 16px;
+    overflow: auto;
+    border-radius: 8px;
+    background: var(--code-bg);
+    color: var(--code-fg);
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  th, td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    text-align: left;
+    font-size: 14px;
+  }
+
+  th {
+    background: #edf2f7;
+    color: #344054;
+    font-weight: 700;
+  }
+
+  tr:last-child td { border-bottom: 0; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .note {
+    border-left: 4px solid var(--amber);
+    background: #fff8e6;
+    color: #7a4b00;
+  }
+
+  .ok {
+    border-left: 4px solid var(--mint);
+    background: #ecfdf5;
+    color: #065f46;
+  }
+
+  .warn {
+    border-left: 4px solid var(--rose);
+    background: #fff1f2;
+    color: #881337;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 6px;
+  }
+
+  .category {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .category-name {
+    border-radius: 8px;
+    padding: 16px;
+    color: #fff;
+    min-height: 120px;
+  }
+
+  .concept { background: var(--mint); }
+  .theorem { background: var(--blue); }
+  .formula { background: var(--purple); }
+  .proof { background: var(--amber); }
+  .computation { background: var(--rose); }
+
+  .category-name strong {
+    display: block;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+
+  .category-name span {
+    display: block;
+    opacity: 0.9;
+    font-size: 13px;
+  }
+
+  .small { color: var(--muted); font-size: 13px; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .phone {
+    background: #0b1220;
+    border-radius: 24px;
+    padding: 12px;
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.18);
+  }
+
+  .screen {
+    min-height: 560px;
+    background: #101923;
+    color: #f8fafc;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .screen-head {
+    padding: 18px 18px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .screen-title {
+    margin: 8px 0 8px;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .ui-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    color: #cbd5e1;
+    font-size: 12px;
+  }
+
+  .ui-tag.primary { color: #071318; background: #5be3b0; font-weight: 700; }
+  .ui-tag.blue { background: rgba(96,165,250,0.18); color: #bfdbfe; }
+  .ui-tag.purple { background: rgba(196,181,253,0.18); color: #ddd6fe; }
+  .ui-tag.amber { background: rgba(251,191,36,0.18); color: #fde68a; }
+  .ui-tag.rose { background: rgba(251,113,133,0.18); color: #fecdd3; }
+
+  .screen-body { padding: 16px 18px 18px; }
+
+  .section-card {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.045);
+  }
+
+  .section-card.strong {
+    border-color: rgba(91,227,176,0.38);
+    background: rgba(91,227,176,0.08);
+  }
+
+  .section-card.answer {
+    border-color: rgba(251,191,36,0.42);
+    background: rgba(251,191,36,0.10);
+  }
+
+  .section-card h4 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+
+  .section-card p {
+    margin: 0;
+    font-size: 14px;
+    color: #e5e7eb;
+  }
+
+  .formula-text {
+    margin: 8px 0 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(15,23,42,0.82);
+    color: #f8fafc;
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 15px;
+    overflow-x: auto;
+  }
+
+  .step-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #e5e7eb;
+    font-size: 14px;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .action {
+    flex: 1;
+    min-height: 34px;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: #e5e7eb;
+    font-size: 12px;
+    text-align: center;
+    padding: 7px 6px;
+  }
+
+  @media (max-width: 760px) {
+    main { padding: 24px 14px 40px; }
+    .grid, .category, .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>MathMind KnowledgeModel 五类结构化输出</h1>
+    <p class="small">生成日期: 2026-07-19。依据当前代码: <code>agents/src/main/ets/agents/KnowledgeModel.ets</code>、<code>KnowledgeUnitExt.ets</code>、<code>KnowledgeCategory.ets</code>、<code>NoteSectionParser.ets</code>。</p>
+  </header>
+
+  <section class="card note">
+    <h3>当前实现结论</h3>
+    <p>KnowledgeModel 按五类知识生成统一 JSON: <code>category</code>、<code>title</code>、<code>tags</code>、<code>difficulty</code>、<code>importance</code>、<code>fields</code>。五类的差异主要体现在 <code>fields</code> 里每个结构化字段的 <code>key</code>。</p>
+    <p>随后程序不会把 <code>fields</code> 原样落库，而是转换成 <code>KnowledgeUnit.content</code>: 每个字段变成一段 <code>## label</code> 加正文，最后追加 <code>## 原文</code>。</p>
+  </section>
+
+  <h2>一、统一输入输出骨架</h2>
+  <div class="grid">
+    <section class="card">
+      <h3>LLM 原始返回 AiRawResponse</h3>
+<pre>{
+  "category": "概念 | 定理 | 公式 | 证明题 | 计算题",
+  "title": "知识点标题或题目摘要",
+  "tags": ["标签1", "标签2"],
+  "difficulty": 1,
+  "importance": 1,
+  "fields": [
+    {
+      "key": "definition",
+      "label": "定义",
+      "value": "字段内容, 可以包含公式"
+    }
+  ]
+}</pre>
+    </section>
+
+    <section class="card">
+      <h3>落库前主线 KnowledgeUnit</h3>
+<pre>{
+  "id": "KB-...",
+  "title": "来自 AiRawResponse.title",
+  "content": "## 字段标题\\n字段内容\\n\\n## 原文\\nOCR 原文",
+  "summary": "从 fields.value 拼接并截断到约 100 字",
+  "tags": ["category", "...AI tags"],
+  "difficulty": "DifficultyLevel",
+  "source": "chapter 或 camera_capture",
+  "reviewStatus": "new",
+  "nextReviewAt": "创建时间 + 1 天",
+  "intervalDays": 1,
+  "easeFactor": 2.5,
+  "repetitions": 0
+}</pre>
+    </section>
+  </div>
+
+  <section class="card warn" style="margin-top:16px;">
+    <h3>实现注意点</h3>
+    <p>当前 <code>KnowledgeCategory</code> 类型定义是中文五类，但 <code>buildPrompt()</code> 文案要求模型返回 <code>concept/theorem/formula/proof/computation</code>。如果模型真的返回英文，运行时会把英文值作为 category 写入 tags 和 content 生成链路。建议后续统一为中文输出，或在 <code>callAi()</code> 后增加 category normalize。</p>
+  </section>
+
+  <h2>二、五类字段结构</h2>
+
+  <section class="category">
+    <div class="category-name concept">
+      <strong>概念</strong>
+      <span>prompt key: concept</span>
+      <span>适合定义、性质、例子、关联概念</span>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>key</th><th>label 建议</th><th>value 内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>definition</code></td><td>定义</td><td>概念的严格定义、条件和符号说明。</td></tr>
+          <tr><td><code>properties</code></td><td>性质</td><td>核心性质、常用结论、使用限制。</td></tr>
+          <tr><td><code>examples</code></td><td>例子</td><td>能帮助理解的典型例子或反例。</td></tr>
+          <tr><td><code>related_concepts</code></td><td>相关概念</td><td>前后关联概念、容易混淆的概念。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="category">
+    <div class="category-name theorem">
+      <strong>定理</strong>
+      <span>prompt key: theorem</span>
+      <span>适合定理、引理、命题、推论</span>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>key</th><th>label 建议</th><th>value 内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>statement</code></td><td>定理陈述</td><td>完整定理内容。</td></tr>
+          <tr><td><code>conditions</code></td><td>条件</td><td>成立前提、定义域、连续性、可导性等限制。</td></tr>
+          <tr><td><code>conclusion</code></td><td>结论</td><td>定理推出的核心结果。</td></tr>
+          <tr><td><code>proof_sketch</code></td><td>证明思路</td><td>简要证明路线、关键构造或关键不等式。</td></tr>
+          <tr><td><code>applications</code></td><td>应用</td><td>常见用途、典型题型、可关联知识点。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="category">
+    <div class="category-name formula">
+      <strong>公式</strong>
+      <span>prompt key: formula</span>
+      <span>适合公式整理、恒等式、变形规则</span>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>key</th><th>label 建议</th><th>value 内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>expression</code></td><td>公式</td><td>公式主体，重要公式单独成行。</td></tr>
+          <tr><td><code>parameters</code></td><td>参数说明</td><td>变量、常量、符号含义。</td></tr>
+          <tr><td><code>applicable_range</code></td><td>适用范围</td><td>公式成立条件、定义域、边界条件。</td></tr>
+          <tr><td><code>derivation</code></td><td>推导</td><td>简要推导过程或来源。</td></tr>
+          <tr><td><code>notes</code></td><td>备注</td><td>易错点、等价形式、记忆提示。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="category">
+    <div class="category-name proof">
+      <strong>证明题</strong>
+      <span>prompt key: proof</span>
+      <span>适合求证题、证明过程整理</span>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>key</th><th>label 建议</th><th>value 内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>proposition</code></td><td>命题</td><td>需要证明的结论。</td></tr>
+          <tr><td><code>given</code></td><td>已知条件</td><td>题目给定条件和可用前提。</td></tr>
+          <tr><td><code>proof_process</code></td><td>证明过程</td><td>分步骤证明，保留关键逻辑链。</td></tr>
+          <tr><td><code>key_insight</code></td><td>关键思路</td><td>突破点、构造方法、所用定理。</td></tr>
+          <tr><td><code>conclusion</code></td><td>结论</td><td>证明完成后的总结。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="category">
+    <div class="category-name computation">
+      <strong>计算题</strong>
+      <span>prompt key: computation</span>
+      <span>适合计算、求解、化简、求极限等</span>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>key</th><th>label 建议</th><th>value 内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>problem</code></td><td>题目</td><td>题目条件和要求。</td></tr>
+          <tr><td><code>steps</code></td><td>步骤</td><td>分步计算过程。</td></tr>
+          <tr><td><code>answer</code></td><td>答案</td><td>最终结果，尽量单独成行。</td></tr>
+          <tr><td><code>method_summary</code></td><td>方法总结</td><td>本题使用的方法、套路或算法。</td></tr>
+          <tr><td><code>common_mistakes</code></td><td>易错点</td><td>常见错误、检查点、符号陷阱。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <h2>三、从 fields 到页面展示</h2>
+  <section class="card">
+    <p>当前转换函数 <code>contentFromFields()</code> 会把每个 <code>StructuredField</code> 转成 Markdown 风格分段。笔记详情页再由 <code>NoteSectionParser</code> 按 <code>## </code> 切分并渲染。</p>
+<pre>// fields 输入
+[
+  { "key": "definition", "label": "定义", "value": "..." },
+  { "key": "properties", "label": "性质", "value": "..." }
+]
+
+// KnowledgeUnit.content 输出
+## 定义
+...
+
+## 性质
+...
+
+## 原文
+OCR 原始文本</pre>
+  </section>
+
+  <h2>四、分类后的完整样例</h2>
+  <section class="card">
+    <h3>计算题样例</h3>
+<pre>{
+  "category": "计算题",
+  "title": "一元函数极限计算",
+  "tags": ["数学分析", "极限", "洛必达法则"],
+  "difficulty": 3,
+  "importance": 4,
+  "fields": [
+    {
+      "key": "problem",
+      "label": "题目",
+      "value": "求 lim_{x->0} sin x / x"
+    },
+    {
+      "key": "steps",
+      "label": "步骤",
+      "value": "1. 识别为基本极限。\\n2. 使用 lim_{x->0} sin x / x = 1。"
+    },
+    {
+      "key": "answer",
+      "label": "答案",
+      "value": "1"
+    },
+    {
+      "key": "method_summary",
+      "label": "方法总结",
+      "value": "优先检查是否可直接套用基本极限。"
+    },
+    {
+      "key": "common_mistakes",
+      "label": "易错点",
+      "value": "不要把 sin x 直接替换为 0 后代入。"
+    }
+  ]
+}</pre>
+  </section>
+
+  <h2>五、需要后续修正的程序点</h2>
+  <section class="card warn">
+    <p><span class="pill">1</span>统一 <code>category</code> 语言。当前类型是中文，prompt 是英文枚举。</p>
+    <p><span class="pill">2</span>保留 <code>subject</code>。当前 KnowledgeModel 只把 subject 当 hint，不会稳定写入 <code>tags</code>，导致 UI 的 subject/type 映射可能错位。</p>
+    <p><span class="pill">3</span>如果未来需要编辑结构化字段，RDB 需要新增字段保存原始 <code>fields</code> JSON。当前只保存拼接后的 <code>content</code>。</p>
+  </section>
+
+  <h2>六、当前前端如何渲染这些类别</h2>
+  <section class="card">
+    <h3>1. 列表卡片 NoteCard</h3>
+    <p>首页和笔记页最终都渲染 <code>NoteItem</code>，不是直接渲染 <code>KnowledgeUnitExt.fields</code>。当前 <code>NoteCard</code> 展示四块信息:</p>
+    <table>
+      <thead><tr><th>位置</th><th>数据来源</th><th>当前效果</th></tr></thead>
+      <tbody>
+        <tr><td>左侧图标</td><td><code>typeChar(note.type)</code></td><td>取类型首字作为图标文字，例如 概、计、证。</td></tr>
+        <tr><td>颜色</td><td><code>typeColor(note.type)</code></td><td>只有 <code>概念</code>、<code>计算</code>、<code>证明</code>、<code>笔记</code> 有明确配色。</td></tr>
+        <tr><td>Meta 行</td><td><code>note.type</code>、<code>note.date</code>、<code>note.conf</code></td><td>显示 类型 · 时间 · 置信度百分比。</td></tr>
+        <tr><td>正文预览</td><td><code>note.body</code></td><td>显示 <code>KnowledgeUnit.content</code> 前两行截断，可能直接露出 <code>## 定义</code> 等分段标题。</td></tr>
+      </tbody>
+    </table>
+    <p class="small">实际文件: <code>entry/src/main/ets/shared/components/NoteCard.ets</code>、<code>common/src/main/ets/data/MockNotes.ets</code>。</p>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>2. NoteItemMapper 的关键问题</h3>
+    <p>当前 <code>KnowledgeModel.buildTags()</code> 生成的 tags 顺序是 <code>[category, ...AI tags]</code>。但 <code>NoteItemMapper</code> 读取时使用:</p>
+<pre>const subject = unit.tags.length > 0 ? unit.tags[0] : "数学"
+const type = unit.tags.length > 1 ? unit.tags[1] : "笔记"</pre>
+    <p>这会让五类渲染错位。例如一个计算题的 tags 如果是 <code>["计算题", "极限", "数学分析"]</code>，前端会得到:</p>
+<pre>subject = "计算题"
+type = "极限"</pre>
+    <p>结果是列表卡片不会显示“计算题”，颜色也无法命中 <code>typeColor()</code>，最终走默认红色。</p>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>3. 详情页 NoteDetailOverlay</h3>
+    <p>详情页当前是通用渲染，不区分五类专用布局:</p>
+    <table>
+      <thead><tr><th>区域</th><th>实际逻辑</th><th>对五类的影响</th></tr></thead>
+      <tbody>
+        <tr><td>顶部标题</td><td>优先显示 <code>unit.title</code></td><td>五类统一，没有问题。</td></tr>
+        <tr><td>Meta 标签</td><td><code>tags[0]</code> 为主标签，<code>tags[1]</code> 为次标签</td><td>依赖 tags 顺序，当前容易把类别当学科。</td></tr>
+        <tr><td>摘要</td><td>显示 <code>unit.summary</code></td><td>来自 fields.value 拼接后的前 100 字，类别信息不明显。</td></tr>
+        <tr><td>正文</td><td><code>NoteSectionParser</code> 按 <code>## </code> 切章节</td><td>不同类别只是章节标题不同，没有图标、顺序、重点样式差异。</td></tr>
+        <tr><td>标签/前置/相关/来源/复习</td><td>统一块状渲染</td><td>不会根据“证明题/计算题”等给出专门操作。</td></tr>
+      </tbody>
+    </table>
+    <p class="small">实际文件: <code>NoteDetailOverlay.ets</code>、<code>NoteDetailMeta.ets</code>、<code>NoteDetailBody.ets</code>、<code>NoteSectionParser.ets</code>。</p>
+  </section>
+
+  <h2>七、当前渲染问题</h2>
+  <section class="card warn">
+    <p><span class="pill">问题 1</span>五类没有完整配色。<code>typeColor()</code> 不认识 <code>定理</code>、<code>公式</code>、<code>证明题</code>、<code>计算题</code>，而 mock 里还是旧的 <code>计算</code>、<code>证明</code>。</p>
+    <p><span class="pill">问题 2</span>类别和学科没有独立字段。类别、学科、章节都挤在 <code>tags/source</code>，前端只能猜。</p>
+    <p><span class="pill">问题 3</span>详情页丢失结构化字段语义。<code>fields</code> 落库后变成纯文本分段，UI 无法知道某段是 <code>answer</code>、<code>proof_process</code> 还是 <code>common_mistakes</code>。</p>
+    <p><span class="pill">问题 4</span>列表预览可能读起来不自然。因为 <code>note.body</code> 直接来自 <code>content</code>，预览可能以 <code>## 题目</code>、<code>## 定义</code> 开头，而不是更干净的摘要。</p>
+    <p><span class="pill">问题 5</span>五类没有差异化学习动作。计算题没有“看答案/重做”，证明题没有“隐藏证明过程”，公式没有“参数速查”。</p>
+  </section>
+
+  <h2>八、建议和改进方法</h2>
+  <section class="card ok">
+    <h3>短期修正: 不改表结构也能做</h3>
+    <table>
+      <thead><tr><th>改进</th><th>方法</th><th>收益</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>统一五类名称</td>
+          <td>把 <code>KnowledgeModel.buildPrompt()</code> 的 category 输出改成中文五类，或新增 <code>normalizeCategory()</code> 把英文映射到中文。</td>
+          <td>避免 tags、标题、卡片颜色出现英文 category。</td>
+        </tr>
+        <tr>
+          <td>修正 NoteItemMapper</td>
+          <td>按五类集合识别 <code>type</code>，按学科关键词或独立规则识别 <code>subject</code>。不要固定 <code>tags[0]</code> 是 subject。</td>
+          <td>首页/笔记列表能正确显示“计算题/证明题/定理”等类型。</td>
+        </tr>
+        <tr>
+          <td>补齐 typeColor/typeChar</td>
+          <td>支持 <code>概念</code>、<code>定理</code>、<code>公式</code>、<code>证明题</code>、<code>计算题</code>，兼容旧值 <code>计算</code>、<code>证明</code>。</td>
+          <td>五类在卡片上有稳定视觉编码。</td>
+        </tr>
+        <tr>
+          <td>列表预览优先用 summary</td>
+          <td><code>unitToNoteItem()</code> 中 <code>body</code> 优先取 <code>summary</code>，详情页再使用 <code>content</code>。</td>
+          <td>卡片预览更像摘要，不被 Markdown 标题干扰。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card ok" style="margin-top:16px;">
+    <h3>中期改进: 增加类别感知渲染</h3>
+    <table>
+      <thead><tr><th>类别</th><th>详情页建议布局</th><th>交互建议</th></tr></thead>
+      <tbody>
+        <tr><td>概念</td><td>定义置顶，性质和例子并列，相关概念放底部。</td><td>提供“生成例题”“对比相似概念”。</td></tr>
+        <tr><td>定理</td><td>条件 → 结论 → 证明思路 → 应用，突出条件和结论。</td><td>提供“隐藏证明”“只背条件/结论”。</td></tr>
+        <tr><td>公式</td><td>公式大字号展示，参数说明紧随其后，备注放底部。</td><td>提供“复制公式”“查看推导”。</td></tr>
+        <tr><td>证明题</td><td>命题和已知条件固定在顶部，证明过程分步编号。</td><td>提供“逐步展开证明”“隐藏关键思路”。</td></tr>
+        <tr><td>计算题</td><td>题目 → 步骤 → 答案，答案视觉上单独强调。</td><td>提供“先隐藏答案”“重做此题”。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card ok" style="margin-top:16px;">
+    <h3>长期改进: 保留结构化字段</h3>
+    <p>建议把 <code>KnowledgeUnit</code> 扩展为带结构化元数据的形态，或者在 RDB 增加 <code>category</code>、<code>subject</code>、<code>chapter</code>、<code>fields_json</code> 字段。这样 UI 不需要从 <code>tags</code> 和 Markdown 文本中反推语义。</p>
+<pre>knowledge_unit 新增建议:
+category TEXT NOT NULL DEFAULT ""
+subject TEXT NOT NULL DEFAULT ""
+chapter TEXT NOT NULL DEFAULT ""
+fields_json TEXT NOT NULL DEFAULT "[]"
+truth_flag INTEGER NOT NULL DEFAULT 1
+truth_details TEXT NOT NULL DEFAULT "[]"</pre>
+    <p>前端则新增 <code>StructuredNoteView</code>，根据 <code>category</code> 选择渲染模板。对五类笔记，详情页只展示结构化字段；<code>原文</code>、<code>OCR</code>、默认 <code>内容</code> 旧正文会被过滤，不再作为详情正文展示，也不再转换成“识别公式/识别原文”。</p>
+  </section>
+
+  <h2>九、实现后的五种笔记详情页示例</h2>
+  <section class="card note">
+    <h3>设计原则</h3>
+    <p>五种详情页可以共用同一个外壳: 顶部标题、类别/学科/章节标签、复习状态、底部操作栏。差异放在正文模板中，由 <code>category</code> 决定字段顺序、重点样式和可用操作。</p>
+    <p>下面是建议实现后的页面形态示例，不是当前 ArkUI 已实现效果。</p>
+  </section>
+
+  <div class="detail-grid" style="margin-top:16px;">
+    <section class="phone">
+      <div class="screen">
+        <div class="screen-head">
+          <span class="ui-tag primary">概念</span>
+          <div class="screen-title">极限的 ε-δ 定义</div>
+          <div class="tag-row">
+            <span class="ui-tag blue">数学分析</span>
+            <span class="ui-tag">极限</span>
+            <span class="ui-tag">定义</span>
+            <span class="ui-tag">New</span>
+          </div>
+        </div>
+        <div class="screen-body">
+          <div class="section-card strong">
+            <h4>定义</h4>
+            <p>若对任意 ε &gt; 0，存在 δ &gt; 0，使得当 0 &lt; |x-a| &lt; δ 时，有 |f(x)-L| &lt; ε，则称 f(x) 在 a 处的极限为 L。</p>
+          </div>
+          <div class="section-card">
+            <h4>性质</h4>
+            <p>极限若存在则唯一；局部有界；满足保号性和四则运算。</p>
+          </div>
+          <div class="section-card">
+            <h4>例子</h4>
+            <p>lim(x→0) sin x / x = 1 可以用夹逼定理证明。</p>
+          </div>
+          <div class="section-card">
+            <h4>相关概念</h4>
+            <p>函数连续、数列极限、夹逼定理、无穷小。</p>
+          </div>
+          <div class="action-row">
+            <div class="action">生成例题</div>
+            <div class="action">对比概念</div>
+            <div class="action">加入复习</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone">
+      <div class="screen">
+        <div class="screen-head">
+          <span class="ui-tag primary">定理</span>
+          <div class="screen-title">拉格朗日中值定理</div>
+          <div class="tag-row">
+            <span class="ui-tag blue">数学分析</span>
+            <span class="ui-tag">微分中值定理</span>
+            <span class="ui-tag">Level 2</span>
+          </div>
+        </div>
+        <div class="screen-body">
+          <div class="section-card strong">
+            <h4>定理陈述</h4>
+            <p>若 f 在 [a,b] 上连续，在 (a,b) 内可导，则存在 ξ∈(a,b)，使得:</p>
+            <div class="formula-text">f'(ξ) = (f(b)-f(a))/(b-a)</div>
+          </div>
+          <div class="section-card">
+            <h4>条件</h4>
+            <p>闭区间连续；开区间可导；a &lt; b。</p>
+          </div>
+          <div class="section-card answer">
+            <h4>结论</h4>
+            <p>某一点的瞬时变化率等于区间平均变化率。</p>
+          </div>
+          <div class="section-card">
+            <h4>证明思路</h4>
+            <p>构造辅助函数，把端点函数值拉平，然后使用罗尔定理。</p>
+          </div>
+          <div class="action-row">
+            <div class="action">隐藏证明</div>
+            <div class="action">只背条件</div>
+            <div class="action">看应用题</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone">
+      <div class="screen">
+        <div class="screen-head">
+          <span class="ui-tag primary">公式</span>
+          <div class="screen-title">二项式定理展开式</div>
+          <div class="tag-row">
+            <span class="ui-tag purple">高等代数</span>
+            <span class="ui-tag">组合数</span>
+            <span class="ui-tag">公式</span>
+          </div>
+        </div>
+        <div class="screen-body">
+          <div class="section-card strong">
+            <h4>公式</h4>
+            <div class="formula-text">(a+b)^n = Σ C(n,k) a^(n-k)b^k, k=0..n</div>
+          </div>
+          <div class="section-card">
+            <h4>参数说明</h4>
+            <p>n 为非负整数；C(n,k) 表示从 n 个元素中取 k 个的组合数。</p>
+          </div>
+          <div class="section-card">
+            <h4>适用范围</h4>
+            <p>适用于整数次幂展开；推广形式可连接广义二项式级数。</p>
+          </div>
+          <div class="section-card">
+            <h4>推导</h4>
+            <p>每一项来自 n 个括号中选择 k 个 b，其余选择 a。</p>
+          </div>
+          <div class="action-row">
+            <div class="action">复制公式</div>
+            <div class="action">查看推导</div>
+            <div class="action">参数速查</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone">
+      <div class="screen">
+        <div class="screen-head">
+          <span class="ui-tag primary">证明题</span>
+          <div class="screen-title">证明线性无关组的任意子组仍线性无关</div>
+          <div class="tag-row">
+            <span class="ui-tag purple">高等代数</span>
+            <span class="ui-tag">向量组</span>
+            <span class="ui-tag">证明</span>
+          </div>
+        </div>
+        <div class="screen-body">
+          <div class="section-card strong">
+            <h4>命题</h4>
+            <p>若向量组 α1,...,αn 线性无关，则它的任意子组也线性无关。</p>
+          </div>
+          <div class="section-card">
+            <h4>已知条件</h4>
+            <p>原向量组线性无关。</p>
+          </div>
+          <div class="section-card">
+            <h4>证明过程</h4>
+            <ol class="step-list">
+              <li>取任意子组 αi1,...,αik。</li>
+              <li>设 c1αi1 + ... + ckαik = 0。</li>
+              <li>把未出现向量的系数补为 0，得到原向量组的线性组合。</li>
+              <li>由原组线性无关，所有系数均为 0。</li>
+            </ol>
+          </div>
+          <div class="section-card answer">
+            <h4>关键思路</h4>
+            <p>把子组的线性组合扩展回原向量组。</p>
+          </div>
+          <div class="action-row">
+            <div class="action">逐步展开</div>
+            <div class="action">隐藏思路</div>
+            <div class="action">重证一遍</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone">
+      <div class="screen">
+        <div class="screen-head">
+          <span class="ui-tag primary">计算题</span>
+          <div class="screen-title">求极限 lim(x→0) (1-cos x)/x²</div>
+          <div class="tag-row">
+            <span class="ui-tag blue">数学分析</span>
+            <span class="ui-tag">极限</span>
+            <span class="ui-tag">三角函数</span>
+          </div>
+        </div>
+        <div class="screen-body">
+          <div class="section-card strong">
+            <h4>题目</h4>
+            <p>求 lim(x→0) (1-cos x)/x²。</p>
+          </div>
+          <div class="section-card">
+            <h4>步骤</h4>
+            <ol class="step-list">
+              <li>使用恒等式 1-cos x = 2sin²(x/2)。</li>
+              <li>原式 = 2sin²(x/2)/x²。</li>
+              <li>整理为 1/2 · [sin(x/2)/(x/2)]²。</li>
+            </ol>
+          </div>
+          <div class="section-card answer">
+            <h4>答案</h4>
+            <div class="formula-text">1/2</div>
+          </div>
+          <div class="section-card">
+            <h4>易错点</h4>
+            <p>不要直接代入得到 0/0 后停止；注意平方项系数。</p>
+          </div>
+          <div class="action-row">
+            <div class="action">隐藏答案</div>
+            <div class="action">重做此题</div>
+            <div class="action">同类练习</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <h2>十、对应到 ArkUI 的实现拆分</h2>
+  <section class="card">
+    <p>当前实现由 <code>NoteDetailBody</code> 解析现有 <code>##</code> 分段，再交给 <code>StructuredNoteView</code> 统一渲染。旧 <code>NoteSectionView</code> 已移除，五类笔记不再具备旧正文渲染路径:</p>
+<pre>NoteDetailOverlay
+  -> NoteDetailMeta
+  -> NoteDetailBody
+       parseSections(unit.content)
+       StructuredNoteView(category, sections)
+         five categories: filter legacy content/raw OCR
+         unknown category: render cleaned sections</pre>
+    <table style="margin-top:12px;">
+      <thead><tr><th>组件</th><th>职责</th><th>输入</th></tr></thead>
+      <tbody>
+        <tr><td><code>StructuredNoteView</code></td><td>按类别选择模板</td><td><code>category, fields</code></td></tr>
+        <tr><td><code>ConceptDetailView</code></td><td>定义/性质/例子/相关概念</td><td><code>StructuredField[]</code></td></tr>
+        <tr><td><code>TheoremDetailView</code></td><td>陈述/条件/结论/证明思路/应用</td><td><code>StructuredField[]</code></td></tr>
+        <tr><td><code>FormulaDetailView</code></td><td>公式/参数/适用范围/推导/备注</td><td><code>StructuredField[]</code></td></tr>
+        <tr><td><code>ProofDetailView</code></td><td>命题/已知/证明过程/关键思路/结论</td><td><code>StructuredField[]</code></td></tr>
+        <tr><td><code>ComputationDetailView</code></td><td>题目/步骤/答案/方法总结/易错点</td><td><code>StructuredField[]</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <h2>十一、验收标准</h2>
+  <section class="card ok">
+    <h3>范围边界</h3>
+    <p>本轮验收只覆盖前端结构化展示与数据映射修正。明确不改 <code>TypeClassifier.ets</code>、<code>OcrTool.ets</code>，不调整 OCR HTTP 服务，不改分类 prompt，不改变拍照到 OCR 的链路。</p>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>1. 数据映射验收</h3>
+    <table>
+      <thead><tr><th>编号</th><th>标准</th><th>通过条件</th></tr></thead>
+      <tbody>
+        <tr><td>D1</td><td>五类类型能被前端稳定识别</td><td><code>概念/定理/公式/证明题/计算题</code> 均能映射为正确 <code>note.type</code>。</td></tr>
+        <tr><td>D2</td><td>学科不再被类别挤占</td><td>当 tags 为 <code>["计算题","数学分析","极限"]</code> 时，卡片显示类型为“计算题”，学科为“数学分析”。</td></tr>
+        <tr><td>D3</td><td>兼容旧数据</td><td>旧值 <code>计算</code>、<code>证明</code> 仍能被识别为可渲染类型，不出现空白或默认错误样式。</td></tr>
+        <tr><td>D4</td><td>列表预览干净</td><td>首页/笔记页卡片优先展示 <code>summary</code>，不以 <code>## 定义</code>、<code>## 题目</code> 作为第一视觉内容。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>2. 列表 UI 验收</h3>
+    <table>
+      <thead><tr><th>编号</th><th>标准</th><th>通过条件</th></tr></thead>
+      <tbody>
+        <tr><td>L1</td><td>五类均有稳定视觉编码</td><td>五类卡片图标首字、颜色、meta 文案都可区分。</td></tr>
+        <tr><td>L2</td><td>首页生成笔记位置正确</td><td>非收起态新增笔记紧跟在“最近笔记”标题下方；收起态仍占满剩余空间。</td></tr>
+        <tr><td>L3</td><td>长标题不撑破布局</td><td>标题最多两行或一行截断，卡片高度不异常跳动。</td></tr>
+        <tr><td>L4</td><td>空/异常字段有兜底</td><td>缺少 tags、summary、source 时，卡片仍显示“笔记/数学/新笔记”等合理默认值。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>3. 详情页验收</h3>
+    <table>
+      <thead><tr><th>编号</th><th>标准</th><th>通过条件</th></tr></thead>
+      <tbody>
+        <tr><td>V1</td><td>五类详情页字段顺序符合学习语义</td><td>概念先定义；定理先陈述/条件/结论；公式先公式；证明题先命题/已知；计算题先题目/步骤/答案。</td></tr>
+        <tr><td>V2</td><td>旧正文不再露出</td><td>详情页不出现“原文”标题，不展示 OCR 原文、乱码正文、<code>LaTeX formulas:</code> 原始块，也不展示“识别公式/识别原文”替代块。</td></tr>
+        <tr><td>V3</td><td>详情正文不截断</td><td>五类结构化详情不展示数据库 <code>summary</code> 截断字段，只展示完整结构化字段正文。</td></tr>
+        <tr><td>V4</td><td>公式/答案/关键结论突出</td><td>公式类的 <code>expression</code>、计算题的 <code>answer</code>、证明题的 <code>key_insight</code> 有明显重点样式；<code>\frac</code>/<code>/frac</code> 以及 <code>(1/r²)</code>、<code>∂/∂r</code> 这类 Unicode/斜杠分数允许上下结构显示。</td></tr>
+        <tr><td>V5</td><td>详情页操作不误导</td><td>未实现的按钮不展示，或只保留已有编辑/分享/删除；新增学习动作必须有实际回调。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>4. 回归验收</h3>
+    <table>
+      <thead><tr><th>编号</th><th>标准</th><th>通过条件</th></tr></thead>
+      <tbody>
+        <tr><td>R1</td><td>不影响 OCR/分类链路</td><td>不修改 <code>agents/src/main/ets/agents/TypeClassifier.ets</code> 和 <code>agents/src/main/ets/mcp/tools/OcrTool.ets</code>。</td></tr>
+        <tr><td>R2</td><td>不影响入库</td><td><code>AiService.capture()</code>、<code>NoteDao.insert()</code> 调用路径保持不变。</td></tr>
+        <tr><td>R3</td><td>DevEco GUI 编译通过</td><td>Build Hap(s)/APP(s) 无 ArkTS 编译错误。</td></tr>
+        <tr><td>R4</td><td>手动 smoke test 通过</td><td>5 Tab、首页、笔记详情、AI 浮窗、拍照后生成笔记刷新均正常。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <h2>十二、实施路线</h2>
+  <section class="card note">
+    <h3>实施约束</h3>
+    <p>本路线只动前端、映射层和必要的共享 UI 工具。禁止修改分类 Agent 和 OCR:</p>
+<pre>不改:
+agents/src/main/ets/agents/TypeClassifier.ets
+agents/src/main/ets/mcp/tools/OcrTool.ets
+
+优先改:
+common/src/main/ets/data/MockNotes.ets
+entry/src/main/ets/utils/NoteItemMapper.ets
+entry/src/main/ets/shared/components/NoteCard.ets
+entry/src/main/ets/overlays/NoteDetailOverlay/*
+entry/src/main/ets/utils/NoteSectionParser.ets</pre>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>P0: 先修正列表和标签映射</h3>
+    <table>
+      <thead><tr><th>步骤</th><th>文件</th><th>实现内容</th><th>验收</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><code>MockNotes.ets</code></td>
+          <td>补齐五类 <code>typeColor()</code> 和 <code>typeChar()</code>，兼容旧值 <code>计算/证明</code>。</td>
+          <td>L1、D3</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><code>NoteItemMapper.ets</code></td>
+          <td>新增本地 helper: <code>pickType(tags)</code>、<code>pickSubject(tags)</code>、<code>pickChapter(unit)</code>。先识别五类，再识别学科。</td>
+          <td>D1、D2</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><code>NoteItemMapper.ets</code></td>
+          <td>卡片 <code>body</code> 改为优先 <code>summary</code>，summary 空时再 fallback 到 content。</td>
+          <td>D4、L4</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><code>NoteCard.ets</code></td>
+          <td>确认长标题、五类 meta、默认颜色在首页和笔记页均不溢出。</td>
+          <td>L2、L3</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>P1: 做详情页类别感知渲染</h3>
+    <table>
+      <thead><tr><th>步骤</th><th>文件</th><th>实现内容</th><th>验收</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><code>entry/src/main/ets/overlays/NoteDetailOverlay/StructuredNoteView.ets</code></td>
+          <td>新增结构化详情入口。当前没有 <code>fields_json</code> 时，先基于 <code>parseSections(content)</code> 和标题名匹配字段。</td>
+          <td>V1、V2</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><code>NoteDetailBody.ets</code></td>
+          <td>根据 <code>note.type</code> 或 <code>unit.tags</code> 推断 category，统一走 <code>StructuredNoteView</code>；五类笔记过滤旧 <code>内容/原文/OCR</code> 正文，不保留 raw 替代展示。</td>
+          <td>V2，不出现“原文”标题</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><code>StructuredNoteView.ets</code>、<code>MathTextRenderer.ets</code></td>
+          <td>提供重点块样式: 公式块、答案块、关键思路块、普通字段块；LaTeX 与 Unicode/斜杠分数文本允许上下结构。</td>
+          <td>V4</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><code>NoteActionBar.ets</code></td>
+          <td>暂不加未实现学习按钮；只保留已有编辑/分享/删除，避免假交互。</td>
+          <td>V4</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>P2: 保留结构化字段到数据层</h3>
+    <p>这一步需要数据库迁移，建议等 P0/P1 前端效果稳定后再做。仍然不需要改分类 Agent 和 OCR。</p>
+    <table>
+      <thead><tr><th>步骤</th><th>文件</th><th>实现内容</th><th>验收</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><code>common/src/main/ets/models/CommonTypes.ets</code></td>
+          <td>扩展 <code>KnowledgeUnit</code>，加入可选 <code>category</code>、<code>subject</code>、<code>chapter</code>、<code>fieldsJson</code>。</td>
+          <td>类型编译通过</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><code>common/src/main/ets/DatabaseHelper.ets</code>、<code>entry/src/main/ets/database/NoteDao.ets</code></td>
+          <td>新增字段和读写映射；旧库用默认值兼容。</td>
+          <td>旧笔记可读，新笔记可写</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><code>KnowledgeModel.ets</code></td>
+          <td>只在 P2 才考虑把 <code>AiRawResponse.fields</code> 写入主线模型；不改 OCR/分类。</td>
+          <td>详情页不再从 Markdown 反推字段</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card ok" style="margin-top:16px;">
+    <h3>推荐落地顺序</h3>
+    <p><span class="pill">第一步</span>先做 P0。它风险最低，能立即修正五类在首页/笔记列表里的显示问题。</p>
+    <p><span class="pill">第二步</span>再做 P1。它只增加前端展示能力，并在五类详情页取缔旧正文渲染。</p>
+    <p><span class="pill">第三步</span>最后做 P2。它涉及模型和数据库迁移，应该在 UI 模板确定后实施。</p>
+  </section>
+
+  <h2>十三、本轮实施记录</h2>
+  <section class="card ok">
+    <p><span class="pill">已做 P0</span>补齐五类卡片配色/首字，修正 <code>NoteItemMapper</code> 的类型、学科、章节推断，卡片预览改为优先使用 <code>summary</code>。</p>
+    <p><span class="pill">已做 P1</span>新增 <code>StructuredNoteView</code>，详情页会按五类对现有 <code>##</code> 分段重新排序并突出“公式/答案/关键思路”等重点块；五类笔记会过滤 <code>原文/OCR/内容</code> 旧正文，详情页不再展示“原文”“识别公式”“识别原文”。</p>
+    <p><span class="pill">已做公式清洗</span><code>MathTextParser</code> 会合并 <code>aligned/align/array/pmatrix/bmatrix/cases</code> 环境，移除 <code>\left/\right</code>，把常用 LaTeX 命令转换为 Unicode；<code>MathTextRenderer</code> 对 <code>\frac</code>/<code>/frac</code>、<code>(1/r²)</code>、<code>∂/∂r</code> 等形式输出上下分数结构。</p>
+    <p><span class="pill">未做 P2</span>暂未改数据库和主线 <code>KnowledgeUnit</code> 字段，没有新增 <code>fields_json</code>。分类 Agent 与 OCR 保持未修改。</p>
+  </section>
+</main>
+</body>
+</html>
