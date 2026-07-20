@@ -24,6 +24,7 @@ import {
   W_BOLD, W_SEMIBOLD,
   glassSurfaceColor,
 } from "common"
+import { MathPreviewText } from "../../shared/components/MathPreviewText"
 
 function subjectMark(subject: string): string {
   const trimmed: string = subject.trim()
@@ -96,12 +97,15 @@ export struct SubjectCard {
         .width("100%")
         .margin({ top: S_3 })
 
-      Text(firstPreview(this.previewTitles))
-        .fontSize(F_XS)
-        .fontColor(TEXT_4)
-        .maxLines(2)
-        .lineHeight(17)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
+      MathPreviewText({
+        text: firstPreview(this.previewTitles),
+        textColor: TEXT_4,
+        fontSize: F_XS,
+        lineHeightValue: 17,
+        maxLines: 2,
+        minHeight: 32,
+        maxHeight: 38,
+      })
         .width("100%")
         .margin({ top: S_1 })
     }
@@ -151,11 +155,15 @@ export struct SubjectCard {
         .width("100%")
         .alignItems(VerticalAlign.Center)
 
-        Text(firstPreview(this.previewTitles))
-          .fontSize(F_XS)
-          .fontColor(TEXT_4)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        MathPreviewText({
+          text: firstPreview(this.previewTitles),
+          textColor: TEXT_4,
+          fontSize: F_XS,
+          lineHeightValue: 17,
+          maxLines: 1,
+          minHeight: 18,
+          maxHeight: 22,
+        })
           .width("100%")
           .margin({ top: S_1 })
       }

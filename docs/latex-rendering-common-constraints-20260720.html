@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathMind LaTeX 生成与渲染共同约束</title>
+<style>
+  :root {
+    --page: #f5f7fb;
+    --ink: #16202b;
+    --muted: #667085;
+    --line: #d8e0ea;
+    --card: #ffffff;
+    --dark: #0a0c10;
+    --surface: #10131a;
+    --surface2: #171d24;
+    --text: #f5f7fb;
+    --text2: #bec8d3;
+    --text3: #8793a0;
+    --mint: #238d68;
+    --mint2: #5be3b0;
+    --blue: #4f9bc8;
+    --danger: #b94040;
+    --amber: #9a6b20;
+    --code: #111827;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+    line-height: 1.65;
+  }
+
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 34px 24px 64px;
+  }
+
+  header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 22px;
+    align-items: end;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    line-height: 1.24;
+  }
+
+  h2 {
+    margin: 34px 0 14px;
+    font-size: 22px;
+  }
+
+  h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+  }
+
+  p {
+    margin: 0 0 10px;
+    color: var(--muted);
+  }
+
+  code {
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: #e9eef6;
+    color: #253044;
+    font-family: Consolas, "Cascadia Code", monospace;
+    font-size: 13px;
+  }
+
+  pre {
+    margin: 0;
+    padding: 14px 16px;
+    overflow-x: auto;
+    border-radius: 8px;
+    background: var(--code);
+    color: #e6edf3;
+    font-family: Consolas, "Cascadia Code", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+  }
+
+  th,
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: #eef4f2;
+    color: #23312d;
+    font-size: 13px;
+  }
+
+  td {
+    color: #344054;
+    font-size: 14px;
+  }
+
+  tr:last-child td { border-bottom: 0; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid rgba(35, 141, 104, 0.28);
+    border-radius: 999px;
+    background: rgba(91, 227, 176, 0.16);
+    color: #145f45;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .metric,
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+  }
+
+  .metric {
+    padding: 14px;
+  }
+
+  .metric strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--ink);
+    font-size: 15px;
+  }
+
+  .metric span {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .ok {
+    border-left: 4px solid var(--mint);
+  }
+
+  .bad {
+    border-left: 4px solid var(--danger);
+  }
+
+  .warn {
+    border-left: 4px solid var(--amber);
+  }
+
+  .dark-demo {
+    border-radius: 10px;
+    background: var(--dark);
+    color: var(--text);
+    padding: 18px;
+  }
+
+  .note-card {
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 14px;
+  }
+
+  .note-card + .note-card { margin-top: 12px; }
+
+  .note-title {
+    margin-bottom: 8px;
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .note-body {
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  .formula {
+    margin: 8px 0;
+    padding: 8px 10px;
+    overflow-x: auto;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.045);
+    color: var(--text);
+    font-family: "Times New Roman", serif;
+    white-space: nowrap;
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .step {
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+  }
+
+  .step strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--mint);
+  }
+
+  .step span {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .callout {
+    padding: 14px 16px;
+    border: 1px solid rgba(35, 141, 104, 0.28);
+    border-radius: 8px;
+    background: rgba(91, 227, 176, 0.12);
+  }
+
+  .callout strong { color: #145f45; }
+
+  @media (max-width: 860px) {
+    header,
+    .summary,
+    .grid,
+    .flow {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>MathMind LaTeX 生成与渲染共同约束</h1>
+      <p>适用范围：TypeClassifier、KnowledgeModel、AgentChatService、笔记详情页、AI 对话框、首页/学科块小字预览。目标是让 AI 输出、数据库存储和 KaTeX 渲染使用同一套格式边界，避免红色错误文本、美元符号外露、裸反斜杠和公式块泛滥。</p>
+    </div>
+    <span class="badge">2026-07-20 · Common Constraints</span>
+  </header>
+
+  <section class="summary">
+    <div class="metric">
+      <strong>唯一渲染核心</strong>
+      <span>公式只交给 KaTeX，旧手写分式/根号渲染不再作为主路径。</span>
+    </div>
+    <div class="metric">
+      <strong>最小存储单位</strong>
+      <span>数据库保存规范 Markdown + LaTeX 原文，不保存渲染后的 HTML。</span>
+    </div>
+    <div class="metric">
+      <strong>生成端责任</strong>
+      <span>LLM 必须输出合法 delimiter，不把裸 LaTeX 混入普通文本。</span>
+    </div>
+    <div class="metric">
+      <strong>渲染端责任</strong>
+      <span>含公式内容整段进入 KaTeX WebView，UI 可做容错归一化，但不猜测错误公式语义。</span>
+    </div>
+  </section>
+
+  <h2>1. 共同边界</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>对象</th>
+        <th>必须遵守</th>
+        <th>禁止事项</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>KnowledgeModel</td>
+        <td>生成 `title`、`summary`、`content` 时，数学符号必须使用 `$...$` 或 `$$...$$`。</td>
+        <td>禁止输出 `\int`、`\frac`、`\sqrt`、`\lim` 这种裸反斜杠公式。</td>
+      </tr>
+      <tr>
+        <td>AgentChatService</td>
+        <td>回答中短公式用 inline math，重点公式用 display math。</td>
+        <td>禁止在 display math 内再次嵌套 `$...$`。</td>
+      </tr>
+      <tr>
+        <td>数据库</td>
+        <td>保存规范 Markdown 文本。`content` 可以包含标题、段落、列表、公式。</td>
+        <td>禁止保存 KaTeX 生成的 HTML、CSS class 或 WebView 私有标记。</td>
+      </tr>
+      <tr>
+        <td>UI 渲染</td>
+        <td>详情页、对话框、预览小字都通过统一公式检测进入 KaTeX。详情正文只要含公式，就整段 Markdown 作为一个渲染单元，不再按标题/段落拆多个 WebView。</td>
+        <td>禁止恢复旧的 Text 拼接分式、手写根号、手动上下标渲染；禁止在详情正文里混用 native 结构先展示、公式 WebView 后补齐的分段加载模式。</td>
+      </tr>
+      <tr>
+        <td>渲染缓存</td>
+        <td>缓存只存在 UI 进程内，key 使用 `profile + forceDisplay + normalizedMarkdown hash`，value 保存已渲染 HTML 与高度。</td>
+        <td>禁止把缓存 HTML 写入 RDB；禁止用整段正文原文直接当缓存 key；禁止按 noteId 作为唯一缓存依据。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. LaTeX 写法硬约束</h2>
+  <div class="grid">
+    <div class="card ok">
+      <h3>行内公式</h3>
+      <p>用于短变量、短条件、句内数学对象。</p>
+      <pre>积分变量为 $x$，积分常数为 $C$。
+当 $n \neq -1$ 时公式成立。</pre>
+    </div>
+    <div class="card bad">
+      <h3>禁止裸行内公式</h3>
+      <p>裸反斜杠会被 Markdown 当普通文本处理，或被容错逻辑误判。</p>
+      <pre>积分变量为 \x，积分常数为 \C。
+当 \n \neq -1 时公式成立。</pre>
+    </div>
+    <div class="card ok">
+      <h3>展示公式</h3>
+      <p>单独成行、复杂、有分式/积分/极限的公式必须使用 `$$...$$`。</p>
+      <pre>$$
+\int x^n\,dx = \frac{x^{n+1}}{n+1} + C \quad (n \neq -1)
+$$</pre>
+    </div>
+    <div class="card bad">
+      <h3>禁止嵌套美元符号</h3>
+      <p>这是当前红色公式的主要来源：外层被当公式时，内层 `$...$` 破坏解析。</p>
+      <pre>\int x^n, dx = \frac{x^{n+1}}{n+1} + C \quad ($n \neq -1$)</pre>
+    </div>
+  </div>
+
+  <h2>3. 推荐公式模板</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>场景</th>
+        <th>推荐输出</th>
+        <th>说明</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>幂函数积分</td>
+        <td><code>$$\int x^n\,dx = \frac{x^{n+1}}{n+1} + C \quad (n \neq -1)$$</code></td>
+        <td>`dx` 前使用 `\,`，条件不要再包 `$...$`。</td>
+      </tr>
+      <tr>
+        <td>指数函数积分</td>
+        <td><code>$$\int a^x\,dx = \frac{a^x}{\ln a} + C \quad (a &gt; 0,\ a \neq 1)$$</code></td>
+        <td>多个条件放在同一个公式环境内。</td>
+      </tr>
+      <tr>
+        <td>极限</td>
+        <td><code>$$\lim_{x \to 0}\frac{\sin x}{x}=1$$</code></td>
+        <td>`\lim_{...}` 必须作为一个整体进入 KaTeX。</td>
+      </tr>
+      <tr>
+        <td>正态分布</td>
+        <td><code>$$f(x)=\frac{1}{\sigma\sqrt{2\pi}}\exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$$</code></td>
+        <td>分式、根号、指数括号交给 KaTeX，不做手写渲染。</td>
+      </tr>
+      <tr>
+        <td>段落混排</td>
+        <td><code>当 $x&gt;0$ 时，$\ln x$ 有定义；积分常数记为 $C$。</code></td>
+        <td>一句话里的短公式全部使用 inline math。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. 生成端 Prompt 约束</h2>
+  <div class="card">
+    <p>下面这段应进入 KnowledgeModel 与 AI 对话 prompt 的“数学格式要求”。</p>
+    <pre>数学公式输出规则：
+1. 行内短公式必须写成 `$...$`，例如 `$x$`、`$C$`、`$n \neq -1$`。
+2. 独立复杂公式必须写成 `$$...$$`，例如 `$$\int x^n\,dx = ...$$`。
+3. 不要输出裸 LaTeX 命令行，例如不要直接输出 `\int ...`、`\frac ...`。
+4. 不要在 `$$...$$` 内再写 `$...$`。
+5. 公式条件放在同一个公式环境里，例如 `\quad (n \neq -1)`。
+6. 文本解释和公式分开：先写一句说明，再写展示公式。</pre>
+  </div>
+
+  <h2>5. 渲染端容错边界</h2>
+  <div class="grid">
+    <div class="card ok">
+      <h3>可以自动修复</h3>
+      <p>UI 可以修复常见但语义明确的问题。</p>
+      <pre>\int x^n, dx = ... ($n \neq -1$)
+→
+$$\int x^n\,dx = ... \quad (n \neq -1)$$</pre>
+    </div>
+    <div class="card warn">
+      <h3>只能降级显示</h3>
+      <p>括号不闭合、命令拼错、公式语义缺失时，UI 不猜测数学意图。</p>
+      <pre>$$
+\frac{x+1
+$$
+
+处理：保留原文或显示错误态，不能自行补分母。</pre>
+    </div>
+  </div>
+
+  <h2>6. 数据流约定</h2>
+  <div class="flow">
+    <div class="step">
+      <strong>OCR</strong>
+      <span>只负责识别文本，尽量保留原始公式字符。</span>
+    </div>
+    <div class="step">
+      <strong>TypeClassifier</strong>
+      <span>只判断题型/学科，不改写公式正文。</span>
+    </div>
+    <div class="step">
+      <strong>KnowledgeModel</strong>
+      <span>结构化笔记，并按本约束规范化 Markdown + LaTeX。</span>
+    </div>
+    <div class="step">
+      <strong>RDB</strong>
+      <span>保存规范文本、分类、学科、标签、复习字段。</span>
+    </div>
+    <div class="step">
+      <strong>UI</strong>
+      <span>按内容类型选择整段 KaTeX 或 native 文本，并使用进程内渲染缓存。</span>
+    </div>
+  </div>
+
+  <h2>7. 当前问题复盘</h2>
+  <div class="dark-demo">
+    <div class="note-card">
+      <div class="note-title">错误来源：裸展示公式 + 内嵌美元符号</div>
+      <div class="note-body">
+        红色原文通常来自这种输入：
+        <div class="formula">\int x^n, dx = \frac{x^{n+1}}{n+1} + C \quad ($n \neq -1$)</div>
+        它应被生成端直接写成：
+        <div class="formula">$$\int x^n\,dx = \frac{x^{n+1}}{n+1} + C \quad (n \neq -1)$$</div>
+      </div>
+    </div>
+    <div class="note-card">
+      <div class="note-title">错误来源：段落行内公式没有进入 KaTeX</div>
+      <div class="note-body">
+        段落中的 `$x$`、`$C$`、`$n \neq -1$` 必须被公式检测捕获。UI 的检测条件必须包含单美元符号和反斜杠命令。
+      </div>
+    </div>
+  </div>
+
+  <h2>8. 验收标准</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>页面</th>
+        <th>必须通过</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>AI 对话框</td>
+        <td>复杂公式不露出反斜杠原文；行内 `$...$` 不显示美元符号；公式区域只有横向滚动条；同一条消息内公式不分多个 WebView 闪现。</td>
+      </tr>
+      <tr>
+        <td>笔记详情页</td>
+        <td>正文、摘要、推导段落中的行内公式和展示公式都能渲染；含公式正文作为一个整体加载，不出现标题/段落结构先显示、公式内容后补齐的明显割裂。</td>
+      </tr>
+      <tr>
+        <td>首页笔记小字</td>
+        <td>包含公式的预览不再显示红色错误文本；普通文本仍走原生截断；公式预览不撑开卡片高度。</td>
+      </tr>
+      <tr>
+        <td>学科块小字</td>
+        <td>标题或预览含公式时进入 KaTeX compact preview；不撑开卡片高度。</td>
+      </tr>
+      <tr>
+        <td>重复进入同一笔记</td>
+        <td>第二次进入同一内容时命中进程内缓存，布局先使用缓存高度，WebView 只回填已渲染 HTML，不重复执行 KaTeX 解析。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="callout" style="margin-top: 28px;">
+    <strong>结论：</strong>
+    以后判断问题时先看源文本是否符合本约束。若源文本符合约束仍渲染失败，归为 UI 渲染 bug；若源文本裸写 LaTeX、嵌套 `$...$`、括号不闭合，归为生成端格式 bug，UI 只做有限容错。
+  </section>
+</main>
+</body>
+</html>

@@ -13,6 +13,7 @@ import {
   NOTE_ICON_SIZE, NoteItem, recentDate, typeChar, typeColor, typeGlassColor,
   borderToneColor, glassHighlightColor, glassShadowColor,
 } from "common"
+import { MathPreviewText } from "./MathPreviewText"
 
 @Component
 export struct NoteCard {
@@ -64,10 +65,17 @@ export struct NoteCard {
           .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
 
         // 正文预览 (v2-ui .note-body: 12.5px 2行截断)
-        Text(this.note.body)
-          .fontSize(F_SM).fontColor(TEXT_3)
-          .margin({ top: 2 }).maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
+        MathPreviewText({
+          text: this.note.body,
+          textColor: TEXT_3,
+          fontSize: F_SM,
+          lineHeightValue: 18,
+          maxLines: 2,
+          minHeight: 34,
+          maxHeight: 42,
+        })
+          .margin({ top: 2 })
+          .width('100%')
       }
       .layoutWeight(1).margin({ left: S_3 })
     }

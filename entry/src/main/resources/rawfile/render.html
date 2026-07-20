@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="katex/katex.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+      color: #bec8d3;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.72;
+    }
+
+    body {
+      width: 100%;
+    }
+
+    #content {
+      width: 100%;
+      overflow: hidden;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    #content.chat {
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    #content.chatUser {
+      color: #103527;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    #content.note {
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    #content.preview {
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    #content p {
+      margin: 0 0 8px;
+    }
+
+    #content p:last-child {
+      margin-bottom: 0;
+    }
+
+    #content.preview p {
+      margin: 0;
+    }
+
+    #content h1,
+    #content h2,
+    #content h3,
+    #content h4 {
+      margin: 10px 0 6px;
+      color: #f5f7fb;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    #content h1 { font-size: 1.35em; }
+    #content h2 { font-size: 1.22em; }
+    #content h3,
+    #content h4 { font-size: 1.08em; }
+
+    #content ul,
+    #content ol {
+      margin: 0 0 8px 20px;
+      padding: 0;
+    }
+
+    #content li {
+      margin: 2px 0;
+    }
+
+    #content blockquote {
+      margin: 6px 0 8px;
+      padding: 4px 0 4px 10px;
+      border-left: 2px solid rgba(91, 227, 176, 0.42);
+      color: #aeb8c3;
+    }
+
+    #content code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #f5f7fb;
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    #content pre {
+      margin: 6px 0 8px;
+      padding: 8px 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    #content pre code {
+      padding: 0;
+      background: transparent;
+    }
+
+    #content a {
+      color: #5be3b0;
+    }
+
+    .katex {
+      color: #f5f7fb;
+      font-size: 1.02em;
+    }
+
+    .chatUser .katex {
+      color: #103527;
+    }
+
+    .katex-display {
+      margin: 4px 0 6px;
+      padding: 3px 0 4px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      color: #f5f7fb;
+      text-align: left;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(91, 227, 176, 0.58) transparent;
+    }
+
+    .note .katex-display {
+      margin: 7px 0 9px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.045);
+      scrollbar-color: rgba(91, 227, 176, 0.64) rgba(91, 227, 176, 0.08);
+    }
+
+    .preview .katex {
+      color: #8e99a6;
+      font-size: 0.96em;
+    }
+
+    .preview .katex-display {
+      margin: 0;
+      padding: 0;
+      scrollbar-color: rgba(91, 227, 176, 0.54) transparent;
+    }
+
+    .katex-display > .katex {
+      display: inline-block;
+      min-width: max-content;
+      max-width: none;
+      white-space: nowrap;
+    }
+
+    .katex-display::-webkit-scrollbar,
+    #content pre::-webkit-scrollbar {
+      height: 5px;
+    }
+
+    .katex-display::-webkit-scrollbar-track,
+    #content pre::-webkit-scrollbar-track {
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    .note .katex-display::-webkit-scrollbar-track,
+    #content pre::-webkit-scrollbar-track {
+      background: rgba(91, 227, 176, 0.08);
+    }
+
+    .katex-display::-webkit-scrollbar-thumb,
+    #content pre::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(91, 227, 176, 0.72), rgba(79, 155, 200, 0.68));
+    }
+
+    .katex-display::-webkit-scrollbar-thumb:hover,
+    #content pre::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(90deg, rgba(91, 227, 176, 0.92), rgba(79, 155, 200, 0.86));
+    }
+
+    .render-error {
+      color: #bec8d3;
+      font-family: "Cascadia Code", Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div id="content" class="chat"></div>
+
+  <script src="katex/marked.min.js"></script>
+  <script src="katex/katex.min.js"></script>
+  <script src="katex/auto-render.min.js"></script>
+  <script>
+    function normalizeInlineLatex(latex) {
+      return latex.replace(/\\\s/g, '\\,').trim();
+    }
+
+    function normalizeOutsideMath(segment) {
+      var withParentheses = segment.replace(/\(([^()\n]*\\[a-zA-Z]+[^()\n]*)\)/g, function (_, inner) {
+        return '($' + normalizeInlineLatex(inner) + '$)';
+      });
+      var parts = withParentheses.split('$');
+      for (var i = 0; i < parts.length; i += 2) {
+        parts[i] = parts[i]
+          .replace(/\\text\{([^{}]+)\}/g, '$\\operatorname{$1}$')
+          .replace(/\\(mu|sigma|alpha|beta|theta|lambda|pi|phi|varphi|infty|Delta|Omega)(\s*(?:=|>|<|\\le|\\ge)\s*[-+]?[\w.\\^{}]+)?/g, function (match) {
+            return '$' + match + '$';
+          });
+      }
+      return parts.join('$');
+    }
+
+    function looksLikeBareDisplayFormula(line) {
+      if (!line) {
+        return false;
+      }
+      if (line.indexOf('$$') >= 0 || line.indexOf('\\[') >= 0 || line.indexOf('\\(') >= 0) {
+        return false;
+      }
+      return /^\\(?:int|sum|lim|prod|frac|sqrt)\b/.test(line)
+        || (line.indexOf('=') >= 0 && /\\(?:int|sum|lim|prod|frac|sqrt|ln|sin|cos|tan|neq|leq|geq)\b/.test(line));
+    }
+
+    function normalizeBareDisplayFormula(line) {
+      return line
+        .replace(/\$/g, '')
+        .replace(/,(\s*)d([a-zA-Z])/g, '\\,$1d$2')
+        .trim();
+    }
+
+    function normalizeBareMath(markdown) {
+      var lines = (markdown || '').replace(/\r\n/g, '\n').split('\n');
+      var inCode = false;
+      var inDisplay = false;
+      for (var i = 0; i < lines.length; i++) {
+        var trimmed = lines[i].trim();
+        if (trimmed.indexOf('```') === 0) {
+          inCode = !inCode;
+          continue;
+        }
+        if (inCode) {
+          continue;
+        }
+        if (trimmed === '$$') {
+          inDisplay = !inDisplay;
+          continue;
+        }
+        if (trimmed === '[' || trimmed === '\\[') {
+          lines[i] = '\\[';
+          inDisplay = true;
+          continue;
+        }
+        if (trimmed === ']' || trimmed === '\\]') {
+          lines[i] = '\\]';
+          inDisplay = false;
+          continue;
+        }
+        if (inDisplay) {
+          continue;
+        }
+        if (looksLikeBareDisplayFormula(trimmed)) {
+          lines[i] = '$$' + normalizeBareDisplayFormula(trimmed) + '$$';
+          continue;
+        }
+        if (lines[i].indexOf('\\') >= 0) {
+          lines[i] = normalizeOutsideMath(lines[i]);
+        }
+      }
+      return lines.join('\n');
+    }
+
+    function setContentMode(profile) {
+      var contentEl = document.getElementById('content');
+      var mode = profile === 'note' ? 'note' : (profile === 'chatUser' ? 'chatUser' : (profile === 'preview' ? 'preview' : 'chat'));
+      contentEl.className = mode;
+      return contentEl;
+    }
+
+    function measuredHeight(contentEl) {
+      return String(Math.max(Math.ceil(contentEl.getBoundingClientRect().height), 1));
+    }
+
+    function render(markdown, profile) {
+      var contentEl = setContentMode(profile);
+      try {
+        var normalizedMarkdown = normalizeBareMath(markdown || '');
+        contentEl.innerHTML = marked.parse(normalizedMarkdown);
+        renderMathInElement(contentEl, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '\\[', right: '\\]', display: true },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '$', right: '$', display: false }
+          ],
+          throwOnError: false,
+          strict: false
+        });
+      } catch (err) {
+        contentEl.innerHTML = '<pre class="render-error"></pre>';
+        contentEl.querySelector('.render-error').textContent = markdown || '';
+      }
+      return measuredHeight(contentEl);
+    }
+
+    function renderForCache(markdown, profile) {
+      var height = render(markdown, profile);
+      var contentEl = document.getElementById('content');
+      return height + '\n' + encodeURIComponent(contentEl.innerHTML);
+    }
+
+    function applyCached(encodedHtml, profile) {
+      var contentEl = setContentMode(profile);
+      try {
+        contentEl.innerHTML = decodeURIComponent(encodedHtml || '');
+      } catch (err) {
+        contentEl.innerHTML = '';
+      }
+      return measuredHeight(contentEl);
+    }
+  </script>
+</body>
+</html>

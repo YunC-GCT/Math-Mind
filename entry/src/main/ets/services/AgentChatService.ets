@@ -147,7 +147,7 @@ export class AgentChatService {
       + '7. 总结/整理/复盘：使用标题和要点，覆盖核心结论、原因、方法、待补充内容；不要只输出一句总结。\n'
       + '8. 信息不足时先说明缺少什么，可以基于上文给出合理假设；无法确定时追问，不编造题目或结论。\n'
       + '9. 不要主动生成笔记；只有系统已判定用户明确要保存/生成笔记时，才会走笔记生成链路。\n'
-      + '10. 数学符号用 Unicode 或 LaTeX，排版要便于手机端阅读。';
+      + '10. 数学符号用 Unicode 或 LaTeX，排版要便于手机端阅读。LaTeX 必须带 delimiter：行内公式用 $...$，展示公式用 $$...$$；不要输出裸 \\mu、\\sigma、\\text{erf}，不要用单独的 [ ] 包公式。';
     const profileContext: string = learnerProfileContext.trim();
     if (profileContext.length > 0) {
       systemPrompt += '\n\n用户画像如下，只用于控制解释密度和回答粒度，不要在回答中复述画像：\n' + profileContext;

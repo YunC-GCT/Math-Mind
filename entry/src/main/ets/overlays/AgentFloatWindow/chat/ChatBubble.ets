@@ -25,6 +25,7 @@ export struct ChatBubble {
           Column() {
             MathTextRenderer({
               text: this.msg.content,
+              profile: 'chatUser',
               textColor: MINT_DARK,
               formulaColor: MINT_DARK,
               formulaBackground: 'rgba(255,255,255,0.10)',
@@ -55,6 +56,7 @@ export struct ChatBubble {
 
             MathTextRenderer({
               text: this.msg.content,
+              profile: 'chat',
               textColor: TEXT_2,
               formulaColor: TEXT_2,
               formulaBackground: 'rgba(255,255,255,0.06)',

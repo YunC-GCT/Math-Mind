@@ -24,30 +24,45 @@ export struct MarkdownRenderer {
   @Prop text: string = ''
 
   build() {
-    Column() {
-      ForEach(parseMarkdown(this.text),
-        (block: MarkdownBlock, index: number): void => {
-          if (block.kind === 'heading') {
-            this.Heading(block)
-          } else if (block.kind === 'list') {
-            this.ListBlock(block)
-          } else if (block.kind === 'quote') {
-            this.QuoteBlock(block)
-          } else if (block.kind === 'code') {
-            this.CodeBlock(block)
-          } else if (block.kind === 'formula') {
-            this.FormulaBlock(block)
-          } else if (block.kind === 'rule') {
-            this.RuleBlock()
-          } else {
-            this.Paragraph(block.text)
-          }
-        },
-        (_block: MarkdownBlock, index: number): string => index.toString()
-      )
+    if (this.containsFormulaSyntax(this.text)) {
+      MathTextRenderer({
+        text: this.text,
+        profile: 'note',
+        textColor: TEXT_2,
+        formulaColor: TEXT_2,
+        formulaBackground: 'rgba(255,255,255,0.04)',
+        formulaBorder: 'rgba(255,255,255,0.10)',
+        fontSize: F_BASE,
+        lineHeight: 26,
+        formulaFontSize: F_BASE,
+        formulaLineHeight: 26,
+      })
+    } else {
+      Column() {
+        ForEach(parseMarkdown(this.text),
+          (block: MarkdownBlock, index: number): void => {
+            if (block.kind === 'heading') {
+              this.Heading(block)
+            } else if (block.kind === 'list') {
+              this.ListBlock(block)
+            } else if (block.kind === 'quote') {
+              this.QuoteBlock(block)
+            } else if (block.kind === 'code') {
+              this.CodeBlock(block)
+            } else if (block.kind === 'formula') {
+              this.FormulaBlock(block)
+            } else if (block.kind === 'rule') {
+              this.RuleBlock()
+            } else {
+              this.Paragraph(block.text)
+            }
+          },
+          (_block: MarkdownBlock, index: number): string => index.toString()
+        )
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -66,6 +81,7 @@ export struct MarkdownRenderer {
     if (this.containsFormulaSyntax(text)) {
       MathTextRenderer({
         text: text,
+        profile: 'note',
         textColor: TEXT_2,
         formulaColor: TEXT_2,
         formulaBackground: 'rgba(255,255,255,0.04)',
@@ -179,6 +195,8 @@ export struct MarkdownRenderer {
   FormulaBlock(block: MarkdownBlock) {
     MathTextRenderer({
       text: block.text,
+      profile: 'note',
+      forceDisplay: true,
       textColor: TEXT_2,
       formulaColor: TEXT_2,
       formulaBackground: 'rgba(255,255,255,0.04)',
@@ -213,8 +231,10 @@ export struct MarkdownRenderer {
 
   private containsFormulaSyntax(text: string): boolean {
     return text.indexOf('$$') >= 0
+      || text.indexOf('$') >= 0
       || text.indexOf('\\[') >= 0
       || text.indexOf('\\(') >= 0
+      || text.indexOf('\\') >= 0
       || text.indexOf('\\frac') >= 0
       || text.indexOf('\\sqrt') >= 0
       || text.indexOf('\\sum') >= 0

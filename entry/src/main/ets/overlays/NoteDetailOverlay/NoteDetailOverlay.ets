@@ -70,7 +70,7 @@ export struct NoteDetailOverlay {
           NoteCloseButton({ onClose: (): void => this.closeOrCancel() })
 
           Column() {
-            Text(this.headerTitle())
+            Text(this.modeTitle())
               .fontSize(F_MD)
               .fontWeight(W_SEMIBOLD)
               .fontColor(TEXT)
@@ -96,10 +96,6 @@ export struct NoteDetailOverlay {
         .padding({ left: 16, right: 16, top: 8, bottom: 8 })
         .alignItems(VerticalAlign.Center)
 
-        if (!this.isEditing) {
-          NoteDetailMeta({ note: this.note, unit: this.effectiveUnit() })
-        }
-
         Scroll() {
           Column() {
             if (this.isEditing) {
@@ -114,6 +110,7 @@ export struct NoteDetailOverlay {
                 onTagsChange: (value: string): void => { this.tagsText = value },
               })
             } else {
+              NoteDetailMeta({ note: this.note, unit: this.effectiveUnit() })
               NoteDetailBody({ note: this.note, unit: this.effectiveUnit(), units: this.units })
             }
           }
@@ -243,18 +240,14 @@ export struct NoteDetailOverlay {
     return this.localUnit !== null ? this.localUnit : this.unit
   }
 
-  private headerTitle(): string {
+  private modeTitle = (): string => {
     if (this.isCreating) {
       return 'New note'
     }
     if (this.isEditing) {
       return 'Edit note'
     }
-    const current: KnowledgeUnit | null = this.effectiveUnit()
-    if (current !== null && current.title.length > 0) {
-      return current.title
-    }
-    return this.note.title
+    return 'Note detail'
   }
 
   private startEdit = (): void => {
