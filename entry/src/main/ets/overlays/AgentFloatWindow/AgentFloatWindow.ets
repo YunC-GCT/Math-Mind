@@ -6,7 +6,12 @@
 //  业务: AgentChatService
 //  ============================================================================
 
-import { MINT, PURPLE, PURPLE_LIGHT, BG_DARK, TEXT_3, TEXT_4, BORDER, S_3, S_6, R_XL, OVERLAY_MASK, SCREEN_H, F_XS } from 'common';
+import {
+  BG_DARK, TEXT_4, BORDER,
+  S_3, S_6, R_XL,
+  OVERLAY_MASK, SCREEN_H,
+  DUR_FAST, DUR_BASE,
+} from 'common';
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import window from '@ohos.window';
@@ -23,9 +28,13 @@ import { AgentInputBar } from './AgentInputBar';
 
 function nowId(): number { return Date.now() * 1000 + Math.floor(Math.random() * 1000); }
 
+const FLOAT_SHEET_OPEN_OFFSET: number = 22;
+const FLOAT_SHEET_CLOSE_OFFSET: number = 18;
+const FLOAT_UNMOUNT_DELAY_MS: number = DUR_FAST + 40;
+
 @Component
 export struct AgentFloatWindow {
-  @Prop show: boolean = false;
+  @Prop @Watch('onShowChange') show: boolean = false;
   onClose: () => void = (): void => {};
   onGoCamera: () => void = (): void => {};
   @Prop @Watch('onPendingImageChange') pendingImageUri: string = '';
@@ -40,6 +49,11 @@ export struct AgentFloatWindow {
   @State activeSid: string = 's1';
   @State renderKey: number = 0;
   @State floatHeight: number = 48;
+  @State overlayVisible: boolean = false;
+  @State maskOpacity: number = 0;
+  @State sheetOpacity: number = 0;
+  @State sheetOffset: number = FLOAT_SHEET_OPEN_OFFSET;
+  private motionSeq: number = 0;
   private dragStartH: number = 48;
   private mainWindow: window.Window | null = null;
   private scroller: Scroller = new Scroller();
@@ -48,8 +62,24 @@ export struct AgentFloatWindow {
 
   // ===== 生命周期 =====
 
-  aboutToAppear(): void { this.loadHistory(); this.initKeyboard(); }
+  aboutToAppear(): void {
+    this.loadHistory();
+    this.initKeyboard();
+    if (this.show) {
+      this.overlayVisible = true;
+      this.maskOpacity = 1;
+      this.sheetOpacity = 1;
+      this.sheetOffset = 0;
+    }
+  }
   aboutToDisappear(): void { if (this.mainWindow) { this.mainWindow.off('keyboardHeightChange'); }; this.sm.save(this.sessions); }
+  onShowChange(): void {
+    if (this.show) {
+      this.openAnimated();
+      return;
+    }
+    this.closeAnimated();
+  }
   onPendingImageChange(): void { if (this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri; } }
   onMessagesChange(): void {
     if (this.messages.length > 0) {
@@ -134,12 +164,54 @@ export struct AgentFloatWindow {
     return model.length > 0 ? model : 'DeepSeek-V4-Pro'
   }
 
+  private openAnimated(): void {
+    this.motionSeq += 1;
+    const seq: number = this.motionSeq;
+    this.overlayVisible = true;
+    this.maskOpacity = 0;
+    this.sheetOpacity = 0;
+    this.sheetOffset = FLOAT_SHEET_OPEN_OFFSET;
+    setTimeout((): void => {
+      if (seq !== this.motionSeq || !this.show) {
+        return;
+      }
+      animateTo({ duration: DUR_BASE, curve: Curve.FastOutSlowIn }, (): void => {
+        this.maskOpacity = 1;
+        this.sheetOpacity = 1;
+        this.sheetOffset = 0;
+      });
+    }, 0);
+  }
+
+  private closeAnimated(): void {
+    this.motionSeq += 1;
+    const seq: number = this.motionSeq;
+    if (!this.overlayVisible) {
+      return;
+    }
+    animateTo({ duration: DUR_FAST, curve: Curve.FastOutSlowIn }, (): void => {
+      this.maskOpacity = 0;
+      this.sheetOpacity = 0;
+      this.sheetOffset = FLOAT_SHEET_CLOSE_OFFSET;
+    });
+    setTimeout((): void => {
+      if (seq === this.motionSeq && !this.show) {
+        this.overlayVisible = false;
+      }
+    }, FLOAT_UNMOUNT_DELAY_MS);
+  }
+
   // ===== build =====
 
   build() {
     Stack() {
-      if (this.show) {
-        Column().width('100%').height('100%').backgroundColor(OVERLAY_MASK).onClick((): void => this.onClose());
+      if (this.overlayVisible) {
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor(OVERLAY_MASK)
+          .opacity(this.maskOpacity)
+          .onClick((): void => this.onClose());
         Column() {
           // 拖拽手柄
           Row() { Row().width(36).height(5).borderRadius(3).backgroundColor(TEXT_4); }
@@ -168,8 +240,9 @@ export struct AgentFloatWindow {
         }
         .width('100%').height(this.floatHeight + '%').backgroundColor(BG_DARK)
         .borderRadius({ topLeft: R_XL, topRight: R_XL }).padding({ left: S_3, right: S_3 })
-        .position({ x: 0, y: '100%' }).markAnchor({ x: 0, y: '100%' }).translate({ y: -(74 + this.keyboardHeight) });
+        .opacity(this.sheetOpacity)
+        .position({ x: 0, y: '100%' }).markAnchor({ x: 0, y: '100%' }).translate({ y: -(74 + this.keyboardHeight) + this.sheetOffset });
       }
-    }.width('100%').height('100%').hitTestBehavior(this.show ? HitTestMode.Default : HitTestMode.None);
+    }.width('100%').height('100%').hitTestBehavior(this.overlayVisible ? HitTestMode.Default : HitTestMode.None);
   }
 }
