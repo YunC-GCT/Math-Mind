@@ -155,6 +155,7 @@ export class AgentMemoryService {
     const raw: string = await new LlmClient().call(llmMessages, {
       maxTokens: 512,
       timeoutMs: 60000,
+      responseFormat: { type: 'json_object' },
     });
     const updated: LearnerProfile | null = AgentMemoryService.parseLearnerProfileJson(raw, Date.now());
     if (updated === null) {

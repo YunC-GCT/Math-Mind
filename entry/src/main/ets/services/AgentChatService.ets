@@ -186,6 +186,7 @@ export class AgentChatService {
       const raw: string = await new LlmClient().call(messages, {
         maxTokens: 80,
         timeoutMs: 30000,
+        responseFormat: { type: 'json_object' },
       });
       return this.parseTextIntent(raw);
     } catch (e) {

@@ -111,7 +111,8 @@ export class KnowledgeModel {
       : undefined;
     const chapterHint: string = classificationHint.chapter ?? chapter;
 
-    // 尝试 AI 结构化；失败时用已有分类结果构造 fallback 笔记，不丢数据
+    // 尝试 AI 结构化；失败时暂时沿用 fallback 笔记，不丢数据。
+    // TODO: 后续改为结构化失败直接返回错误，由上层阻止入库，避免生成低质量占位笔记。
     let aiRaw: AiRawResponse;
     try {
       aiRaw = await this.callAi(
@@ -202,6 +203,7 @@ export class KnowledgeModel {
   }
 
   // AI 调用失败 fallback: 用 TypeClassifier 已有分类结果构造基础笔记
+  // TODO: 后续删除该 fallback，改成显式失败，不再自动创建笔记。
   // 不调 AI，直接返回 KnowledgeUnit（标题来自 OCR 首行，标签来自分类结果）
   private buildFallbackFromClassify(
     ocrText: string, type?: string, subject?: string, chapter: string = '',

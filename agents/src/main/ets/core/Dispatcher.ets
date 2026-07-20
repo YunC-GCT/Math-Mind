@@ -45,8 +45,6 @@ import {
   DispatchResult,
   DispatchAnalysisResult,
   ClassificationResult,
-  ReviewStatus,
-  DifficultyLevel,
 } from 'common';
 
 const log = new Logger('Dispatcher');
@@ -110,17 +108,11 @@ export class Dispatcher {
           ocrText = req.payload.text;
           log.info('ocrText fallback to payload.text (text kind)');
         } else {
-          // image / file 拿到空 ocrText — 跳过 AI，直接返回 fallback 笔记框架
-          log.warn('OCR 返回空, 跳过 KnowledgeModel, 构造 fallback KnowledgeUnit, payload.kind=' + req.payload.kind);
-          const fallbackUnit: KnowledgeUnit = this.buildFallbackUnit(
-            '概念',
-            '',
-            '',
-          );
+          log.warn('OCR returned empty text, note generation blocked, payload.kind=' + req.payload.kind);
           return {
-            success: true,
+            success: false,
             route: 'D1',
-            data: fallbackUnit,
+            errorMessage: 'OCR 未识别到可生成笔记的内容，未保存笔记。请重拍、检查 OCR 服务，或手动补充文本后再生成。',
             durationMs: Date.now() - t0,
           };
         }
@@ -156,35 +148,4 @@ export class Dispatcher {
     return await this.dispatch(req, context);
   }
 
-  // OCR 空 fallback: 不调 AI, 直接构造最小 KnowledgeUnit 框架
-  // 避免把中文错误提示当数学题喂给 LLM
-  private buildFallbackUnit(type: string, subject: string, chapter: string): KnowledgeUnit {
-    const now: number = Date.now();
-    const title: string = (type.length > 0 ? type : '未分类题目')
-      + (subject.length > 0 ? ' · ' + subject : '')
-      + ' (待补充)';
-    return {
-      id: 'KB-FB-' + now.toString(36) + '-' + Math.random().toString(36).substring(2, 8),
-      title: title,
-      content: '## 内容\n[OCR 未识别到内容，请人工补充题目详情]',
-      summary: 'OCR 暂不可达，已保存框架笔记，请手动编辑补充',
-      tags: [type, chapter].filter((s: string): boolean => s.length > 0),
-      subject: subject,
-      category: type,
-      difficulty: DifficultyLevel.MEDIUM,
-      source: 'camera_capture',
-      createdAt: now,
-      updatedAt: now,
-      reviewStatus: ReviewStatus.NEW,
-      nextReviewAt: now + 24 * 60 * 60 * 1000,
-      intervalDays: 1,
-      easeFactor: 2.5,
-      repetitions: 0,
-      prerequisites: [],
-      related: [],
-      embedding: [],
-      userId: '',
-      version: 1,
-    };
-  }
 }

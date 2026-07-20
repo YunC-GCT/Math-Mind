@@ -59,6 +59,9 @@ export class LlmClient {
       max_tokens: maxTokens,
       stream: false,
     };
+    if (opts?.responseFormat !== undefined) {
+      body.response_format = opts.responseFormat;
+    }
 
     // 3. 发 HTTP POST
     const endpointUrl: string = this.resolveEndpointUrl(this.config.getEndpoint());
