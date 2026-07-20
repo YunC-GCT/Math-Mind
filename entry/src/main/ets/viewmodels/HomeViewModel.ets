@@ -45,7 +45,8 @@ export class HomeViewModel {
     try {
       const store = await DatabaseHelper.init(context)
       return await new NoteDao(store).queryById(id)
-    } catch (_e) {
+    } catch (e) {
+      console.warn("[HomeViewModel] loadNote failed: " + ((e as Error).message ?? String(e)))
       return null
     }
   }

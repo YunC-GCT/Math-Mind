@@ -6,6 +6,43 @@
 
 ---
 
+## 2026-07-20 旧数据兼容说明：不是两套数据库
+
+当前不存在“新旧两套数据库”。应用仍使用同一个 `MathMind.db`，主表仍是 `knowledge_unit`。
+
+需要注意的是：`KnowledgeUnit` 在 2026-07-20 后新增了独立的 `subject` 和 `category` 必填字段。旧版本已经保存过的笔记行可能没有这两个字段的有效语义，表现为字段为空、旧分类仍混在 `tags` 中，或 UI 需要从旧标签兜底推断。
+
+当前兼容策略：
+
+- `DatabaseHelper` 会检查 `knowledge_unit` 是否存在 `subject` / `category` 列，缺列时只补缺失列，不重复迁移。
+- `NoteDao.rowToUnit()` 读取旧库时对缺失列使用默认值，避免旧 ResultSet 直接崩溃。
+- `NoteItemMapper` 优先使用 `unit.subject` / `unit.category`，为空时再从旧 `tags` 推断，保证旧笔记仍可展示。
+- `NoteDetailOverlay` 手工新建或编辑保存笔记时会补齐 `subject` / `category`：已有笔记优先保留原字段，旧数据为空时从 UI note 或 tags 推断，最后兜底为 `其它` / `概念`。
+
+结论：这是“旧数据缺少新字段语义”的兼容问题，不是数据库分裂。后续如需彻底清理，可增加一次轻量数据回填，把旧笔记中的空 `subject/category` 批量补齐。
+
+---
+
+## 2026-07-20 YunCeH Review 页合并与 main 同步
+
+### 做了什么
+
+- 将原 `StudyPlan` 独立页面能力合入 `Review` Tab，复习页内部新增“复习计划 / 知识图谱”切换，减少底部导航入口数量。
+- 新增 `ReviewPlanView.ets`、`ReviewPlanRow.ets`、`ReviewTabSwitch.ets` 和 `ReviewGraphView.ets`，承接计划列表、拖拽排序、跨区移动和图谱占位视图。
+- 删除旧 `entry/src/main/ets/pages/StudyPlan/` 页面组件，并同步移除 `main_pages.json` 中的独立 StudyPlan 页面注册。
+- 合入 `origin/main` 的 Notes editor / Markdown 渲染能力，并持续合入本地 `main` 的 agents 分类稳定化、DAO 兼容读取、AI 浮窗动画、行内公式解析和旧数据兼容修复。
+- `HomeViewModel.ets` 合并冲突已处理：保留 `YunCeH` 的 `units` 缓存与 `loadNote()`，同时保留 `main` 的错误日志输出。
+
+### 验证
+
+- `origin/main` 合入 `YunCeH` 时无冲突。
+- 本地 `main` 合入 `YunCeH` 时仅 `HomeViewModel.ets` 有内容冲突，已解决并生成 merge commit `88fa52b Merge branch 'main' into YunCeH`。
+- 本次继续合入本地 `main` 的 `e8277c9 docs(readme): document legacy note compatibility`，无代码冲突；README 两段 2026-07-20 说明已合并整理。
+- 已做文件级 `git diff --check HEAD`，无输出。
+- DevEco Studio GUI 编译和真机 smoke test 仍需手动执行。
+
+---
+
 ## 2026-07-20 远端同步与 Notes 页结构优化
 
 ### 做了什么
