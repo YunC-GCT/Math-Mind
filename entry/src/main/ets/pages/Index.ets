@@ -13,7 +13,7 @@ import { ProfilePage } from "./Profile/ProfilePage"
 import { TabBar } from "./MainTabs/TabBar"
 import { AgentFloatWindow } from "../overlays/AgentFloatWindow/AgentFloatWindow"
 import { CameraOverlay } from "../overlays/CameraOverlay/CameraOverlay"
-import { promptAction, KeyboardAvoidMode } from "@kit.ArkUI"
+import { KeyboardAvoidMode } from "@kit.ArkUI"
 import { OverlayService } from "../services/OverlayService"
 
 const overlays = new OverlayService();
@@ -56,11 +56,7 @@ struct Index {
             Column().width("100%").height("100%").backgroundColor(BG_DARK)
           }
           TabContent() {
-            ReviewPage({
-              onGoAI: (): void => {
-                try { promptAction.showToast({ message: "AI 对话功能开发中", duration: 1500 }) } catch (e) {}
-              }
-            })
+            ReviewPage()
           }
           TabContent() { ProfilePage() }
         }

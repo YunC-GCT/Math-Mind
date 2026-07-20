@@ -18,7 +18,7 @@ export struct AppIcon {
     if (this.name === "close") { return "x" }
     if (this.name === "check") { return "\u2713" }
     if (this.name === "plus") { return "+" }
-    if (this.name === "trash") { return "Del" }
+    if (this.name === "trash") { return "\u00d7" }
     if (this.name === "edit") { return "Edit" }
     if (this.name === "share") { return "\u2197" }
     if (this.name === "copy") { return "Copy" }
@@ -26,7 +26,9 @@ export struct AppIcon {
     if (this.name === "feedback") { return "!" }
     if (this.name === "book") { return "Book" }
     if (this.name === "chevron-right") { return "\u203a" }
+    if (this.name === "chevron-up") { return "\u02c4" }
     if (this.name === "chevron-down") { return "\u25be" }
+    if (this.name === "handle") { return "\u2261" }
     if (this.name === "star") { return "\u2726" }
     if (this.name === "paperclip") { return "Link" }
     return ""

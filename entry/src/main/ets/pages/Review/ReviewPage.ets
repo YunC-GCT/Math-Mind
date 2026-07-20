@@ -1,97 +1,262 @@
-// ============================================================================
-//  pages/Review/ReviewPage.ets — 复习计划页
-//  ----------------------------------------------------------------------------
-//  职责: MVP 阶段复习页空状态 + 引导用户打开学习计划。
-//
-//  布局(垂直居中):
-//    [状态栏占位]
-//    [复习图标]
-//    "学习计划"
-//    "通过 AI 对话分析笔记后 / 自动生成个性化复习计划"
-//    [打开学习计划] 按钮(跳转 StudyPlanPage)
-//
-//  依赖:
-//    shared: AppIcon
-//    common 令牌: MINT / MINT_DARK / BG_DARK / TEXT / TEXT_3 / R_FULL /
-//         F_SM / F_BASE / F_2XL / W_SEMIBOLD
-//
-//  Props:
-//    onGoAI: 点击 AI 按钮回调(由 Index.ets 注入,目前 toast 提示)
-//
-//  来源: W3 refactor 状态栏避让 + 令牌化
-//  ============================================================================
-
-import {
-  MINT, MINT_DARK, BG_DARK, TEXT, TEXT_3, R_FULL,
-  F_SM, F_BASE, F_2XL, W_SEMIBOLD,
-} from "common"
-import { router } from "@kit.ArkUI"
+import { BG_DARK, BORDER, GLASS_8, MINT, S_2, S_3, S_5, R_LG, F_BASE, StudyPlanItem } from "common"
+import { promptAction } from "@kit.ArkUI"
+import { StudyPlanViewModel } from "../../viewmodels/StudyPlanViewModel"
+import { ReviewGraphView } from "./ReviewGraphView"
+import { ReviewPlanView } from "./ReviewPlanView"
+import { ReviewTabSwitch } from "./ReviewTabSwitch"
 import { AppIcon } from "../../shared/components/AppIcon"
+
+const REVIEW_TAB_PLAN: number = 0
+const REVIEW_TAB_GRAPH: number = 1
 
 @Component
 export struct ReviewPage {
-  // 状态栏高度(沉浸式占位)
   @StorageProp("statusBarHeight") sbh: number = 0
+  @State activeTab: number = REVIEW_TAB_PLAN
+  @State vm: StudyPlanViewModel = new StudyPlanViewModel()
+  @State liveIds: string[] = []
+  @State planOrderIds: string[] = []
+  @State showAddPlan: boolean = false
+  @State addTitle: string = ""
+  @State previewItems: StudyPlanItem[] = [
+    new StudyPlanItem("矩阵行列式计算", 1),
+    new StudyPlanItem("极限 ε-δ 定义", 2),
+    new StudyPlanItem("线性方程组基础变形", 2),
+  ]
+  aboutToAppear(): void {
+    this.reloadPlans()
+  }
 
-  // 外部回调(由 Index.ets 注入,默认空函数防未注入报错)
-  onGoAI: () => void = (): void => {}
+  onPageShow(): void {
+    this.reloadPlans()
+  }
+
+  private reloadPlans(): void {
+    this.vm.init(getContext(this)).then((): void => {
+      if (this.vm.initError) {
+        try { promptAction.showToast({ message: "复习数据加载失败", duration: 1500 }) } catch (_e) {}
+      }
+      this.syncPlanOrder()
+      this.pruneLiveQueue()
+    })
+  }
+
+  private pruneLiveQueue(): void {
+    if (this.liveIds.length > 0) {
+      this.liveIds = this.liveIds.filter((id: string): boolean => this.hasActivePlan(id))
+    }
+  }
+
+  private hasActivePlan(id: string): boolean {
+    return this.activeItems().findIndex((item: StudyPlanItem): boolean => item.id === id && !item.isDone) >= 0
+  }
+
+  private rawActiveItems(): StudyPlanItem[] {
+    const realItems: StudyPlanItem[] = this.vm.items.filter((item: StudyPlanItem): boolean => !item.isDone)
+    return realItems.length > 0 ? realItems : this.previewItems
+  }
+
+  private activeItems(): StudyPlanItem[] {
+    const rawItems: StudyPlanItem[] = this.rawActiveItems()
+    const result: StudyPlanItem[] = []
+    this.planOrderIds.forEach((id: string): void => {
+      const found: StudyPlanItem | undefined = rawItems.find((item: StudyPlanItem): boolean => item.id === id)
+      if (found !== undefined) {
+        result.push(found)
+      }
+    })
+    rawItems.forEach((item: StudyPlanItem): void => {
+      if (result.findIndex((candidate: StudyPlanItem): boolean => candidate.id === item.id) < 0) {
+        result.push(item)
+      }
+    })
+    return result
+  }
+
+  private syncPlanOrder(): void {
+    const rawItems: StudyPlanItem[] = this.rawActiveItems()
+    const nextIds: string[] = []
+    this.planOrderIds.forEach((id: string): void => {
+      if (rawItems.findIndex((item: StudyPlanItem): boolean => item.id === id) >= 0) {
+        nextIds.push(id)
+      }
+    })
+    rawItems.forEach((item: StudyPlanItem): void => {
+      if (nextIds.indexOf(item.id) < 0) {
+        nextIds.push(item.id)
+      }
+    })
+    this.planOrderIds = nextIds
+  }
+
+  private addReviewPlan = (): void => {
+    this.activeTab = REVIEW_TAB_PLAN
+    this.showAddPlan = !this.showAddPlan
+    if (!this.showAddPlan) {
+      this.addTitle = ""
+    }
+  }
+
+  private changeAddTitle = (value: string): void => {
+    this.addTitle = value
+  }
+
+  private cancelAddPlan = (): void => {
+    this.addTitle = ""
+    this.showAddPlan = false
+  }
+
+  private submitAddPlan = (): void => {
+    const trimmed: string = this.addTitle.trim()
+    if (trimmed.length === 0) {
+      try { promptAction.showToast({ message: "请输入复习计划", duration: 1200 }) } catch (_e) {}
+      return
+    }
+    this.vm.newTitle = trimmed
+    this.vm.addItem().then((): void => {
+      this.addTitle = ""
+      this.showAddPlan = false
+      this.syncPlanOrder()
+      this.pruneLiveQueue()
+    })
+  }
+
+  private changeTab = (tab: number): void => {
+    this.activeTab = tab
+  }
+
+  private addToLive = (item: StudyPlanItem): void => {
+    if (this.liveIds.indexOf(item.id) >= 0) {
+      return
+    }
+    const nextIds: string[] = this.liveIds.filter((id: string): boolean => this.hasActivePlan(id))
+    nextIds.push(item.id)
+    this.liveIds = nextIds
+    try { promptAction.showToast({ message: "已加入实时队列", duration: 1000 }) } catch (_e) {}
+  }
+
+  private addToLiveTop = (item: StudyPlanItem): void => {
+    const nextIds: string[] = this.liveIds
+      .filter((id: string): boolean => this.hasActivePlan(id) && id !== item.id)
+    nextIds.unshift(item.id)
+    this.liveIds = nextIds
+    try { promptAction.showToast({ message: "已移至实时队列顶部", duration: 1000 }) } catch (_e) {}
+  }
+
+  private moveLivePlan = (item: StudyPlanItem, direction: number): void => {
+    const ids: string[] = this.liveIds.filter((id: string): boolean => this.hasActivePlan(id))
+    const index: number = ids.indexOf(item.id)
+    const target: number = index + direction
+    if (index < 0 || target < 0 || target >= ids.length) {
+      return
+    }
+    const moved: string = ids[index]
+    ids[index] = ids[target]
+    ids[target] = moved
+    this.liveIds = ids
+  }
+
+  private moveReviewPlan = (item: StudyPlanItem, direction: number): void => {
+    this.syncPlanOrder()
+    const reviewIds: string[] = this.activeItems()
+      .filter((candidate: StudyPlanItem): boolean => this.liveIds.indexOf(candidate.id) < 0)
+      .map((candidate: StudyPlanItem): string => candidate.id)
+    const index: number = reviewIds.indexOf(item.id)
+    const target: number = index + direction
+    if (index < 0 || target < 0 || target >= reviewIds.length) {
+      return
+    }
+    const sourcePos: number = this.planOrderIds.indexOf(reviewIds[index])
+    const targetPos: number = this.planOrderIds.indexOf(reviewIds[target])
+    if (sourcePos < 0 || targetPos < 0) {
+      return
+    }
+    const nextIds: string[] = this.planOrderIds.slice(0)
+    const moved: string = nextIds[sourcePos]
+    nextIds[sourcePos] = nextIds[targetPos]
+    nextIds[targetPos] = moved
+    this.planOrderIds = nextIds
+  }
+
+  private removeFromLive = (item: StudyPlanItem): void => {
+    this.liveIds = this.liveIds.filter((id: string): boolean => id !== item.id)
+    const nextIds: string[] = this.planOrderIds.filter((id: string): boolean => id !== item.id)
+    nextIds.unshift(item.id)
+    this.planOrderIds = nextIds
+    try { promptAction.showToast({ message: "已移回复习队列", duration: 1000 }) } catch (_e) {}
+  }
+
+  private crossToReview = (item: StudyPlanItem): void => {
+    this.liveIds = this.liveIds.filter((id: string): boolean => id !== item.id)
+    const nextIds: string[] = this.planOrderIds.filter((id: string): boolean => id !== item.id)
+    nextIds.unshift(item.id)
+    this.planOrderIds = nextIds
+    try { promptAction.showToast({ message: "已移回复习队列", duration: 1000 }) } catch (_e) {}
+  }
+
+  private deletePlan = (item: StudyPlanItem): void => {
+    this.liveIds = this.liveIds.filter((id: string): boolean => id !== item.id)
+    this.planOrderIds = this.planOrderIds.filter((id: string): boolean => id !== item.id)
+    if (this.vm.items.length === 0) {
+      this.previewItems = this.previewItems.filter((candidate: StudyPlanItem): boolean => candidate.id !== item.id)
+      try { promptAction.showToast({ message: "已删除计划", duration: 1000 }) } catch (_e) {}
+      return
+    }
+    this.vm.deleteItem(item).then((): void => {
+      this.pruneLiveQueue()
+      try { promptAction.showToast({ message: "已删除计划", duration: 1000 }) } catch (_e) {}
+    })
+  }
 
   build() {
     Column() {
-      // 状态栏占位
       Row()
         .width("100%")
         .height(this.sbh)
         .backgroundColor(BG_DARK)
 
-      Scroll() {
-        Column() {
-          Blank()
+      Row({ space: S_3 }) {
+        ReviewTabSwitch({
+          activeTab: this.activeTab,
+          onChange: this.changeTab,
+        })
+          .layoutWeight(1)
 
-          // 空状态区(垂直居中)
-          Column() {
-            // 复习图标
-            AppIcon({ name: "review", iconSize: F_2XL + 18, color: MINT, strokeWidth: 1.8 })
-              .margin({ bottom: 12 })
-
-            // 标题
-            Text("学习计划")
-              .fontSize(F_BASE + 1)
-              .fontWeight(W_SEMIBOLD)
-              .fontColor(TEXT)
-              .margin({ bottom: 8 })
-
-            // 副描述
-            Text("通过 AI 对话分析笔记后\n自动生成个性化复习计划")
-              .fontSize(F_SM + 1)
-              .fontColor(TEXT_3)
-              .textAlign(TextAlign.Center)
-              .lineHeight(20)
-              .margin({ bottom: 16 })
-
-            // 跳转学习计划页按钮
-            Button("打开学习计划")
-              .fontSize(F_SM)
-              .fontWeight(W_SEMIBOLD)
-              .fontColor(BG_DARK)
-              .width(140)
-              .height(44)
-              .borderRadius(R_FULL)
-              .linearGradient({ angle: 135, colors: [[MINT, 0], [MINT_DARK, 1]] })
-              .onClick((): void => {
-                router.pushUrl({ url: "pages/StudyPlan/StudyPlanPage" })
-              })
-          }
-          .alignItems(HorizontalAlign.Center)
-          .width("100%")
-
-          Blank()
+        Button() {
+          AppIcon({ name: this.showAddPlan ? "close" : "plus", iconSize: F_BASE + 6, color: MINT, strokeWidth: 1.8 })
         }
-        .width("100%")
-        .height("100%")
+        .width(40)
+        .height(40)
+        .borderRadius(R_LG)
+        .backgroundColor(GLASS_8)
+        .border({ width: 0.5, color: BORDER })
+        .onClick(this.addReviewPlan)
       }
       .width("100%")
-      .height("100%")
+      .padding({ left: S_5, right: S_5, top: S_3, bottom: S_2 })
+      .alignItems(VerticalAlign.Center)
+
+      if (this.activeTab === REVIEW_TAB_PLAN) {
+        ReviewPlanView({
+          vm: this.vm,
+          planItems: this.activeItems(),
+          liveIds: this.liveIds,
+          showAddPlan: this.showAddPlan,
+          addTitle: this.addTitle,
+          onPromote: this.addToLive,
+          onPromoteTop: this.addToLiveTop,
+          onDemote: this.removeFromLive,
+          onCrossToReview: this.crossToReview,
+          onMoveLive: this.moveLivePlan,
+          onMoveReview: this.moveReviewPlan,
+          onRemovePlan: this.deletePlan,
+          onAddTitleChange: this.changeAddTitle,
+          onSubmitAdd: this.submitAddPlan,
+          onCancelAdd: this.cancelAddPlan,
+        })
+      } else {
+        ReviewGraphView()
+      }
     }
     .width("100%")
     .height("100%")
