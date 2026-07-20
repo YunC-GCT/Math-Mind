@@ -1,4 +1,4 @@
-﻿// MathMind - 数据库初始化工具
+// MathMind - 数据库初始化工具
 // 责任: Z
 // 创建: 2026-07-14 — 精简拍照链 RDB 基础设施
 // 更新: 2026-07-15 — 新增 study_plan 表 (学习计划)
@@ -11,7 +11,7 @@ const STORE_CONFIG: relationalStore.StoreConfig = {
   securityLevel: relationalStore.SecurityLevel.S1,
 };
 
-const DB_SCHEMA_VERSION: number = 2;
+const DB_SCHEMA_VERSION: number = 3;
 
 const SQL_CREATE_KNOWLEDGE: string = `
 CREATE TABLE IF NOT EXISTS knowledge_unit (
@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS knowledge_unit (
   content TEXT NOT NULL DEFAULT "",
   summary TEXT NOT NULL DEFAULT "",
   tags TEXT NOT NULL DEFAULT "[]",
+  subject TEXT NOT NULL DEFAULT "",
+  category TEXT NOT NULL DEFAULT "",
   difficulty INTEGER NOT NULL DEFAULT 1,
   source TEXT NOT NULL DEFAULT "",
   created_at INTEGER NOT NULL,
@@ -81,6 +83,11 @@ const SQL_INDEX_AGENT_MEMORY_PENDING: string =
 const SQL_INDEX_AGENT_MEMORY_SUMMARY: string =
   "CREATE INDEX IF NOT EXISTS idx_agent_memory_summary ON agent_memory(session_id, type, created_at)";
 
+const SQL_MIGRATE_KNOWLEDGE_SUBJECT: string =
+  "ALTER TABLE knowledge_unit ADD COLUMN subject TEXT NOT NULL DEFAULT \"\"";
+const SQL_MIGRATE_KNOWLEDGE_CATEGORY: string =
+  "ALTER TABLE knowledge_unit ADD COLUMN category TEXT NOT NULL DEFAULT \"\"";
+
 export class DatabaseHelper {
   private static store: relationalStore.RdbStore | null = null;
 
@@ -126,6 +133,15 @@ export class DatabaseHelper {
       await DatabaseHelper.executeSql(store, sql);
     }
 
+    const hasSubject: boolean = await DatabaseHelper.hasColumn(store, "knowledge_unit", "subject");
+    if (!hasSubject) {
+      await DatabaseHelper.executeAddColumn(store, SQL_MIGRATE_KNOWLEDGE_SUBJECT);
+    }
+    const hasCategory: boolean = await DatabaseHelper.hasColumn(store, "knowledge_unit", "category");
+    if (!hasCategory) {
+      await DatabaseHelper.executeAddColumn(store, SQL_MIGRATE_KNOWLEDGE_CATEGORY);
+    }
+
     if (store.version < DB_SCHEMA_VERSION) {
       store.version = DB_SCHEMA_VERSION;
     }
@@ -141,5 +157,59 @@ export class DatabaseHelper {
         resolve();
       });
     });
+  }
+
+  private static async hasColumn(
+    store: relationalStore.RdbStore,
+    tableName: string,
+    columnName: string,
+  ): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      store.querySql("PRAGMA table_info(" + tableName + ")", [], (err: BusinessError, rs: relationalStore.ResultSet) => {
+        if (err) {
+          reject(new Error("DatabaseHelper.hasColumn failed: " + err.message));
+          return;
+        }
+        let found: boolean = false;
+        if (rs.goToFirstRow()) {
+          do {
+            const name: string = rs.getString(rs.getColumnIndex("name"));
+            if (name === columnName) {
+              found = true;
+              break;
+            }
+          } while (rs.goToNextRow());
+        }
+        rs.close();
+        resolve(found);
+      });
+    });
+  }
+
+  private static async executeAddColumn(store: relationalStore.RdbStore, sql: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      store.executeSql(sql, [], (err: BusinessError) => {
+        if (err) {
+          if (DatabaseHelper.isDuplicateColumnError(err.message)) {
+            resolve();
+            return;
+          }
+          reject(new Error("DatabaseHelper.executeAddColumn failed: " + err.message));
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  private static isDuplicateColumnError(message: string): boolean {
+    const normalized: string = message.toLowerCase();
+    return normalized.includes("duplicate column")
+      || normalized.includes("already exists")
+      || normalized.includes("duplicate")
+      || normalized.includes("exists")
+      || normalized.includes("重复")
+      || normalized.includes("已存在")
+      || normalized.includes("已经存在");
   }
 }

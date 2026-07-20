@@ -22,7 +22,7 @@
  *   - JSON.parse 强转 as string[] 后逐项 typeof 检查兜底
  *   - 无 any / unknown，错误统一 (e as Error).message
  */
-import { isKnownNoteType, KnowledgeUnit, normalizeNoteType, NoteItem, ReviewStatus } from "common"
+import { isKnownNoteType, KnowledgeUnit, normalizeNoteType, NoteItem, ReviewStatus, stripMD } from "common"
 
 const CAMERA_SOURCE: string = "camera_capture"
 
@@ -90,10 +90,10 @@ function confidence(unit: KnowledgeUnit): number {
 
 export function unitToNoteItem(unit: KnowledgeUnit): NoteItem {
   const rawId: string = unit.id.length > 0 ? unit.id : unit.title + unit.createdAt.toString()
-  const subject: string = resolveSubject(unit.tags)
-  const type: string = resolveType(unit.tags)
+  const subject: string = unit.subject.trim().length > 0 ? unit.subject.trim() : resolveSubject(unit.tags)
+  const type: string = unit.category.length > 0 ? unit.category : resolveType(unit.tags)
   const chapter: string = unit.source.length > 0 && unit.source !== CAMERA_SOURCE ? unit.source : subject
-  const body: string = unit.content.length > 0 ? unit.content : unit.summary
+  const body: string = unit.summary.trim().length > 0 ? stripMD(unit.summary, 500) : stripMD(unit.content, 500)
 
   console.info('[NoteItemMapper] unit.id=' + unit.id + ' title=' + unit.title
     + ' bodyLen=' + body.length.toString()

@@ -166,9 +166,11 @@ export class Dispatcher {
     return {
       id: 'KB-FB-' + now.toString(36) + '-' + Math.random().toString(36).substring(2, 8),
       title: title,
-      content: '[OCR 未识别到内容，请人工补充题目详情]',
+      content: '## 内容\n[OCR 未识别到内容，请人工补充题目详情]',
       summary: 'OCR 暂不可达，已保存框架笔记，请手动编辑补充',
-      tags: [type, subject, chapter].filter((s: string): boolean => s.length > 0),
+      tags: [type, chapter].filter((s: string): boolean => s.length > 0),
+      subject: subject,
+      category: type,
       difficulty: DifficultyLevel.MEDIUM,
       source: 'camera_capture',
       createdAt: now,

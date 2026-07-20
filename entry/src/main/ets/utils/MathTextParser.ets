@@ -121,6 +121,22 @@ export function splitMathText(text: string): TextBlock[] {
       continue
     }
 
+    // 行内 $...$ 公式检测: 按 $ 切分, 奇数段为公式
+    if (trimmed.indexOf('$') >= 0) {
+      pushTextBlock(blocks, textLines)
+      const parts: string[] = trimmed.split('$');
+      for (let i: number = 0; i < parts.length; i++) {
+        const part: string = parts[i].trim();
+        if (part.length === 0) { continue; }
+        if (i % 2 === 1) {
+          blocks.push({ kind: 'formula', content: part });
+        } else {
+          blocks.push({ kind: 'text', content: part });
+        }
+      }
+      continue;
+    }
+
     if (looksLikeFormulaLine(trimmed)) {
       pushTextBlock(blocks, textLines)
       blocks.push({ kind: 'formula', content: trimmed })
