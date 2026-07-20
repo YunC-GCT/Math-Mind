@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 //  pages/Notes/NotesPage.ets - notes page shell
 // ============================================================================
 
@@ -32,7 +32,7 @@ export struct NotesPage {
   private reloadNotes(): void {
     this.vm.loadNotes(getContext(this)).then((ok: boolean): void => {
       if (!ok) {
-        try { promptAction.showToast({ message: "笔记加载失败", duration: 1500 }) } catch (_e) {}
+        try { promptAction.showToast({ message: "绗旇鍔犺浇澶辫触", duration: 1500 }) } catch (_e) {}
       }
     })
   }
@@ -49,7 +49,7 @@ export struct NotesPage {
   }
 
   private showSearchTodo = (): void => {
-    try { promptAction.showToast({ message: "搜索功能开发中", duration: 1500 }) } catch (_e) {}
+    try { promptAction.showToast({ message: "鎼滅储鍔熻兘寮€鍙戜腑", duration: 1500 }) } catch (_e) {}
   }
 
   build() {
@@ -74,7 +74,7 @@ export struct NotesPage {
             .margin({ left: S_5, right: S_5, top: 0, bottom: S_4 })
 
           Row() {
-            Text("学科")
+            Text("瀛︾")
               .fontSize(F_BASE)
               .fontWeight(W_SEMIBOLD)
               .fontColor(TEXT)
