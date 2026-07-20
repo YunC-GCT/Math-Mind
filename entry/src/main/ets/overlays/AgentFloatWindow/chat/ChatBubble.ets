@@ -3,8 +3,8 @@
 // ============================================================================
 
 import {
-  MINT_DARK, MINT_LIGHT, PURPLE_LIGHT,
-  TEXT_2, TEXT_4,
+  MINT, PURPLE_LIGHT,
+  TEXT, TEXT_2, TEXT_4,
   S_1, S_2, S_3, R_MD, F_SM, W_SEMIBOLD,
 } from 'common'
 import { ChatMsg } from './ChatModels'
@@ -26,9 +26,9 @@ export struct ChatBubble {
             MathTextRenderer({
               text: this.msg.content,
               profile: 'chatUser',
-              textColor: MINT_DARK,
-              formulaColor: MINT_DARK,
-              formulaBackground: 'rgba(255,255,255,0.10)',
+              textColor: TEXT,
+              formulaColor: TEXT,
+              formulaBackground: 'rgba(10,12,16,0.18)',
               formulaBorder: 'rgba(255,255,255,0.18)',
               fontSize: F_SM,
               lineHeight: 20,
@@ -38,7 +38,8 @@ export struct ChatBubble {
             .width('100%')
             .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
             .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: R_MD + 4, bottomRight: S_1 })
-            .backgroundColor(MINT_LIGHT)
+            .backgroundColor('#FF1F8F65')
+            .border({ width: 0.5, color: MINT })
             .constraintSize({ maxWidth: '88%' })
           }
           .alignItems(HorizontalAlign.End)

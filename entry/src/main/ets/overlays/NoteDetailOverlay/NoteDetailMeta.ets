@@ -147,13 +147,55 @@ export struct NoteDetailMeta {
   }
 
   private subtitleText = (): string => {
+    let raw: string = ''
     if (this.unit !== null && this.unit.summary.trim().length > 0) {
-      return this.unit.summary.trim()
+      raw = this.unit.summary.trim()
+    } else if (this.note.chapter.trim().length > 0) {
+      raw = this.note.chapter.trim()
     }
-    if (this.note.chapter.trim().length > 0) {
-      return this.note.chapter.trim()
+    return this.compactOverview(raw)
+  }
+
+  private compactOverview = (raw: string): string => {
+    let text: string = raw
+      .replace(/\r\n/g, ' ')
+      .replace(/\r/g, ' ')
+      .replace(/\n/g, ' ')
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/`/g, '')
+      .replace(/\$\$/g, ' ')
+      .replace(/\$/g, '')
+      .replace(/\\\[/g, ' ')
+      .replace(/\\\]/g, ' ')
+      .replace(/\\\(/g, ' ')
+      .replace(/\\\)/g, ' ')
+      .replace(/\\text\{([^{}]*)\}/g, '$1')
+      .replace(/\\operatorname\{([^{}]*)\}/g, '$1')
+      .replace(/\\(?:bar|hat|tilde|vec)\{([^{}]*)\}/g, '$1')
+      .replace(/\\(?:varphi|varepsilon|epsilon|theta|mu|sigma|alpha|beta|lambda|pi|Phi|Omega|Delta)\b/g, '')
+      .replace(/\\[a-zA-Z]+(?:\s*\{[^{}]*\})?/g, ' ')
+      .replace(/[{}_^]/g, ' ')
+      .replace(/\\/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    text = this.trimOverviewPrefix(text)
+    const limit: number = 58
+    if (text.length > limit) {
+      return text.substring(0, limit).trim() + '...'
     }
-    return ''
+    return text
+  }
+
+  private trimOverviewPrefix = (text: string): string => {
+    const prefixes: string[] = ['摘要:', '摘要：', '内容:', '内容：', '定义:', '定义：', '题目:', '题目：']
+    for (const prefix of prefixes) {
+      if (text.indexOf(prefix) === 0) {
+        return text.substring(prefix.length).trim()
+      }
+    }
+    return text
   }
 
   private subjectText = (): string => {
