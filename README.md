@@ -25,6 +25,67 @@
 
 ---
 
+## 2026-07-20 KnowledgeModel 格式对齐与 Prompt 优化
+
+### 做了什么
+
+**P0 · NoteCard 卡片 Markdown 裸渲染修复：**
+- `NoteItemMapper.ets`：`unitToNoteItem()` 中 body 赋值改用 `stripMD()` 去掉 `## ` 标题行，卡片预览不再显示字面量 Markdown 语法。
+
+**P1 · content 格式两条路径统一：**
+- `KnowledgeModel.ets`：降级路径 `buildFallbackFromClassify()` 的 `content` 从纯文本 `ocrText` 改为 `'## 内容\n' + ocrText`，与正常路径 Markdown 格式对齐。
+- `Dispatcher.ets`：OCR 空 fallback `buildFallbackUnit()` 同步加 `## 内容\n` 前缀。
+
+**Prompt 全面优化（`KnowledgeModel.buildPrompt()`）：**
+| 改动点 | 改前 | 改后 |
+|--------|------|------|
+| 语言要求 | 无 | 新增 `语言: 默认全部使用中文。` |
+| JSON 格式 | `不要 markdown` | `不要用 \`\`\`json\`\`\` 代码块包裹` |
+| tags 约束 | `2-5 个中文关键词，不要重复 category` | 分位约束：第1位学科名 / 第2位知识点 / 第3-5位方法技巧，附带示例 |
+| fields key | 英文（`definition`/`problem`/`steps` 等） | 中文（`定义`/`问题`/`步骤` 等） |
+| fields 约束 | 无 | 新增 `以上为各分类的标准字段，必须全部包含且不得增减，字段顺序可调整。` |
+| 公式格式 | `公式保留为普通 LaTeX 文本` | 行内用 `$...$`，独立公式用 `$$...$$`，附带示例 |
+
+**MathTextParser 行内公式支持：**
+- `MathTextParser.ets`：新增 `$...$` 行内公式检测，按 `$` 切分行，奇数段识别为公式、偶数段为文本。
+
+**学科（subject）与题型分类（category）独立：**
+- `CommonTypes.ets`：`KnowledgeUnit` 接口新增 `subject: string`、`category: string` 两个独立字段，不再混在 `tags` 数组里。
+- `KnowledgeUnitExt.ets`：`AiRawResponse` 新增 `subject` 字段，`createUnitExt()` 接收 `subject` 参数。
+- `KnowledgeModel.ets`：prompt 新增 `subject: 学科名称` 字段；`buildTags()` 不再把 category 塞入 tags；`toKnowledgeUnit()` 和 `buildFallbackFromClassify()` 输出独立 `subject`/`category`。
+- `Dispatcher.ets`：`buildFallbackUnit()` 同步输出独立 `subject`/`category`。
+- `NoteDao.ets`：`rowToUnit()` 和 `toBucket()` 加 `subject`/`category` 列读写。
+- `NoteItemMapper.ets`：`resolveSubject()` 优先读 `unit.subject`，`resolveType()` 优先读 `unit.category`，空时 fallback 旧 tags 遍历。
+- `DatabaseHelper.ets`：`knowledge_unit` 表新增 `subject TEXT` 和 `category TEXT` 两列。
+
+**KnowledgeModel 当前工作链：**
+
+```
+拍照/选图(imageUri)
+  → ImageUriResolver.resolve()         // URI → 沙箱路径
+  → Dispatcher.dispatch()
+    → TypeClassifier.recognizeText()    // OcrTool 识别 → 文本预处理（去噪、归一化）
+    → KnowledgeModel.structure(ocrText)
+      → callAi()                        // DeepSeek LLM：system prompt + ocrText
+        → 解析 JSON → AiRawResponse { category, subject, title, tags, difficulty, importance, fields }
+      → buildTags()                     // tags 合并（不再含 category/subject）
+      → truthCheck()                    // 4 项真值检验（括号/除零/等式/LaTeX）
+      → toKnowledgeUnit()               // → KnowledgeUnit { id, title, content(Markdown), summary, tags, subject, category, difficulty, reviewStatus, ... }
+    → [AI 失败?] buildFallbackFromClassify() // 兜底笔记
+    → [OCR 空?]  buildFallbackUnit()         // 占位笔记
+  → NoteDao.insert()                    // RDB 持久化（18 列）
+  → Toast "笔记已生成"
+```
+
+### 验证
+
+- 文件级 `git diff --check` 无 CRLF 问题。
+- 5 条关键数据流（正常笔记/降级笔记/OCR 空占位 → NoteCard/NoteDetail）手工走读通过，格式统一无断层。
+- subject / category 独立后全链路走读通过，AI 输出 → 入库 → UI 读取路径一致。
+- DevEco Studio GUI 编译验证仍需手动执行。
+
+---
+
 ## 2026-07-19 本地同步与首页布局修正
 
 > 主 Agent 显式生成笔记 + Memory 专项改动详见 [`docs/agent-memory-flow-20260719.md`](./docs/agent-memory-flow-20260719.md)。回复风格验收测试集详见 [`docs/agent-reply-style-testset-20260719.md`](./docs/agent-reply-style-testset-20260719.md)。

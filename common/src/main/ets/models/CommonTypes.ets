@@ -60,6 +60,8 @@ export interface KnowledgeUnit {
   content: string; // 完整内容
   summary: string; // 摘要，详情页可展示较完整的结构化概览
   tags: string[]; // 标签
+  subject: string; // 学科（独立于 tags，如"高等数学"/"线性代数"）
+  category: string; // 题型分类（五选一："概念"/"定理"/"公式"/"证明题"/"计算题"）
   difficulty: DifficultyLevel; // 难度
   source: string; // 来源(教材/网页/笔记路径)
   createdAt: number; // 创建时间戳

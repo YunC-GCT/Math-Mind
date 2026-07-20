@@ -31,6 +31,7 @@ export interface StructuredField {
  */
 export interface AiRawResponse {
   readonly category: KnowledgeCategory;
+  readonly subject: string;
   readonly title: string;
   readonly tags: string[];
   readonly difficulty: number;
@@ -56,6 +57,8 @@ export interface KnowledgeUnitExt {
   content: string;
   /** 标签（最小类 + AI 关键词 + 学科） */
   tags: string[];
+  /** 学科 */
+  subject: string;
 
   // ── 结构化字段（该最小类特有的表内容） ──
   /** 该类特有的键值对数组，UI 统一渲染 */
@@ -102,6 +105,7 @@ export interface KnowledgeUnitExt {
  */
 export function createUnitExt(
   category: KnowledgeCategory,
+  subject: string,
   title: string,
   content: string
 ): KnowledgeUnitExt {
@@ -112,6 +116,7 @@ export function createUnitExt(
     title: title,
     content: content,
     tags: [],
+    subject: subject,
     fields: [],
     truthFlag: true,
     truthDetails: [],

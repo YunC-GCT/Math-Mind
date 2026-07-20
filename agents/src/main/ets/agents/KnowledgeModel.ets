@@ -91,7 +91,7 @@ export class KnowledgeModel {
       console.warn('[KnowledgeModel] AI call failed, using fallback: ' + (aiErr as Error).message);
       return this.buildFallbackFromClassify(ocrText, type, subject, chapter);
     }
-    const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.title, ocrText);
+    const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.subject, aiRaw.title, ocrText);
     ext.fields = aiRaw.fields;
     ext.tags = this.buildTags(aiRaw);
     ext.difficulty = aiRaw.difficulty;
@@ -132,6 +132,8 @@ export class KnowledgeModel {
       content: this.contentFromFields(ext),
       summary: summary,
       tags: ext.tags,
+      subject: ext.subject,
+      category: ext.type,
       difficulty: this.toDifficultyLevel(ext.difficulty),
       source: ext.source.length > 0 ? ext.source : 'camera_capture',
       createdAt: now,
@@ -162,7 +164,6 @@ export class KnowledgeModel {
         + (subject !== undefined && subject.length > 0 ? ' · ' + subject : '');
     const tags: string[] = [];
     if (type !== undefined && type.length > 0) { tags.push(type); }
-    if (subject !== undefined && subject.length > 0) { tags.push(subject); }
     if (chapter.length > 0) { tags.push(chapter); }
     const fallbackSummaryLimit: number = 500;
     const summary: string = ocrText.length > fallbackSummaryLimit
@@ -173,9 +174,11 @@ export class KnowledgeModel {
     return {
       id: this.uuid(),
       title: title,
-      content: ocrText,
+      content: '## 内容\n' + ocrText,
       summary: summary,
       tags: tags,
+      subject: subject ?? '',
+      category: type ?? '概念',
       difficulty: DifficultyLevel.MEDIUM,
       source: chapter.length > 0 ? chapter : 'camera_capture',
       createdAt: now,
@@ -264,6 +267,7 @@ export class KnowledgeModel {
 
     const aiRaw: AiRawResponse = {
       category: parsed['category'] as KnowledgeCategory,
+      subject: parsed['subject'] as string,
       title: parsed['title'] as string,
       tags: parsed['tags'] as string[],
       difficulty: parsed['difficulty'] as number,
@@ -276,23 +280,29 @@ export class KnowledgeModel {
   // === Build AI Prompt ===
 
   buildPrompt(ocrText: string): string {
-    return `你是数学学习笔记结构化助手。只返回严格 JSON，不要 markdown。
+    return `你是数学学习笔记结构化助手。只返回纯 JSON 文本，不要用 \`\`\`json\`\`\` 代码块包裹。
+语言: 默认全部使用中文。
 字段:
 - category: 必须是 "概念" / "定理" / "公式" / "证明题" / "计算题" 之一，不要返回 concept/theorem/formula/proof/computation
+- subject: 学科名称（如"高等数学"/"线性代数"/"初中数学"）
 - title: 严谨名称或题目摘要
-- tags: 2-5 个中文关键词，不要重复 category
+- tags: 返回 2-4 个中文关键词（具体概念/方法/技巧），学科名请填在 subject 字段。示例: ["二次函数", "配方法", "顶点", "对称轴"]
 - difficulty: 1-5，1=简单，5=困难
 - importance: 1-5，1=低，5=核心
 - fields: 按 category 返回结构化字段数组 [{key, label, value}]
-  概念: definition/properties/examples/related_concepts
-  定理: statement/conditions/conclusion/proof_sketch/applications
-  公式: expression/parameters/applicable_range/derivation/notes
-  证明题: proposition/given/proof_process/key_insight/conclusion
-  计算题: problem/steps/answer/method_summary/common_mistakes
+  概念: 定义/性质/示例/相关概念
+  定理: 陈述/条件/结论/证明思路/应用
+  公式: 表达式/参数/适用范围/推导/备注
+  证明题: 命题/已知/证明过程/关键思路/结论
+  计算题: 问题/步骤/答案/方法总结/常见错误
+以上为各分类的标准字段，必须全部包含且不得增减，字段顺序可调整。
 
 渲染要求:
-- 公式保留为普通 LaTeX 文本，放在 field.value 内。
-- 重要公式单独成行。
+- 行内短公式用 $...$ 包裹，如 $x^2 + y^2 = r^2$。
+- 重要的独立公式用 $$...$$ 包裹并单独成行，如：
+  $$
+  \frac{-b \pm \sqrt{b^2-4ac}}{2a}
+  $$
 - 尽量一个字段对应一个页面分区。
 - 保留完整信息，不要把原题和关键步骤摘要丢失。`;
   }
@@ -304,7 +314,6 @@ export class KnowledgeModel {
    */
   private buildTags(aiRaw: AiRawResponse): string[] {
     const tags: string[] = [];
-    tags.push(aiRaw.category);
     for (let i: number = 0; i < aiRaw.tags.length; i++) {
       const tag: string = aiRaw.tags[i];
       if (tags.indexOf(tag) === -1) {

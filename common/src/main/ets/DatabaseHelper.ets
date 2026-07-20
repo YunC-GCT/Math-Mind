@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS knowledge_unit (
   content TEXT NOT NULL DEFAULT "",
   summary TEXT NOT NULL DEFAULT "",
   tags TEXT NOT NULL DEFAULT "[]",
+  subject TEXT NOT NULL DEFAULT "",
+  category TEXT NOT NULL DEFAULT "",
   difficulty INTEGER NOT NULL DEFAULT 1,
   source TEXT NOT NULL DEFAULT "",
   created_at INTEGER NOT NULL,
