@@ -1,8 +1,8 @@
-// ============================================================================
+﻿// ============================================================================
 //  pages/Home/HomePage.ets - home page shell
 // ============================================================================
 
-import { BG_DARK, DUR_SLOW, NoteItem } from "common"
+import { BG_DARK, DUR_SLOW, NoteItem, KnowledgeUnit } from "common"
 import { promptAction } from "@kit.ArkUI"
 import { FloatingButton } from "./FloatingButton"
 import { HeroBanner } from "./HeroBanner"
@@ -12,6 +12,7 @@ import { NoteDetailOverlay } from "../../overlays/NoteDetailOverlay/NoteDetailOv
 import { HomeTopBar } from "./HomeTopBar"
 import { HomeRecentNotes } from "./HomeRecentNotes"
 import { HomeViewModel } from "../../viewmodels/HomeViewModel"
+import { unitToNoteItem } from "../../utils/NoteItemMapper"
 
 @Component
 export struct HomePage {
@@ -20,6 +21,8 @@ export struct HomePage {
   @State vm: HomeViewModel = new HomeViewModel()
   @State selectedNote: NoteItem | null = null
   @State reviewRingCollapsed: boolean = false
+  @State selectedUnit: KnowledgeUnit | null = null
+  @State creatingNote: boolean = false
   onGoCamera: () => void = (): void => {}
   onGoReview: () => void = (): void => {}
 
@@ -34,20 +37,50 @@ export struct HomePage {
   private reloadHome(): void {
     this.vm.init(getContext(this)).then((ok: boolean): void => {
       if (!ok) {
-        try { promptAction.showToast({ message: "笔记加载失败", duration: 1500 }) } catch (_e) {}
+        try { promptAction.showToast({ message: "Failed to load notes", duration: 1500 }) } catch (_e) {}
       }
     })
+  }
+
+  private openDetail = (note: NoteItem): void => {
+    this.creatingNote = false
+    this.selectedNote = note
+    this.selectedUnit = null
+    this.vm.loadNote(getContext(this), note.rawId).then((unit: KnowledgeUnit | null): void => {
+      if (this.selectedNote !== null && this.selectedNote.id === note.id) {
+        this.selectedUnit = unit
+      }
+    })
+  }
+
+  private openCreate = (): void => {
+    this.selectedNote = null
+    this.selectedUnit = null
+    this.creatingNote = true
+  }
+
+  private closeDetail = (): void => {
+    this.selectedNote = null
+    this.selectedUnit = null
+  }
+
+  private handleSaved = (unit: KnowledgeUnit): void => {
+    const note: NoteItem = unitToNoteItem(unit)
+    this.creatingNote = false
+    this.selectedNote = note
+    this.selectedUnit = unit
   }
 
   private deleteNote = async (id: string): Promise<void> => {
     const ok: boolean = await this.vm.deleteNote(getContext(this), id)
     if (ok) {
       this.selectedNote = null
+      this.selectedUnit = null
       const v: number = AppStorage.get<number>('notesVersion') ?? 0
       AppStorage.setOrCreate('notesVersion', v + 1)
-      try { promptAction.showToast({ message: "笔记已删除", duration: 1200 }) } catch (_e) {}
+      try { promptAction.showToast({ message: "Note deleted", duration: 1200 }) } catch (_e) {}
     } else {
-      try { promptAction.showToast({ message: "笔记删除失败", duration: 1500 }) } catch (_e) {}
+      try { promptAction.showToast({ message: "Delete failed", duration: 1500 }) } catch (_e) {}
     }
   }
 
@@ -124,24 +157,32 @@ export struct HomePage {
           notes: this.vm.notes,
           compact: this.reviewRingCollapsed,
           onSwipeUp: (): void => { this.collapseReviewRing() },
-          onSelect: (note: NoteItem): void => { this.selectedNote = note },
+          onSelect: this.openDetail,
         })
       }
       .width("100%")
       .height("100%")
       .backgroundColor(BG_DARK)
 
-      FloatingButton({
-        onTap: (): void => {
-          try { promptAction.showToast({ message: "用户自定义笔记开发中", duration: 1500 }) } catch (_e) {}
-        },
-      })
+      FloatingButton({ onTap: this.openCreate })
+
+      if (this.creatingNote) {
+        NoteDetailOverlay({
+          isCreating: true,
+          units: this.vm.units,
+          onClose: (): void => { this.creatingNote = false },
+          onSaved: this.handleSaved,
+        })
+      }
 
       if (this.selectedNote !== null) {
         NoteDetailOverlay({
           note: this.selectedNote!,
-          onClose: (): void => { this.selectedNote = null },
+          unit: this.selectedUnit,
+          units: this.vm.units,
+          onClose: this.closeDetail,
           onDelete: this.deleteNote,
+          onSaved: this.handleSaved,
         })
       }
     }

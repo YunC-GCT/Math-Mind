@@ -12,7 +12,6 @@ import {
   DifficultyLevel,
   ReviewStatus,
 } from 'common'
-import { parseSections, Section } from '../../utils/NoteSectionParser'
 import { ChipTag } from './ChipTag'
 import { NoteSectionView } from './NoteSection'
 
@@ -29,16 +28,7 @@ export struct NoteDetailBody {
       }
 
       if (this.bodyText().length > 0) {
-        Column() {
-          ForEach(parseSections(this.bodyText()),
-            (sec: Section): void => {
-              NoteSectionView({ title: sec.title, content: sec.content })
-            },
-            (sec: Section): string => sec.title + '_' + sec.content.length.toString()
-          )
-        }
-        .width('100%')
-        .padding({ bottom: 8 })
+        NoteSectionView({ title: '', content: this.bodyText() })
       } else if (this.summaryText().length === 0) {
         NoteSectionView({ title: '内容', content: '暂无正文' })
       }

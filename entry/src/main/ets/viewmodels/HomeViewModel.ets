@@ -9,6 +9,7 @@ import { unitsToNoteItems } from "../utils/NoteItemMapper"
 @Observed
 export class HomeViewModel {
   notes: NoteItem[] = []
+  units: KnowledgeUnit[] = []
   greeting: string = ""
   dateText: string = ""
   avg: number = 0
@@ -24,13 +25,27 @@ export class HomeViewModel {
     try {
       const store = await DatabaseHelper.init(context)
       const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
+      this.units = units
       this.notes = unitsToNoteItems(units)
       this.refreshStats()
       return true
     } catch (_e) {
+      this.units = []
       this.notes = []
       this.refreshStats()
       return false
+    }
+  }
+
+  async loadNote(context: Context, id: string): Promise<KnowledgeUnit | null> {
+    if (id.length === 0) {
+      return null
+    }
+    try {
+      const store = await DatabaseHelper.init(context)
+      return await new NoteDao(store).queryById(id)
+    } catch (_e) {
+      return null
     }
   }
 

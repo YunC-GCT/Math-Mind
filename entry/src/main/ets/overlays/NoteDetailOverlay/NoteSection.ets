@@ -2,8 +2,8 @@
 //  overlays/NoteDetailOverlay/NoteSection.ets - note section renderer
 // ============================================================================
 
-import { MINT, TEXT_2, S_2, S_3, F_SM, F_BASE, W_BOLD } from 'common'
-import { MathTextRenderer } from '../../shared/components/MathTextRenderer'
+import { MINT, S_2, S_3, F_SM, W_BOLD } from 'common'
+import { MarkdownRenderer } from '../../shared/components/MarkdownRenderer'
 
 @Component
 export struct NoteSectionView {
@@ -23,17 +23,7 @@ export struct NoteSectionView {
       }
 
       if (this.content.trim().length > 0) {
-        MathTextRenderer({
-          text: this.content,
-          textColor: TEXT_2,
-          formulaColor: TEXT_2,
-          formulaBackground: 'rgba(255,255,255,0.04)',
-          formulaBorder: 'rgba(255,255,255,0.10)',
-          fontSize: F_BASE,
-          lineHeight: 26,
-          formulaFontSize: F_BASE,
-          formulaLineHeight: 26,
-        })
+        MarkdownRenderer({ text: this.content })
       }
     }
     .width('100%')
