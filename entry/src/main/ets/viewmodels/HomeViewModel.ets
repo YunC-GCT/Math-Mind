@@ -27,7 +27,8 @@ export class HomeViewModel {
       this.notes = unitsToNoteItems(units)
       this.refreshStats()
       return true
-    } catch (_e) {
+    } catch (e) {
+      console.warn("[HomeViewModel] loadNotes failed: " + ((e as Error).message ?? String(e)))
       this.notes = []
       this.refreshStats()
       return false
@@ -39,7 +40,8 @@ export class HomeViewModel {
       const store = await DatabaseHelper.init(context)
       await new NoteDao(store).deleteById(id)
       return await this.loadNotes(context)
-    } catch (_e) {
+    } catch (e) {
+      console.warn("[HomeViewModel] deleteNote failed: " + ((e as Error).message ?? String(e)))
       return false
     }
   }

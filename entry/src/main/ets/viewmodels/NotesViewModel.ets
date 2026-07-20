@@ -38,7 +38,8 @@ export class NotesViewModel {
       this.subjectGroups = this.groupBySubject(this.notes)
       this.weeklyNewCount = this.countRecentNotes(this.notes, 7)
       return true
-    } catch (_e) {
+    } catch (e) {
+      console.warn("[NotesViewModel] loadNotes failed: " + ((e as Error).message ?? String(e)))
       this.units = []
       this.notes = []
       this.subjectGroups = []
@@ -54,7 +55,8 @@ export class NotesViewModel {
     try {
       const store = await DatabaseHelper.init(context)
       return await new NoteDao(store).queryById(id)
-    } catch (_e) {
+    } catch (e) {
+      console.warn("[NotesViewModel] loadNote failed: " + ((e as Error).message ?? String(e)))
       return null
     }
   }
@@ -64,7 +66,8 @@ export class NotesViewModel {
       const store = await DatabaseHelper.init(context)
       await new NoteDao(store).deleteById(id)
       return await this.loadNotes(context)
-    } catch (_e) {
+    } catch (e) {
+      console.warn("[NotesViewModel] deleteNote failed: " + ((e as Error).message ?? String(e)))
       return false
     }
   }

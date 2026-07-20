@@ -140,27 +140,27 @@ export class NoteDao {
   // ResultSet 转为 KnowledgeUnit
   static rowToUnit(rs: relationalStore.ResultSet): KnowledgeUnit {
     return {
-      id: rs.getString(rs.getColumnIndex('id')),
-      title: rs.getString(rs.getColumnIndex('title')),
-      content: rs.getString(rs.getColumnIndex('content')),
-      summary: rs.getString(rs.getColumnIndex('summary')),
-      tags: NoteDao.parseArray(rs.getString(rs.getColumnIndex('tags'))),
-      subject: rs.getString(rs.getColumnIndex('subject')),
-      category: rs.getString(rs.getColumnIndex('category')),
-      difficulty: NoteDao.parseDifficulty(rs.getLong(rs.getColumnIndex('difficulty'))),
-      source: rs.getString(rs.getColumnIndex('source')),
-      createdAt: rs.getLong(rs.getColumnIndex('created_at')),
-      updatedAt: rs.getLong(rs.getColumnIndex('updated_at')),
-      reviewStatus: NoteDao.parseReviewStatus(rs.getString(rs.getColumnIndex('review_status'))),
-      nextReviewAt: rs.getLong(rs.getColumnIndex('next_review_at')),
-      intervalDays: rs.getLong(rs.getColumnIndex('interval_days')),
-      easeFactor: rs.getDouble(rs.getColumnIndex('ease_factor')),
-      repetitions: rs.getLong(rs.getColumnIndex('repetitions')),
-      prerequisites: NoteDao.parseArray(rs.getString(rs.getColumnIndex('prerequisites'))),
-      related: NoteDao.parseArray(rs.getString(rs.getColumnIndex('related'))),
-      embedding: NoteDao.parseNumberArray(rs.getString(rs.getColumnIndex('embedding'))),
-      userId: rs.getString(rs.getColumnIndex('user_id')),
-      version: rs.getLong(rs.getColumnIndex('version')),
+      id: NoteDao.readString(rs, 'id', ''),
+      title: NoteDao.readString(rs, 'title', ''),
+      content: NoteDao.readString(rs, 'content', ''),
+      summary: NoteDao.readString(rs, 'summary', ''),
+      tags: NoteDao.parseArray(NoteDao.readString(rs, 'tags', '[]')),
+      subject: NoteDao.readString(rs, 'subject', ''),
+      category: NoteDao.readString(rs, 'category', ''),
+      difficulty: NoteDao.parseDifficulty(NoteDao.readLong(rs, 'difficulty', DifficultyLevel.EASY)),
+      source: NoteDao.readString(rs, 'source', ''),
+      createdAt: NoteDao.readLong(rs, 'created_at', 0),
+      updatedAt: NoteDao.readLong(rs, 'updated_at', 0),
+      reviewStatus: NoteDao.parseReviewStatus(NoteDao.readString(rs, 'review_status', ReviewStatus.NEW)),
+      nextReviewAt: NoteDao.readLong(rs, 'next_review_at', 0),
+      intervalDays: NoteDao.readLong(rs, 'interval_days', 0),
+      easeFactor: NoteDao.readDouble(rs, 'ease_factor', 2.5),
+      repetitions: NoteDao.readLong(rs, 'repetitions', 0),
+      prerequisites: NoteDao.parseArray(NoteDao.readString(rs, 'prerequisites', '[]')),
+      related: NoteDao.parseArray(NoteDao.readString(rs, 'related', '[]')),
+      embedding: NoteDao.parseNumberArray(NoteDao.readString(rs, 'embedding', '[]')),
+      userId: NoteDao.readString(rs, 'user_id', ''),
+      version: NoteDao.readLong(rs, 'version', 1),
     };
   }
 
@@ -220,5 +220,38 @@ export class NoteDao {
     if (value === ReviewStatus.GRADUATED) { return ReviewStatus.GRADUATED; }
     if (value === ReviewStatus.LAPSED) { return ReviewStatus.LAPSED; }
     return ReviewStatus.NEW;
+  }
+
+  private static readString(rs: relationalStore.ResultSet, columnName: string, fallback: string): string {
+    const index: number = NoteDao.safeColumnIndex(rs, columnName);
+    if (index < 0) {
+      return fallback;
+    }
+    return rs.getString(index);
+  }
+
+  private static readLong(rs: relationalStore.ResultSet, columnName: string, fallback: number): number {
+    const index: number = NoteDao.safeColumnIndex(rs, columnName);
+    if (index < 0) {
+      return fallback;
+    }
+    return rs.getLong(index);
+  }
+
+  private static readDouble(rs: relationalStore.ResultSet, columnName: string, fallback: number): number {
+    const index: number = NoteDao.safeColumnIndex(rs, columnName);
+    if (index < 0) {
+      return fallback;
+    }
+    return rs.getDouble(index);
+  }
+
+  private static safeColumnIndex(rs: relationalStore.ResultSet, columnName: string): number {
+    try {
+      return rs.getColumnIndex(columnName);
+    } catch (e) {
+      console.warn('[NoteDao.rowToUnit] missing column ' + columnName + ': ' + ((e as Error).message ?? String(e)));
+      return -1;
+    }
   }
 }

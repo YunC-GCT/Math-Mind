@@ -90,10 +90,10 @@ function confidence(unit: KnowledgeUnit): number {
 
 export function unitToNoteItem(unit: KnowledgeUnit): NoteItem {
   const rawId: string = unit.id.length > 0 ? unit.id : unit.title + unit.createdAt.toString()
-  const subject: string = unit.subject.length > 0 ? unit.subject : resolveSubject(unit.tags)
+  const subject: string = unit.subject.trim().length > 0 ? unit.subject.trim() : resolveSubject(unit.tags)
   const type: string = unit.category.length > 0 ? unit.category : resolveType(unit.tags)
   const chapter: string = unit.source.length > 0 && unit.source !== CAMERA_SOURCE ? unit.source : subject
-  const body: string = unit.content.length > 0 ? stripMD(unit.content, 500) : stripMD(unit.summary, 500)
+  const body: string = unit.summary.trim().length > 0 ? stripMD(unit.summary, 500) : stripMD(unit.content, 500)
 
   console.info('[NoteItemMapper] unit.id=' + unit.id + ' title=' + unit.title
     + ' bodyLen=' + body.length.toString()

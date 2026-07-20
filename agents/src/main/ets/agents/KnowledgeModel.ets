@@ -24,7 +24,7 @@
  *   - 不使用嵌套函数
  */
 
-import { KnowledgeCategory } from '../models/KnowledgeCategory';
+import type { KnowledgeCategory } from '../models/KnowledgeCategory';
 import { MvpTruthCheckResult, MvpTruthCheckItem } from '../models/TruthCheckResult';
 import {
   KnowledgeUnitExt,
@@ -33,12 +33,19 @@ import {
   AiRawResponse,
 } from '../models/KnowledgeUnitExt';
 import {
-  KnowledgeUnit,
   DifficultyLevel,
-  ReviewStatus,
+  isKnownNoteType,
   LlmClient,
-  ChatMessage,
+  normalizeNoteType,
+  NOTE_TYPE_KEYS,
+  ReviewStatus,
 } from 'common';
+import type {
+  ChatMessage,
+  ClassificationResult,
+  KnowledgeUnit,
+} from 'common';
+import { TypeClassifier } from './TypeClassifier';
 
 // truthCheck internal interfaces
 interface BracePairingResult {
@@ -66,14 +73,18 @@ interface EquationCheckResult {
 const KNOWLEDGE_INPUT_LIMIT: number = 12000;
 const KNOWLEDGE_MAX_TOKENS: number = 12000;
 const KNOWLEDGE_TIMEOUT_MS: number = 300000;
+const KNOWLEDGE_CLASSIFY_HINT_TIMEOUT_MS: number = 10000;
+const KNOWLEDGE_HINT_CONFIDENCE_MIN: number = 0.55;
+const KNOWLEDGE_FALLBACK_CATEGORY: KnowledgeCategory = '概念';
+const KNOWLEDGE_FALLBACK_SUBJECT: string = '其它';
 
 export class KnowledgeModel {
 
   /**
    * 主入口：AI 自分词 + 结构化 + 真值检验，返回主线 KnowledgeUnit。
    *
-   * TypeClassifier 现在只负责 OCR/文本提取。
-   * type/subject 仍作为可选 hint 保留给兼容调用方；未传入时由 KnowledgeModel 自行判断。
+   * TypeClassifier 负责 OCR/文本提取，也可提供五分类 hint。
+   * type/subject 仍作为可选 hint 保留给兼容调用方；未传入时由 KnowledgeModel 短超时获取 hint 后自行结构化。
    */
   async structure(
     ocrText: string,
@@ -82,30 +93,57 @@ export class KnowledgeModel {
     chapter: string = '',
   ): Promise<KnowledgeUnit> {
     const startTime: number = Date.now();
+    const classificationHint: ClassificationResult = await this.resolveClassificationHint(
+      ocrText,
+      type,
+      subject,
+      chapter,
+    );
+    const hasExternalType: boolean = type !== undefined && type.trim().length > 0;
+    const hasNoExternalHint: boolean = type === undefined && subject === undefined && chapter.length === 0;
+    const canUseClassifierType: boolean = hasNoExternalHint
+      && classificationHint.confidence >= KNOWLEDGE_HINT_CONFIDENCE_MIN;
+    const typeHint: string | undefined = hasExternalType || canUseClassifierType
+      ? classificationHint.type
+      : undefined;
+    const subjectHint: string | undefined = classificationHint.subject !== KNOWLEDGE_FALLBACK_SUBJECT
+      ? classificationHint.subject
+      : undefined;
+    const chapterHint: string = classificationHint.chapter ?? chapter;
 
     // 尝试 AI 结构化；失败时用已有分类结果构造 fallback 笔记，不丢数据
     let aiRaw: AiRawResponse;
     try {
-      aiRaw = await this.callAi(ocrText, type, subject);
+      aiRaw = await this.callAi(
+        ocrText,
+        typeHint,
+        subjectHint,
+        chapterHint,
+        classificationHint.confidence,
+      );
     } catch (aiErr) {
       console.warn('[KnowledgeModel] AI call failed, using fallback: ' + (aiErr as Error).message);
-      return this.buildFallbackFromClassify(ocrText, type, subject, chapter);
+      return this.buildFallbackFromClassify(
+        ocrText,
+        classificationHint.type,
+        classificationHint.subject,
+        chapterHint,
+      );
     }
     const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.subject, aiRaw.title, ocrText);
     ext.fields = aiRaw.fields;
     ext.tags = this.buildTags(aiRaw);
     ext.difficulty = aiRaw.difficulty;
     ext.importance = aiRaw.importance;
-    ext.source = chapter.length > 0 ? chapter : 'camera_capture';
+    ext.source = chapterHint.length > 0 ? chapterHint : 'camera_capture';
 
     const truthResult: MvpTruthCheckResult = this.truthCheck(ocrText);
     ext.truthFlag = truthResult.truthFlag;
     if (!truthResult.truthFlag) {
-      for (let i: number = 0; i < truthResult.details.length; i++) {
-        const item: MvpTruthCheckItem = truthResult.details[i];
+      for (const item of truthResult.details) {
         if (!item.passed) {
-          for (let j: number = 0; j < item.issues.length; j++) {
-            ext.truthDetails.push('[' + item.checkName + '] ' + item.issues[j]);
+          for (const issue of item.issues) {
+            ext.truthDetails.push('[' + item.checkName + '] ' + issue);
           }
         }
       }
@@ -121,6 +159,18 @@ export class KnowledgeModel {
       + ' summary=' + unit.summary
       + ' aiFields=' + aiRaw.fields.length.toString());
     return unit;
+  }
+
+  async structureWithClassification(
+    ocrText: string,
+    classification: ClassificationResult,
+  ): Promise<KnowledgeUnit> {
+    return await this.structure(
+      ocrText,
+      classification.type,
+      classification.subject,
+      classification.chapter ?? '',
+    );
   }
 
   private toKnowledgeUnit(ext: KnowledgeUnitExt, createdAt: number): KnowledgeUnit {
@@ -157,13 +207,14 @@ export class KnowledgeModel {
     ocrText: string, type?: string, subject?: string, chapter: string = '',
   ): KnowledgeUnit {
     const now: number = Date.now();
+    const fallbackCategory: KnowledgeCategory = this.normalizeCategory(type ?? '', undefined);
+    const fallbackSubject: string = this.normalizeSubject(subject ?? '', undefined);
     const firstLine: string = ocrText.split('\n')[0].trim();
     const title: string = (firstLine.length > 3 && firstLine.length < 60)
       ? firstLine
-      : (type !== undefined && type.length > 0 ? type : '笔记')
-        + (subject !== undefined && subject.length > 0 ? ' · ' + subject : '');
+      : fallbackCategory + ' · ' + fallbackSubject;
     const tags: string[] = [];
-    if (type !== undefined && type.length > 0) { tags.push(type); }
+    tags.push(fallbackCategory);
     if (chapter.length > 0) { tags.push(chapter); }
     const fallbackSummaryLimit: number = 500;
     const summary: string = ocrText.length > fallbackSummaryLimit
@@ -177,8 +228,8 @@ export class KnowledgeModel {
       content: '## 内容\n' + ocrText,
       summary: summary,
       tags: tags,
-      subject: subject ?? '',
-      category: type ?? '概念',
+      subject: fallbackSubject,
+      category: fallbackCategory,
       difficulty: DifficultyLevel.MEDIUM,
       source: chapter.length > 0 ? chapter : 'camera_capture',
       createdAt: now,
@@ -199,9 +250,9 @@ export class KnowledgeModel {
   private summaryFromFields(ext: KnowledgeUnitExt): string {
     const summaryLimit: number = 500;
     let summary: string = '';
-    for (let i: number = 0; i < ext.fields.length; i++) {
-      if (ext.fields[i].value.length > 0) {
-        summary = summary + ext.fields[i].value + '\n';
+    for (const field of ext.fields) {
+      if (field.value.length > 0) {
+        summary = summary + field.value + '\n';
       }
       if (summary.length >= summaryLimit) {
         break;
@@ -224,13 +275,21 @@ export class KnowledgeModel {
   private uuid(): string {
     return 'KB-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
   }
-  private async callAi(ocrText: string, typeHint?: string, subjectHint?: string): Promise<AiRawResponse> {
-    // 可选分类 hint：当前主链不再传入，保留给兼容调用方。
+  private async callAi(
+    ocrText: string,
+    typeHint?: string,
+    subjectHint?: string,
+    chapterHint: string = '',
+    confidenceHint: number = 0,
+  ): Promise<AiRawResponse> {
+    // 可选分类 hint：TypeClassifier 只提供软参考，KnowledgeModel 仍按正文独立结构化。
     const hint: string = (typeHint !== undefined && typeHint.length > 0) || (subjectHint !== undefined && subjectHint.length > 0)
       ? '\n\n## 分类 hint (来自 TypeClassifier 粗分类, AI 自行决定是否采纳)\n' +
         '- 粗分类: ' + (typeHint ?? '未知') + '\n' +
         '- 学科: ' + (subjectHint ?? '未知') + '\n' +
-        '你可以参考, 也可以独立判断, 以你看到的题目内容为准。'
+        '- 章节/知识点: ' + (chapterHint.length > 0 ? chapterHint : '未知') + '\n' +
+        '- 置信度: ' + confidenceHint.toString() + '\n' +
+        '优先用它减少五类歧义；如果正文证据更强, 以正文为准。'
       : '';
     const prompt: string = this.buildPrompt(ocrText) + hint;
 
@@ -266,13 +325,13 @@ export class KnowledgeModel {
     const parsed: Record<string, Object> = JSON.parse(jsonStr) as Record<string, Object>;
 
     const aiRaw: AiRawResponse = {
-      category: parsed['category'] as KnowledgeCategory,
-      subject: parsed['subject'] as string,
-      title: parsed['title'] as string,
-      tags: parsed['tags'] as string[],
-      difficulty: parsed['difficulty'] as number,
-      importance: parsed['importance'] as number,
-      fields: parsed['fields'] as StructuredField[],
+      category: this.normalizeCategory(String(parsed['category'] ?? ''), typeHint),
+      subject: this.normalizeSubject(String(parsed['subject'] ?? ''), subjectHint),
+      title: this.normalizeTitle(String(parsed['title'] ?? ''), userText),
+      tags: this.normalizeStringArray(parsed['tags']),
+      difficulty: this.normalizeScore(Number(parsed['difficulty'] ?? 3)),
+      importance: this.normalizeScore(Number(parsed['importance'] ?? 3)),
+      fields: this.normalizeFields(parsed['fields']),
     };
 
     return aiRaw;
@@ -280,11 +339,12 @@ export class KnowledgeModel {
   // === Build AI Prompt ===
 
   buildPrompt(ocrText: string): string {
+    const categories: string = NOTE_TYPE_KEYS.join(' / ');
     return `你是数学学习笔记结构化助手。只返回纯 JSON 文本，不要用 \`\`\`json\`\`\` 代码块包裹。
 语言: 默认全部使用中文。
 字段:
-- category: 必须是 "概念" / "定理" / "公式" / "证明题" / "计算题" 之一，不要返回 concept/theorem/formula/proof/computation
-- subject: 学科名称（如"高等数学"/"线性代数"/"初中数学"）
+- category: 必须从 ${categories} 这五类中选择，不要返回 concept/theorem/formula/proof/computation
+- subject: 学科名称由你自主判断（如"高等数学"/"线性代数"/"初中数学"），无法判断时返回"其它"
 - title: 严谨名称或题目摘要
 - tags: 返回 2-4 个中文关键词（具体概念/方法/技巧），学科名请填在 subject 字段。示例: ["二次函数", "配方法", "顶点", "对称轴"]
 - difficulty: 1-5，1=简单，5=困难
@@ -314,8 +374,8 @@ export class KnowledgeModel {
    */
   private buildTags(aiRaw: AiRawResponse): string[] {
     const tags: string[] = [];
-    for (let i: number = 0; i < aiRaw.tags.length; i++) {
-      const tag: string = aiRaw.tags[i];
+    tags.push(aiRaw.category);
+    for (const tag of aiRaw.tags) {
       if (tags.indexOf(tag) === -1) {
         tags.push(tag);
       }
@@ -340,8 +400,7 @@ export class KnowledgeModel {
 
   private contentFromFields(ext: KnowledgeUnitExt): string {
     const sections: string[] = [];
-    for (let i: number = 0; i < ext.fields.length; i++) {
-      const field: StructuredField = ext.fields[i];
+    for (const field of ext.fields) {
       const label: string = field.label.trim().length > 0 ? field.label.trim() : field.key.trim();
       const value: string = field.value.trim();
       if (value.length > 0) {
@@ -356,6 +415,152 @@ export class KnowledgeModel {
       return ext.content;
     }
     return sections.join('\n\n');
+  }
+
+  private normalizeCategory(value: string, fallback?: string): KnowledgeCategory {
+    const normalized: string = normalizeNoteType(value);
+    if (isKnownNoteType(normalized)) {
+      return normalized as KnowledgeCategory;
+    }
+    if (fallback !== undefined) {
+      const fallbackType: string = normalizeNoteType(fallback);
+      if (isKnownNoteType(fallbackType)) {
+        return fallbackType as KnowledgeCategory;
+      }
+    }
+    return KNOWLEDGE_FALLBACK_CATEGORY;
+  }
+
+  private normalizeSubject(value: string, fallback?: string): string {
+    const subject: string = value.trim();
+    if (subject.length > 0 && subject !== '未知' && subject !== 'null' && subject !== 'undefined') {
+      return subject;
+    }
+    if (fallback !== undefined) {
+      const fallbackSubject: string = fallback.trim();
+      if (fallbackSubject.length > 0 && fallbackSubject !== '未知') {
+        return fallbackSubject;
+      }
+    }
+    return KNOWLEDGE_FALLBACK_SUBJECT;
+  }
+
+  private normalizeTitle(value: string, fallbackText: string): string {
+    const title: string = value.trim();
+    if (title.length > 0 && title !== '未知' && title !== 'null' && title !== 'undefined') {
+      return title;
+    }
+    const firstLine: string = fallbackText.split('\n')[0].trim();
+    if (firstLine.length > 0 && firstLine.length <= 60) {
+      return firstLine;
+    }
+    return '数学笔记';
+  }
+
+  private normalizeScore(value: number): number {
+    if (value >= 1 && value <= 5) {
+      return value;
+    }
+    return 3;
+  }
+
+  private normalizeStringArray(value: Object | undefined): string[] {
+    const result: string[] = [];
+    if (value === undefined || value === null || !Array.isArray(value)) {
+      return result;
+    }
+    const items: Object[] = value as Object[];
+    for (const item of items) {
+      const text: string = String(item).trim();
+      if (text.length > 0 && result.indexOf(text) < 0) {
+        result.push(text);
+      }
+    }
+    return result;
+  }
+
+  private normalizeFields(value: Object | undefined): StructuredField[] {
+    const result: StructuredField[] = [];
+    if (value === undefined || value === null || !Array.isArray(value)) {
+      return result;
+    }
+    const items: Object[] = value as Object[];
+    for (const item of items) {
+      const record: Record<string, Object> = item as Record<string, Object>;
+      const key: string = String(record['key'] ?? '').trim();
+      const label: string = String(record['label'] ?? '').trim();
+      const fieldValue: string = String(record['value'] ?? '').trim();
+      if ((key.length > 0 || label.length > 0) && fieldValue.length > 0) {
+        result.push({
+          key: key.length > 0 ? key : label,
+          label: label.length > 0 ? label : key,
+          value: fieldValue,
+        });
+      }
+    }
+    return result;
+  }
+
+  private async resolveClassificationHint(
+    ocrText: string,
+    type?: string,
+    subject?: string,
+    chapter: string = '',
+  ): Promise<ClassificationResult> {
+    const externalHint: ClassificationResult = this.buildExternalHint(ocrText, type, subject, chapter);
+    if (type !== undefined || subject !== undefined || chapter.length > 0) {
+      return externalHint;
+    }
+    try {
+      const classifier = new TypeClassifier();
+      const classified: ClassificationResult = await classifier.classifyText(
+        ocrText,
+        KNOWLEDGE_CLASSIFY_HINT_TIMEOUT_MS,
+      );
+      return this.mergeClassificationHint(externalHint, classified);
+    } catch (e) {
+      console.warn('[KnowledgeModel] TypeClassifier hint skipped: ' + ((e as Error).message ?? String(e)));
+      return externalHint;
+    }
+  }
+
+  private buildExternalHint(
+    ocrText: string,
+    type?: string,
+    subject?: string,
+    chapter: string = '',
+  ): ClassificationResult {
+    return {
+      type: this.normalizeCategory(type ?? '', undefined),
+      subject: this.normalizeSubject(subject ?? '', undefined),
+      chapter: chapter,
+      confidence: type !== undefined || subject !== undefined || chapter.length > 0 ? 0.8 : 0,
+      ocrText: ocrText,
+    };
+  }
+
+  private mergeClassificationHint(
+    base: ClassificationResult,
+    classified: ClassificationResult,
+  ): ClassificationResult {
+    const result: ClassificationResult = {
+      type: base.type,
+      subject: base.subject,
+      chapter: base.chapter ?? '',
+      confidence: base.confidence,
+      ocrText: classified.ocrText ?? base.ocrText,
+    };
+    if (classified.confidence >= KNOWLEDGE_HINT_CONFIDENCE_MIN) {
+      result.type = this.normalizeCategory(classified.type, base.type);
+      result.confidence = classified.confidence;
+    }
+    if (classified.subject.trim().length > 0 && classified.subject !== KNOWLEDGE_FALLBACK_SUBJECT) {
+      result.subject = classified.subject.trim();
+    }
+    if ((classified.chapter ?? '').trim().length > 0) {
+      result.chapter = (classified.chapter ?? '').trim();
+    }
+    return result;
   }
 
   /**
@@ -441,16 +646,17 @@ export class KnowledgeModel {
     const errors: string[] = [];
     let braceDepth: number = 0;
     let result: string = '';
+    let idx: number = 0;
 
-    for (let i: number = 0; i < text.length; i++) {
-      const ch: string = text[i];
+    while (idx < text.length) {
+      const ch: string = text[idx];
       if (ch === '{') {
         braceDepth = braceDepth + 1;
         result = result + ch;
       } else if (ch === '}') {
         braceDepth = braceDepth - 1;
         if (braceDepth < 0) {
-          errors.push('extra closing brace at position ' + String(i));
+          errors.push('extra closing brace at position ' + String(idx));
           braceDepth = 0;
         } else {
           result = result + ch;
@@ -458,12 +664,15 @@ export class KnowledgeModel {
       } else {
         result = result + ch;
       }
+      idx = idx + 1;
     }
 
     if (braceDepth > 0) {
       errors.push('missing closing brace count: ' + String(braceDepth));
-      for (let j: number = 0; j < braceDepth; j++) {
+      let fillCount: number = 0;
+      while (fillCount < braceDepth) {
         result = result + '}';
+        fillCount = fillCount + 1;
       }
     }
 
@@ -487,18 +696,18 @@ export class KnowledgeModel {
   checkEquation(text: string): EquationCheckResult {
     const issues: string[] = [];
     const contradictions: string[] = ['1=0', '0=1', '2=1', '1=2', '0=2', '2=0'];
-    for (let i: number = 0; i < contradictions.length; i++) {
-      if (text.indexOf(contradictions[i]) !== -1) {
-        issues.push('contradictory equation: ' + contradictions[i]);
+    for (const contradiction of contradictions) {
+      if (text.indexOf(contradiction) !== -1) {
+        issues.push('contradictory equation: ' + contradiction);
       }
     }
     if (text.indexOf('\u2260') !== -1) {
       issues.push('contains not-equal sign, please verify context');
     }
     const eqPatterns: string[] = ['x=x', 'X=X', 'a=a', 'A=A'];
-    for (let j: number = 0; j < eqPatterns.length; j++) {
-      if (text.indexOf(eqPatterns[j]) !== -1) {
-        issues.push('identity equation: ' + eqPatterns[j]);
+    for (const pattern of eqPatterns) {
+      if (text.indexOf(pattern) !== -1) {
+        issues.push('identity equation: ' + pattern);
         break;
       }
     }
@@ -513,8 +722,8 @@ export class KnowledgeModel {
 
     const braceResult: BracePairingResult = this.checkBracePairing(corrected);
     if (!braceResult.valid) {
-      for (let i: number = 0; i < braceResult.errors.length; i++) {
-        issues.push(braceResult.errors[i]);
+      for (const error of braceResult.errors) {
+        issues.push(error);
       }
       corrected = braceResult.correctedText;
     }
@@ -530,10 +739,10 @@ export class KnowledgeModel {
       ['\\sqt{', '\\sqrt{'],
       ['\\begin{align*}', '\\begin{aligned}'],
     ];
-    for (let k: number = 0; k < latexFixes.length; k++) {
+    for (const fix of latexFixes) {
       const before: string = corrected;
-      const target: string = latexFixes[k][0];
-      const replacement: string = latexFixes[k][1];
+      const target: string = fix[0];
+      const replacement: string = fix[1];
       if (corrected.indexOf(target) !== -1) {
         corrected = corrected.split(target).join(replacement);
         if (corrected !== before) {
