@@ -1,4 +1,5 @@
-import { KnowledgeUnit, ClassificationResult, LlmClient, LlmConfig, ChatMessage } from 'common';
+import { KnowledgeUnit, ClassificationResult, LlmClient, LlmConfig, ChatMessage, LlmGuard } from 'common';
+import type { LlmGuardValidationResult } from 'common';
 import { common } from '@kit.AbilityKit';
 import { AiService } from './AiService';
 import { AgentMemoryService } from './AgentMemoryService';
@@ -183,12 +184,13 @@ export class AgentChatService {
       const configured: boolean = await LlmConfig.getInstance().isConfigured();
       if (!configured) { return 'chat'; }
       const messages: ChatMessage[] = this.buildIntentMessages(normalized);
-      const raw: string = await new LlmClient().call(messages, {
+      const result = await new LlmGuard().callJsonWithRetry(messages, {
         maxTokens: 80,
         timeoutMs: 30000,
         responseFormat: { type: 'json_object' },
-      });
-      return this.parseTextIntent(raw);
+        label: 'text intent classification',
+      }, (json: Record<string, Object>): LlmGuardValidationResult => this.validateTextIntentJson(json));
+      return this.parseTextIntent(result.raw);
     } catch (e) {
       console.warn('[AgentChatService] text intent classify failed: ' + AgentChatService.errorMessage(e));
       return 'chat';
@@ -222,6 +224,20 @@ export class AgentChatService {
       console.warn('[AgentChatService] parse intent json failed: ' + AgentChatService.errorMessage(e));
     }
     return 'chat';
+  }
+
+  private validateTextIntentJson(json: Record<string, Object>): LlmGuardValidationResult {
+    const issues: string[] = [];
+    const intent: Object | undefined = json['intent'];
+    if (typeof intent !== 'string') {
+      issues.push('intent must be a string');
+    } else if (intent !== 'note_generation' && intent !== 'chat') {
+      issues.push('intent must be note_generation or chat');
+    }
+    return {
+      ok: issues.length === 0,
+      issues: issues,
+    };
   }
 
   private extractJsonObject(raw: string): string {

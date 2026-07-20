@@ -1,6 +1,7 @@
 import {
   isKnownNoteType,
-  LlmClient,
+  JSON_ONLY_RULES,
+  LlmGuard,
   normalizeNoteType,
   NOTE_TYPE_KEYS,
 } from 'common';
@@ -8,6 +9,8 @@ import type {
   ChatMessage,
   ClassificationResult,
   DispatchPayload,
+  LlmGuardJsonResult,
+  LlmGuardValidationResult,
   NoteCategory,
 } from 'common';
 import { OcrTool } from '../mcp/tools/OcrTool';
@@ -215,16 +218,16 @@ export class TypeClassifier {
       'confidence 返回 0 到 1。';
     const user: string = '请识别下面数学内容的 category、subject、chapter、confidence。\n\n' + text;
     const messages: ChatMessage[] = [
-      { role: 'system', content: system },
+      { role: 'system', content: system + '\n' + JSON_ONLY_RULES },
       { role: 'user', content: user },
     ];
-    const client: LlmClient = new LlmClient();
-    const raw: string = await client.call(messages, {
+    const guarded: LlmGuardJsonResult = await new LlmGuard().callJsonWithRetry(messages, {
       maxTokens: CLASSIFY_MAX_TOKENS,
       timeoutMs: timeoutMs,
       temperature: 0.1,
-    });
-    return this.parseClassification(raw);
+      label: 'TypeClassifier classification',
+    }, (json: Record<string, Object>): LlmGuardValidationResult => this.validateClassificationJson(json));
+    return this.classificationFromJson(guarded.json);
   }
 
   private parseClassification(raw: string): ParsedClassification {
@@ -238,6 +241,14 @@ export class TypeClassifier {
       jsonText = braceMatch[0];
     }
     const parsed: Record<string, Object> = JSON.parse(jsonText) as Record<string, Object>;
+    const validation: LlmGuardValidationResult = this.validateClassificationJson(parsed);
+    if (!validation.ok) {
+      throw new Error('TypeClassifier JSON invalid: ' + validation.issues.join('; '));
+    }
+    return this.classificationFromJson(parsed);
+  }
+
+  private classificationFromJson(parsed: Record<string, Object>): ParsedClassification {
     const rawCategory: Object | undefined = parsed['category'];
     const rawSubject: Object | undefined = parsed['subject'];
     const rawChapter: Object | undefined = parsed['chapter'];
@@ -247,6 +258,34 @@ export class TypeClassifier {
       subject: this.normalizeSubject(String(rawSubject ?? '')),
       chapter: this.normalizeChapter(String(rawChapter ?? '')),
       confidence: this.normalizeConfidence(Number(rawConfidence ?? 0.65)),
+    };
+  }
+
+  private validateClassificationJson(parsed: Record<string, Object>): LlmGuardValidationResult {
+    const issues: string[] = [];
+    const rawCategory: Object | undefined = parsed['category'];
+    const categoryText: string = typeof rawCategory === 'string' ? rawCategory : '';
+    if (categoryText.length === 0 || !isKnownNoteType(normalizeNoteType(categoryText))) {
+      issues.push('category must be one of: ' + NOTE_TYPE_KEYS.join('/'));
+    }
+    if (typeof parsed['subject'] !== 'string') {
+      issues.push('subject must be a string');
+    }
+    if (parsed['chapter'] !== undefined && typeof parsed['chapter'] !== 'string') {
+      issues.push('chapter must be a string when present');
+    }
+    const confidence: Object | undefined = parsed['confidence'];
+    if (typeof confidence !== 'number' && typeof confidence !== 'string') {
+      issues.push('confidence must be numeric');
+    } else {
+      const value: number = Number(confidence);
+      if (Number.isNaN(value) || value < 0 || value > 100) {
+        issues.push('confidence must be numeric');
+      }
+    }
+    return {
+      ok: issues.length === 0,
+      issues: issues,
     };
   }
 

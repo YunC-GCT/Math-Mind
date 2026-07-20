@@ -87,8 +87,16 @@ export {
 //   LlmTypes:   ChatMessage / LlmCallOptions / LlmErrorKind
 export { LlmConfig } from './llm/LlmConfig';
 export { LlmClient } from './llm/LlmClient';
+export { LlmGuard } from './llm/LlmGuard';
+export { JSON_ONLY_RULES, LATEX_GENERATION_RULES, buildGuardRetryMessage } from './llm/LlmOutputRules';
 export { LlmError } from './llm/LlmTypes';
-export type { ChatMessage, LlmCallOptions, LlmErrorKind } from './llm/LlmTypes';
+export type {
+  ChatMessage,
+  LlmCallOptions,
+  LlmErrorKind,
+} from './llm/LlmTypes';
+export type { LlmGuardJsonOptions, LlmGuardJsonResult, LlmGuardValidationResult, LlmJsonValidator } from './llm/LlmGuard';
+export type { LlmCaller } from './llm/LlmGuard';
 
 // ========== OCR 端点配置 (2026-07-17 P0 修复) ==========
 //   OcrConfig:  单例, preferences 持久化 endpoint + enabled, 真机部署改 IP
@@ -102,3 +110,11 @@ export { StudyPlanItem } from './models/StudyPlan';
 // ========== 文件 URI / MIME 共享工具 (消除 ImageUriResolver/OcrTool 重复) ==========
 export { mimeFromExtension, extFromUri, fileNameFromUri } from './utils/FileUriUtils';
 export { uuid, shortId } from './utils/uuid';
+export { LatexRiskNormalizer } from './utils/LatexRiskNormalizer';
+export type {
+  LatexRiskLevel,
+  LatexRenderMode,
+  LatexSegmentKind,
+  RenderSegment,
+  LatexRiskResult,
+} from './utils/LatexRiskNormalizer';
