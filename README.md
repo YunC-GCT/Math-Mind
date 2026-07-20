@@ -6,6 +6,23 @@
 
 ---
 
+## 2026-07-20 旧数据兼容说明：不是两套数据库
+
+当前不存在“新旧两套数据库”。应用仍使用同一个 `MathMind.db`，主表仍是 `knowledge_unit`。
+
+需要注意的是：`KnowledgeUnit` 在 2026-07-20 后新增了独立的 `subject` 和 `category` 必填字段。旧版本已经保存过的笔记行可能没有这两个字段的有效语义，表现为字段为空、旧分类仍混在 `tags` 中，或 UI 需要从旧标签兜底推断。
+
+当前兼容策略：
+
+- `DatabaseHelper` 会检查 `knowledge_unit` 是否存在 `subject` / `category` 列，缺列时只补缺失列，不重复迁移。
+- `NoteDao.rowToUnit()` 读取旧库时对缺失列使用默认值，避免旧 ResultSet 直接崩溃。
+- `NoteItemMapper` 优先使用 `unit.subject` / `unit.category`，为空时再从旧 `tags` 推断，保证旧笔记仍可展示。
+- `NoteDetailOverlay` 手工新建或编辑保存笔记时会补齐 `subject` / `category`：已有笔记优先保留原字段，旧数据为空时从 UI note 或 tags 推断，最后兜底为 `其它` / `概念`。
+
+结论：这是“旧数据缺少新字段语义”的兼容问题，不是数据库分裂。后续如需彻底清理，可增加一次轻量数据回填，把旧笔记中的空 `subject/category` 批量补齐。
+
+---
+
 ## 2026-07-20 远端同步与 Notes 页结构优化
 
 ### 做了什么

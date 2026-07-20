@@ -15,6 +15,8 @@ import {
   ReviewStatus,
   uuid,
   DatabaseHelper,
+  isKnownNoteType,
+  normalizeNoteType,
 } from 'common'
 import { promptAction } from '@kit.ArkUI'
 import { NoteDao } from '../../database/NoteDao'
@@ -364,6 +366,8 @@ export struct NoteDetailOverlay {
       content: content,
       summary: summary,
       tags: this.parseTags(this.tagsText),
+      subject: this.resolveManualSubject(),
+      category: this.resolveManualCategory(),
       difficulty: DifficultyLevel.MEDIUM,
       source: 'manual',
       createdAt: now,
@@ -392,6 +396,8 @@ export struct NoteDetailOverlay {
       content: content,
       summary: summary,
       tags: this.parseTags(this.tagsText),
+      subject: this.resolveExistingSubject(current),
+      category: this.resolveExistingCategory(current),
       difficulty: current.difficulty,
       source: current.source,
       createdAt: current.createdAt,
@@ -407,6 +413,45 @@ export struct NoteDetailOverlay {
       userId: current.userId,
       version: current.version + 1,
     }
+  }
+
+  private resolveManualSubject(): string {
+    const subject: string = this.note.subject.trim()
+    if (subject.length > 0) {
+      return subject
+    }
+    return '其它'
+  }
+
+  private resolveManualCategory(): string {
+    const noteType: string = normalizeNoteType(this.note.type)
+    if (isKnownNoteType(noteType)) {
+      return noteType
+    }
+    const tags: string[] = this.parseTags(this.tagsText)
+    for (const tag of tags) {
+      const type: string = normalizeNoteType(tag)
+      if (isKnownNoteType(type)) {
+        return type
+      }
+    }
+    return '概念'
+  }
+
+  private resolveExistingSubject(current: KnowledgeUnit): string {
+    const subject: string = current.subject.trim()
+    if (subject.length > 0) {
+      return subject
+    }
+    return this.resolveManualSubject()
+  }
+
+  private resolveExistingCategory(current: KnowledgeUnit): string {
+    const category: string = normalizeNoteType(current.category)
+    if (isKnownNoteType(category)) {
+      return category
+    }
+    return this.resolveManualCategory()
   }
 
   private parseTags(raw: string): string[] {
