@@ -6,6 +6,24 @@
 
 ---
 
+## 2026-07-20 纯文字生成笔记刷新链路修复
+
+### 做了什么
+
+- 检查纯文字对话“生成笔记”链路：`AgentFloatWindow.send()` 无图片时进入 `AgentChatService.realReply()`，意图识别为 `note_generation` 后调用 `generateNoteFromConversation()`。
+- 生成链路最终走 `AiService.captureText()` → `Dispatcher.dispatch()` → `KnowledgeModel.structure()` → `NoteDao.insert()`，成功后调用 `bumpNotesVersion()`。
+- 首页、笔记页和学科详情页都监听 `AppStorage('notesVersion')`，版本号变化后重新 `loadNotes()`，因此新笔记会自动出现在首页最近笔记、Notes 学科入口和学科内笔记块。
+- 修复纯文字同句携带材料的边界：当用户直接输入“生成笔记：具体内容……”且没有历史会话材料时，会从当前指令中提取笔记原材料继续生成，避免误报“当前会话还没有可整理的内容”。
+- 归类路径确认：`KnowledgeModel` 输出独立 `subject/category`，`NoteItemMapper` 优先使用这两个字段；旧数据为空时再从 `tags` 兜底推断。
+
+### 验证
+
+- 文件级 `git diff --check HEAD` 无输出。
+- 已确认 `git push --dry-run origin YunCeH:YunCeH` 成功。
+- DevEco Studio GUI 编译和真机纯文字生成笔记 smoke test 仍需手动执行。
+
+---
+
 ## 2026-07-20 旧数据兼容说明：不是两套数据库
 
 当前不存在“新旧两套数据库”。应用仍使用同一个 `MathMind.db`，主表仍是 `knowledge_unit`。
