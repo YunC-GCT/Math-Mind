@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 //  pages/Notes/SubjectDetailPage.ets - subject-level notes page
 // ============================================================================
 
@@ -10,6 +10,7 @@ import { SubjectHeader } from "./SubjectHeader"
 import { TypeTabRow } from "./TypeTabRow"
 import { SubjectNoteList } from "./SubjectNoteList"
 import { SubjectTypeEmpty } from "./SubjectTypeEmpty"
+import { unitToNoteItem } from "../../utils/NoteItemMapper"
 
 @Entry
 @Component
@@ -42,7 +43,7 @@ struct SubjectDetailPage {
   private reloadNotes(): void {
     this.vm.loadNotes(getContext(this)).then((ok: boolean): void => {
       if (!ok) {
-        try { promptAction.showToast({ message: "笔记加载失败", duration: 1500 }) } catch (_e) {}
+        try { promptAction.showToast({ message: "绗旇鍔犺浇澶辫触", duration: 1500 }) } catch (_e) {}
         return
       }
       this.ensureSubject()
@@ -103,6 +104,11 @@ struct SubjectDetailPage {
     this.selectedUnit = null
   }
 
+  private handleSaved = (unit: KnowledgeUnit): void => {
+    this.selectedNote = unitToNoteItem(unit)
+    this.selectedUnit = unit
+  }
+
   private deleteNote = async (id: string): Promise<void> => {
     const ok: boolean = await this.vm.deleteNote(getContext(this), id)
     if (ok) {
@@ -110,9 +116,9 @@ struct SubjectDetailPage {
       this.selectedUnit = null
       const v: number = AppStorage.get<number>("notesVersion") ?? 0
       AppStorage.setOrCreate("notesVersion", v + 1)
-      try { promptAction.showToast({ message: "笔记已删除", duration: 1200 }) } catch (_e) {}
+      try { promptAction.showToast({ message: "Note deleted", duration: 1200 }) } catch (_e) {}
     } else {
-      try { promptAction.showToast({ message: "删除失败", duration: 1500 }) } catch (_e) {}
+      try { promptAction.showToast({ message: "Delete failed", duration: 1500 }) } catch (_e) {}
     }
   }
 
@@ -166,6 +172,7 @@ struct SubjectDetailPage {
           units: this.vm.units,
           onClose: this.closeDetail,
           onDelete: this.deleteNote,
+          onSaved: this.handleSaved,
         })
       }
     }

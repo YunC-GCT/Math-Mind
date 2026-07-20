@@ -21,6 +21,7 @@ export struct AppIcon {
     if (this.name === "trash") { return "Del" }
     if (this.name === "edit") { return "Edit" }
     if (this.name === "share") { return "\u2197" }
+    if (this.name === "more") { return "..." }
     if (this.name === "copy") { return "Copy" }
     if (this.name === "refresh") { return "\u21bb" }
     if (this.name === "feedback") { return "!" }
