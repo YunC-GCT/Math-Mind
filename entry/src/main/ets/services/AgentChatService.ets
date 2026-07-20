@@ -99,6 +99,9 @@ export class AgentChatService {
         conversation = this.cbs.getConversationText(true).trim();
       }
       if (conversation.length === 0) {
+        conversation = this.inlineNoteMaterial(userInstruction);
+      }
+      if (conversation.length === 0) {
         await this.addAiMessage(sessionId, '当前会话还没有可整理的内容');
         return;
       }
@@ -335,6 +338,60 @@ export class AgentChatService {
     return this.hasActionNearTarget(text, createActions, noteTargets, 4)
       || this.hasActionNearTarget(text, transformActions, noteTargets, 6)
       || this.hasActionNearTarget(text, currentTargets, rememberActions, 8);
+  }
+
+  private inlineNoteMaterial(userInstruction: string): string {
+    let text: string = userInstruction.trim();
+    const separators: string[] = ['：', ':', '\n'];
+    for (const separator of separators) {
+      const idx: number = text.indexOf(separator);
+      if (idx >= 0 && idx + separator.length < text.length) {
+        const tail: string = text.substring(idx + separator.length).trim();
+        if (tail.length >= 8) {
+          return tail;
+        }
+      }
+    }
+
+    const removablePhrases: string[] = [
+      '请帮我',
+      '帮我',
+      '把这个',
+      '把这题',
+      '把这段',
+      '把上面',
+      '把刚才',
+      '生成笔记',
+      '创建笔记',
+      '新建笔记',
+      '整理成笔记',
+      '整理为笔记',
+      '保存为笔记',
+      '保存成笔记',
+      '总结成笔记',
+      '总结为笔记',
+      '归纳成笔记',
+      '归纳为笔记',
+      '做成笔记',
+      '转成笔记',
+      '转为笔记',
+      '收进笔记',
+      '加入笔记',
+      '存到笔记',
+      '存进笔记',
+      '留作笔记',
+      '记一下',
+      '记下来',
+      '记下',
+    ];
+    for (const phrase of removablePhrases) {
+      text = text.replace(phrase, ' ');
+    }
+    text = text.replace(/\s+/g, ' ').trim();
+    if (text.length >= 12) {
+      return text;
+    }
+    return '';
   }
 
   private formatAnalyzeReply(result: ClassificationResult): string {
