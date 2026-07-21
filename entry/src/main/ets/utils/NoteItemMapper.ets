@@ -93,12 +93,7 @@ export function unitToNoteItem(unit: KnowledgeUnit): NoteItem {
   const subject: string = unit.subject.trim().length > 0 ? unit.subject.trim() : resolveSubject(unit.tags)
   const type: string = unit.category.length > 0 ? unit.category : resolveType(unit.tags)
   const chapter: string = unit.source.length > 0 && unit.source !== CAMERA_SOURCE ? unit.source : subject
-  const body: string = unit.summary.trim().length > 0 ? stripMD(unit.summary, 500) : stripMD(unit.content, 500)
-
-  console.info('[NoteItemMapper] unit.id=' + unit.id + ' title=' + unit.title
-    + ' bodyLen=' + body.length.toString()
-    + ' tags=' + JSON.stringify(unit.tags)
-    + ' summaryLen=' + unit.summary.length.toString());
+  const body: string = unit.summary.trim().length > 0 ? stripMD(unit.summary, 80) : stripMD(unit.content, 80)
 
   return new NoteItem(
     stableNumericId(rawId),

@@ -22,6 +22,7 @@ import {
 export struct NoteDetailMeta {
   @Prop note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '')
   @Prop unit: KnowledgeUnit | null = null
+  @Prop units: KnowledgeUnit[] = []
 
   build() {
     Column() {
@@ -80,11 +81,11 @@ export struct NoteDetailMeta {
       }
 
       Row() {
-        this.MetricCell('Confidence', this.confidenceText(), MINT)
+        this.MetricCell('掌握度', this.confidenceText(), MINT)
         Blank().width(S_2)
-        this.MetricCell('Review', this.statusTextValue(), typeColor(this.categoryText()))
+        this.MetricCell('复习', this.statusTextValue(), typeColor(this.categoryText()))
         Blank().width(S_2)
-        this.MetricCell('Level', this.difficultyTextValue(), TEXT_2)
+        this.MetricCell('难度', this.difficultyTextValue(), TEXT_2)
       }
       .width('100%')
       .margin({ top: S_4 })
@@ -143,10 +144,14 @@ export struct NoteDetailMeta {
     if (this.note.title.trim().length > 0) {
       return this.note.title.trim()
     }
-    return 'Untitled note'
+    return '未命名笔记'
   }
 
   private subtitleText = (): string => {
+    const hint: string = this.relatedHint()
+    if (hint.length > 0) {
+      return this.compactOverview(hint)
+    }
     let raw: string = ''
     if (this.unit !== null && this.unit.summary.trim().length > 0) {
       raw = this.unit.summary.trim()
@@ -154,6 +159,40 @@ export struct NoteDetailMeta {
       raw = this.note.chapter.trim()
     }
     return this.compactOverview(raw)
+  }
+
+  private relatedHint = (): string => {
+    if (this.unit === null) {
+      return ''
+    }
+    const prerequisite: string = this.firstResolvedTitle(this.unit.prerequisites)
+    if (prerequisite.length > 0) {
+      return '先确认《' + prerequisite + '》，再阅读本文会更顺。'
+    }
+    const related: string = this.firstResolvedTitle(this.unit.related)
+    if (related.length > 0) {
+      return '可对照《' + related + '》理解本文的关键步骤。'
+    }
+    return ''
+  }
+
+  private firstResolvedTitle = (ids: string[]): string => {
+    for (const id of ids) {
+      const label: string = this.lookupTitle(id)
+      if (label.length > 0 && label !== id.trim()) {
+        return label
+      }
+    }
+    return ''
+  }
+
+  private lookupTitle = (id: string): string => {
+    const trimmed: string = id.trim()
+    if (trimmed.length === 0) {
+      return ''
+    }
+    const found: KnowledgeUnit | undefined = this.units.find((unit: KnowledgeUnit): boolean => unit.id === trimmed)
+    return found !== undefined && found.title.trim().length > 0 ? found.title.trim() : trimmed
   }
 
   private compactOverview = (raw: string): string => {
@@ -219,14 +258,14 @@ export struct NoteDetailMeta {
 
   private statusTextValue = (): string => {
     if (this.unit === null) {
-      return 'New'
+      return '新笔记'
     }
     return this.statusText(this.unit.reviewStatus)
   }
 
   private difficultyTextValue = (): string => {
     if (this.unit === null) {
-      return '--'
+      return '待定'
     }
     return this.difficultyText(this.unit.difficulty)
   }
@@ -239,17 +278,17 @@ export struct NoteDetailMeta {
   }
 
   private statusText = (status: ReviewStatus): string => {
-    if (status === ReviewStatus.LEARNING) { return 'Learning' }
-    if (status === ReviewStatus.REVIEW) { return 'Review' }
-    if (status === ReviewStatus.GRADUATED) { return 'Mastered' }
-    if (status === ReviewStatus.LAPSED) { return 'Lapsed' }
-    return 'New'
+    if (status === ReviewStatus.LEARNING) { return '学习中' }
+    if (status === ReviewStatus.REVIEW) { return '复习中' }
+    if (status === ReviewStatus.GRADUATED) { return '已掌握' }
+    if (status === ReviewStatus.LAPSED) { return '需重学' }
+    return '新笔记'
   }
 
   private difficultyText = (level: DifficultyLevel): string => {
-    if (level === DifficultyLevel.EASY) { return 'Easy' }
-    if (level === DifficultyLevel.MEDIUM) { return 'Medium' }
-    if (level === DifficultyLevel.HARD) { return 'Hard' }
-    return 'Expert'
+    if (level === DifficultyLevel.EASY) { return '简单' }
+    if (level === DifficultyLevel.MEDIUM) { return '中等' }
+    if (level === DifficultyLevel.HARD) { return '困难' }
+    return '专家'
   }
 }

@@ -61,7 +61,7 @@ export struct NoteCard {
         // 标题 (v2-ui .note-title: 15px semibold)
         Text(this.note.title)
           .fontSize(F_MD).fontWeight(W_SEMIBOLD).fontColor(TEXT)
-          .margin({ top: S_1 }).maxLines(1)
+          .margin({ top: S_1 }).maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
 
         // 正文预览 (v2-ui .note-body: 12.5px 2行截断)

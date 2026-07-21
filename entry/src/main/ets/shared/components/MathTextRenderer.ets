@@ -13,12 +13,16 @@ class MathRenderCacheEntry {
   encodedHtml: string = ''
   height: number = 0
   touched: number = 0
+  touchedAt: number = 0
+  size: number = 0
 
-  constructor(key: string, encodedHtml: string, height: number, touched: number) {
+  constructor(key: string, encodedHtml: string, height: number, touched: number, touchedAt: number) {
     this.key = key
     this.encodedHtml = encodedHtml
     this.height = height
     this.touched = touched
+    this.touchedAt = touchedAt
+    this.size = encodedHtml.length
   }
 }
 
@@ -28,7 +32,10 @@ class MathRenderPayload {
 }
 
 const MATH_RENDER_CACHE: MathRenderCacheEntry[] = []
-const MATH_RENDER_CACHE_LIMIT: number = 96
+const MATH_RENDER_CACHE_LIMIT: number = 64
+const MATH_RENDER_CACHE_MAX_CHARS: number = 600000
+const MATH_RENDER_CACHE_TTL_MS: number = 10 * 60 * 1000
+const MATH_RENDER_CACHE_PASSIVE_TRIM_TICKS: number = 12
 let mathRenderCacheClock: number = 0
 
 function nextCacheTick(): number {
@@ -37,9 +44,12 @@ function nextCacheTick(): number {
 }
 
 function cacheGet(key: string): MathRenderCacheEntry | null {
+  const now: number = Date.now()
+  trimCacheIfNeeded(now)
   for (const entry of MATH_RENDER_CACHE) {
     if (entry.key === key) {
       entry.touched = nextCacheTick()
+      entry.touchedAt = now
       return entry
     }
   }
@@ -47,33 +57,88 @@ function cacheGet(key: string): MathRenderCacheEntry | null {
 }
 
 function cacheSet(key: string, encodedHtml: string, height: number): void {
+  const now: number = Date.now()
   const touched: number = nextCacheTick()
+  if (encodedHtml.length > MATH_RENDER_CACHE_MAX_CHARS) {
+    cacheRemove(key)
+    trimCache(now)
+    return
+  }
   for (const entry of MATH_RENDER_CACHE) {
     if (entry.key === key) {
       entry.encodedHtml = encodedHtml
       entry.height = height
       entry.touched = touched
+      entry.touchedAt = now
+      entry.size = encodedHtml.length
+      trimCacheIfNeeded(now)
       return
     }
   }
-  MATH_RENDER_CACHE.push(new MathRenderCacheEntry(key, encodedHtml, height, touched))
-  trimCache()
+  MATH_RENDER_CACHE.push(new MathRenderCacheEntry(key, encodedHtml, height, touched, now))
+  trimCache(now)
 }
 
-function trimCache(): void {
-  while (MATH_RENDER_CACHE.length > MATH_RENDER_CACHE_LIMIT) {
-    let oldestIndex: number = 0
-    let oldestTick: number = MATH_RENDER_CACHE[0].touched
-    let index: number = 1
-    while (index < MATH_RENDER_CACHE.length) {
-      if (MATH_RENDER_CACHE[index].touched < oldestTick) {
-        oldestTick = MATH_RENDER_CACHE[index].touched
-        oldestIndex = index
-      }
-      index += 1
+function cacheRemove(key: string): void {
+  let index: number = MATH_RENDER_CACHE.length - 1
+  while (index >= 0) {
+    if (MATH_RENDER_CACHE[index].key === key) {
+      MATH_RENDER_CACHE.splice(index, 1)
     }
-    MATH_RENDER_CACHE.splice(oldestIndex, 1)
+    index -= 1
   }
+}
+
+function trimCacheIfNeeded(now: number): void {
+  if (MATH_RENDER_CACHE.length > MATH_RENDER_CACHE_LIMIT
+    || mathRenderCacheClock % MATH_RENDER_CACHE_PASSIVE_TRIM_TICKS === 0) {
+    trimCache(now)
+  }
+}
+
+function trimCache(now: number): void {
+  dropExpiredCacheEntries(now)
+  while (MATH_RENDER_CACHE.length > MATH_RENDER_CACHE_LIMIT) {
+    removeOldestCacheEntry()
+  }
+  while (cacheTotalSize() > MATH_RENDER_CACHE_MAX_CHARS && MATH_RENDER_CACHE.length > 0) {
+    removeOldestCacheEntry()
+  }
+}
+
+function dropExpiredCacheEntries(now: number): void {
+  let index: number = MATH_RENDER_CACHE.length - 1
+  while (index >= 0) {
+    if (now - MATH_RENDER_CACHE[index].touchedAt > MATH_RENDER_CACHE_TTL_MS) {
+      MATH_RENDER_CACHE.splice(index, 1)
+    }
+    index -= 1
+  }
+}
+
+function removeOldestCacheEntry(): void {
+  if (MATH_RENDER_CACHE.length === 0) {
+    return
+  }
+  let oldestIndex: number = 0
+  let oldestTick: number = MATH_RENDER_CACHE[0].touched
+  let index: number = 1
+  while (index < MATH_RENDER_CACHE.length) {
+    if (MATH_RENDER_CACHE[index].touched < oldestTick) {
+      oldestTick = MATH_RENDER_CACHE[index].touched
+      oldestIndex = index
+    }
+    index += 1
+  }
+  MATH_RENDER_CACHE.splice(oldestIndex, 1)
+}
+
+function cacheTotalSize(): number {
+  let total: number = 0
+  for (const entry of MATH_RENDER_CACHE) {
+    total += entry.size
+  }
+  return total
 }
 
 function contentHash(text: string): string {

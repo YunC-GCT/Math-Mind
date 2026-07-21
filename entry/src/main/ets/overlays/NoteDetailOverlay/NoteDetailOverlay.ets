@@ -84,7 +84,7 @@ export struct NoteDetailOverlay {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
 
-          if (!this.isCreating && !this.isEditing) {
+          if (!this.isCreating && !this.isEditing && this.effectiveUnit() !== null) {
             NoteIconButton({
               name: 'trash',
               color: DANGER,
@@ -109,8 +109,10 @@ export struct NoteDetailOverlay {
                 onContentChange: (value: string): void => { this.contentText = value },
                 onTagsChange: (value: string): void => { this.tagsText = value },
               })
+            } else if (this.effectiveUnit() === null) {
+              this.LoadingState()
             } else {
-              NoteDetailMeta({ note: this.note, unit: this.effectiveUnit() })
+              NoteDetailMeta({ note: this.note, unit: this.effectiveUnit(), units: this.units })
               NoteDetailBody({ note: this.note, unit: this.effectiveUnit(), units: this.units })
             }
           }
@@ -152,7 +154,7 @@ export struct NoteDetailOverlay {
           .width('100%')
           .padding({ left: 16, right: 16, top: 8, bottom: 24 })
           .backgroundColor(BG_DARK)
-        } else {
+        } else if (this.effectiveUnit() !== null) {
           NoteActionBar({
             onEdit: (): void => this.startEdit(),
             onShare: (): void => this.mockShare(),
@@ -169,6 +171,32 @@ export struct NoteDetailOverlay {
     }
     .width('100%')
     .height('100%')
+  }
+
+  @Builder
+  LoadingState() {
+    Column() {
+      Blank()
+
+      Text('正在加载笔记内容')
+        .fontSize(F_MD)
+        .fontWeight(W_SEMIBOLD)
+        .fontColor(TEXT)
+        .width('100%')
+        .textAlign(TextAlign.Center)
+
+      Text('稍等片刻，完整正文马上呈现。')
+        .fontSize(F_SM)
+        .fontColor(TEXT_3)
+        .width('100%')
+        .textAlign(TextAlign.Center)
+        .margin({ top: S_3 })
+
+      Blank()
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ left: S_4, right: S_4 })
   }
 
   @Builder
@@ -242,18 +270,18 @@ export struct NoteDetailOverlay {
 
   private modeTitle = (): string => {
     if (this.isCreating) {
-      return 'New note'
+      return '新建笔记'
     }
     if (this.isEditing) {
-      return 'Edit note'
+      return '编辑笔记'
     }
-    return 'Note detail'
+    return '笔记详情'
   }
 
   private startEdit = (): void => {
     const current: KnowledgeUnit | null = this.effectiveUnit()
     if (current === null) {
-      promptAction.showToast({ message: 'Note is still loading', duration: 1200 })
+      promptAction.showToast({ message: '笔记仍在加载', duration: 1200 })
       return
     }
     this.loadForm(current)
@@ -317,11 +345,11 @@ export struct NoteDetailOverlay {
     const summary: string = this.summaryText.trim()
     const content: string = this.contentText.trim()
     if (title.length === 0) {
-      promptAction.showToast({ message: 'Title is required', duration: 1200 })
+      promptAction.showToast({ message: '请输入标题', duration: 1200 })
       return
     }
     if (summary.length === 0 && content.length === 0) {
-      promptAction.showToast({ message: 'Summary or content is required', duration: 1500 })
+      promptAction.showToast({ message: '摘要和正文至少填写一项', duration: 1500 })
       return
     }
 
@@ -344,10 +372,10 @@ export struct NoteDetailOverlay {
       this.loadForm(saved)
       this.bumpNotesVersion()
       this.onSaved(saved)
-      promptAction.showToast({ message: this.isCreating ? 'Note created' : 'Note saved', duration: 1200 })
+      promptAction.showToast({ message: this.isCreating ? '笔记已新建' : '笔记已保存', duration: 1200 })
     } catch (e) {
       const message: string = (e as Error).message ?? String(e)
-      promptAction.showToast({ message: 'Save failed: ' + message, duration: 1800 })
+      promptAction.showToast({ message: '保存失败：' + message, duration: 1800 })
     }
     this.saving = false
   }
@@ -381,7 +409,7 @@ export struct NoteDetailOverlay {
   private buildUpdatedUnit(now: number, title: string, summary: string, content: string): KnowledgeUnit {
     const current: KnowledgeUnit | null = this.effectiveUnit()
     if (current === null) {
-      throw new Error('Note is unavailable')
+      throw new Error('笔记不可用')
     }
     return {
       id: current.id,
@@ -486,7 +514,7 @@ export struct NoteDetailOverlay {
   }
 
   private mockShare = (): void => {
-    promptAction.showToast({ message: 'Share is not available yet', duration: 1500 })
+    promptAction.showToast({ message: '分享功能暂未开放', duration: 1500 })
   }
 
   private confirmDelete = (): void => {

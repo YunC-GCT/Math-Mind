@@ -30,8 +30,8 @@ export struct NoteEditForm {
 
   build() {
     Column() {
-      this.FieldLabel('Title')
-      TextInput({ text: this.titleText, placeholder: 'Required' })
+      this.FieldLabel('标题')
+      TextInput({ text: this.titleText, placeholder: '必填' })
         .height(44)
         .fontSize(F_BASE)
         .fontColor(TEXT)
@@ -42,8 +42,8 @@ export struct NoteEditForm {
         .padding({ left: 12, right: 12 })
         .onChange((value: string): void => { this.onTitleChange(value) })
 
-      this.FieldLabel('Summary')
-      TextArea({ text: this.summaryText, placeholder: 'Short summary' })
+      this.FieldLabel('摘要')
+      TextArea({ text: this.summaryText, placeholder: '写下这条笔记的核心结论' })
         .height(92)
         .fontSize(F_SM)
         .fontColor(TEXT)
@@ -54,8 +54,8 @@ export struct NoteEditForm {
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .onChange((value: string): void => { this.onSummaryChange(value) })
 
-      this.FieldLabel('Content')
-      TextArea({ text: this.contentText, placeholder: 'Note body' })
+      this.FieldLabel('正文')
+      TextArea({ text: this.contentText, placeholder: '支持 Markdown 和公式内容' })
         .height(220)
         .fontSize(F_SM)
         .fontColor(TEXT)
@@ -66,8 +66,8 @@ export struct NoteEditForm {
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .onChange((value: string): void => { this.onContentChange(value) })
 
-      this.FieldLabel('Tags')
-      TextArea({ text: this.tagsText, placeholder: 'comma, space or newline separated' })
+      this.FieldLabel('标签')
+      TextArea({ text: this.tagsText, placeholder: '用逗号、空格或换行分隔' })
         .height(82)
         .fontSize(F_SM)
         .fontColor(TEXT)
