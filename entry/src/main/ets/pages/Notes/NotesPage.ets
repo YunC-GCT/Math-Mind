@@ -17,6 +17,8 @@ export struct NotesPage {
   @StorageProp("notesVersion") @Watch("onNotesVersionChange") notesVersion: number = 0
   @State vm: NotesViewModel = new NotesViewModel()
   @State subjectViewMode: string = "block"
+  private loadedNotesVersion: number = -1
+  private loadingNotesVersion: number = -1
 
   aboutToAppear(): void {
     if (AppStorage.get<number>("notesVersion") === undefined) {
@@ -25,14 +27,29 @@ export struct NotesPage {
     this.reloadNotes()
   }
 
+  onPageShow(): void {
+    this.reloadNotes()
+  }
+
   onNotesVersionChange(): void {
     this.reloadNotes()
   }
 
   private reloadNotes(): void {
+    const version: number = AppStorage.get<number>("notesVersion") ?? 0
+    if (this.loadedNotesVersion === version || this.loadingNotesVersion === version) {
+      return
+    }
+    this.loadingNotesVersion = version
     this.vm.loadNotes(getContext(this)).then((ok: boolean): void => {
-      if (!ok) {
+      if (ok) {
+        this.loadedNotesVersion = version
+      } else {
         try { promptAction.showToast({ message: "绗旇鍔犺浇澶辫触", duration: 1500 }) } catch (_e) {}
+      }
+    }).finally((): void => {
+      if (this.loadingNotesVersion === version) {
+        this.loadingNotesVersion = -1
       }
     })
   }

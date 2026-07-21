@@ -19,16 +19,36 @@ import {
   W_BOLD,
 } from 'common'
 import { DetailStepList } from './DetailStepList'
+import { detailLinesSignature } from './DetailSection'
+import {
+  DETAIL_RENDER_PRIORITY_NORMAL,
+  enqueueDetailRender,
+} from './DetailRenderQueue'
 
 @Component
 export struct DetailStepsSection {
-  @Prop title: string = ''
-  @Prop items: string[] = []
+  @Prop @Watch('onItemsChanged') title: string = ''
+  @Prop @Watch('onItemsChanged') items: string[] = []
   @Prop accentColor: ResourceColor = MINT
-  @Prop emphasized: boolean = false
+  @Prop @Watch('onItemsChanged') emphasized: boolean = false
+  @State contentReady: boolean = false
+  private renderSeq: number = 0
+  private contentRenderKey: string = ''
+
+  aboutToAppear(): void {
+    this.resetContentRender()
+  }
+
+  aboutToDisappear(): void {
+    this.renderSeq += 1
+  }
+
+  onItemsChanged(): void {
+    this.resetContentRender()
+  }
 
   build() {
-    if (this.items.length > 0) {
+    if (this.items.length > 0 && this.shouldRenderContent()) {
       Column() {
         Row() {
           Column()
@@ -58,5 +78,34 @@ export struct DetailStepsSection {
       .border({ width: { bottom: 0.5 }, color: BORDER })
       .alignItems(HorizontalAlign.Start)
     }
+  }
+
+  private resetContentRender = (): void => {
+    const key: string = this.title + '|' + detailLinesSignature(this.items) + '|' + (this.emphasized ? '1' : '0')
+    if (key === this.contentRenderKey) {
+      return
+    }
+    this.contentRenderKey = key
+    this.renderSeq += 1
+    const seq: number = this.renderSeq
+    if (this.items.length === 0) {
+      this.contentReady = false
+      return
+    }
+    if (this.emphasized) {
+      this.contentReady = true
+      return
+    }
+    this.contentReady = false
+    enqueueDetailRender(key, DETAIL_RENDER_PRIORITY_NORMAL, (): void => {
+      if (seq !== this.renderSeq) {
+        return
+      }
+      this.contentReady = true
+    })
+  }
+
+  private shouldRenderContent = (): boolean => {
+    return this.emphasized || this.contentReady
   }
 }

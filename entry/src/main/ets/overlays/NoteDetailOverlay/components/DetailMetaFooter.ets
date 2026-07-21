@@ -21,13 +21,30 @@ import {
 } from 'common'
 import { ChipTag } from '../ChipTag'
 import { DetailRenderModel, emptyDetailRenderModel, hasDetailMeta } from '../model/DetailRenderModel'
+import { detailLinesSignature, detailTextSignature } from './DetailSection'
+import { DETAIL_RENDER_PRIORITY_META, enqueueDetailRender } from './DetailRenderQueue'
 
 @Component
 export struct DetailMetaFooter {
-  @Prop model: DetailRenderModel = emptyDetailRenderModel()
+  @Prop @Watch('onModelChanged') model: DetailRenderModel = emptyDetailRenderModel()
+  @State contentReady: boolean = false
+  private contentRenderKey: string = ''
+  private renderSeq: number = 0
+
+  aboutToAppear(): void {
+    this.resetContentRender()
+  }
+
+  aboutToDisappear(): void {
+    this.renderSeq += 1
+  }
+
+  onModelChanged(): void {
+    this.resetContentRender()
+  }
 
   build() {
-    if (hasDetailMeta(this.model)) {
+    if (hasDetailMeta(this.model) && this.contentReady) {
       Column() {
         if (this.model.tags.length > 0) {
           this.ChipGroup('标签', this.model.tags, 'tag_')
@@ -108,5 +125,34 @@ export struct DetailMetaFooter {
     .width('100%')
     .alignItems(VerticalAlign.Top)
     .margin({ bottom: S_2 })
+  }
+
+  private resetContentRender = (): void => {
+    const key: string = this.modelSignature()
+    if (key === this.contentRenderKey) {
+      return
+    }
+    this.contentRenderKey = key
+    this.renderSeq += 1
+    const seq: number = this.renderSeq
+    if (!hasDetailMeta(this.model)) {
+      this.contentReady = false
+      return
+    }
+    this.contentReady = false
+    enqueueDetailRender(key, DETAIL_RENDER_PRIORITY_META, (): void => {
+      if (seq !== this.renderSeq) {
+        return
+      }
+      this.contentReady = true
+    })
+  }
+
+  private modelSignature = (): string => {
+    return detailLinesSignature(this.model.tags)
+      + '|' + detailLinesSignature(this.model.prerequisites)
+      + '|' + detailLinesSignature(this.model.related)
+      + '|' + detailTextSignature(this.model.sourceLabel)
+      + '|' + detailTextSignature(this.model.reviewLine)
   }
 }

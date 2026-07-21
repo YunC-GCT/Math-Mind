@@ -26,19 +26,28 @@ export struct ChatBubble {
           Blank()
           Column() {
             Column() {
-              MathTextRenderer({
-                text: this.msg.content,
-                profile: 'chatUser',
-                textColor: TEXT,
-                formulaColor: TEXT,
-                formulaBackground: 'rgba(10,12,16,0.18)',
-                formulaBorder: 'rgba(255,255,255,0.18)',
-                fontSize: F_SM,
-                lineHeight: 20,
-                formulaFontSize: F_SM,
-                formulaLineHeight: 20,
-              })
-              .width('100%')
+              if (this.containsFormulaSyntax(this.msg.content)) {
+                MathTextRenderer({
+                  text: this.msg.content,
+                  profile: 'chatUser',
+                  textColor: TEXT,
+                  formulaColor: TEXT,
+                  formulaBackground: 'rgba(10,12,16,0.18)',
+                  formulaBorder: 'rgba(255,255,255,0.18)',
+                  fontSize: F_SM,
+                  lineHeight: 20,
+                  formulaFontSize: F_SM,
+                  formulaLineHeight: 20,
+                })
+                .width('100%')
+              } else {
+                Text(this.msg.content)
+                  .fontSize(F_SM)
+                  .fontColor(TEXT)
+                  .lineHeight(20)
+                  .width('100%')
+                  .textAlign(TextAlign.Start)
+              }
             }
             .width('100%')
             .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
@@ -62,19 +71,28 @@ export struct ChatBubble {
 
             Column() {
               if (this.msg.content.trim().length > 0) {
-                MathTextRenderer({
-                  text: this.msg.content,
-                  profile: 'chat',
-                  textColor: TEXT_2,
-                  formulaColor: TEXT_2,
-                  formulaBackground: 'rgba(255,255,255,0.06)',
-                  formulaBorder: 'rgba(255,255,255,0.12)',
-                  fontSize: F_SM,
-                  lineHeight: 20,
-                  formulaFontSize: F_SM,
-                  formulaLineHeight: 20,
-                })
-                .width('100%')
+                if (this.containsFormulaSyntax(this.msg.content)) {
+                  MathTextRenderer({
+                    text: this.msg.content,
+                    profile: 'chat',
+                    textColor: TEXT_2,
+                    formulaColor: TEXT_2,
+                    formulaBackground: 'rgba(255,255,255,0.06)',
+                    formulaBorder: 'rgba(255,255,255,0.12)',
+                    fontSize: F_SM,
+                    lineHeight: 20,
+                    formulaFontSize: F_SM,
+                    formulaLineHeight: 20,
+                  })
+                  .width('100%')
+                } else {
+                  Text(this.msg.content)
+                    .fontSize(F_SM)
+                    .fontColor(TEXT_2)
+                    .lineHeight(20)
+                    .width('100%')
+                    .textAlign(TextAlign.Start)
+                }
               }
 
               if (this.statusMeta !== null && this.statusMeta.step !== 'completed') {
@@ -117,6 +135,25 @@ export struct ChatBubble {
         .margin({ top: S_2 })
       }
     }
+  }
+
+  private containsFormulaSyntax = (text: string): boolean => {
+    return text.indexOf('$$') >= 0
+      || text.indexOf('$') >= 0
+      || text.indexOf('\\[') >= 0
+      || text.indexOf('\\]') >= 0
+      || text.indexOf('\\(') >= 0
+      || text.indexOf('\\)') >= 0
+      || text.indexOf('\\frac') >= 0
+      || text.indexOf('\\sqrt') >= 0
+      || text.indexOf('\\sum') >= 0
+      || text.indexOf('\\int') >= 0
+      || text.indexOf('\\lim') >= 0
+      || text.indexOf('\\begin') >= 0
+      || text.indexOf('\\alpha') >= 0
+      || text.indexOf('\\beta') >= 0
+      || text.indexOf('\\theta') >= 0
+      || (text.indexOf('=') >= 0 && (text.indexOf('^') >= 0 || text.indexOf('_') >= 0))
   }
 
   @Builder StatusMetaLine(meta: ChatStatusMeta | null) {

@@ -15,39 +15,86 @@ import {
   F_SM, F_BASE, F_MD, F_LG,
   W_MEDIUM, W_SEMIBOLD, W_BOLD,
 } from 'common'
-import { parseMarkdown, MarkdownBlock } from '../../utils/MarkdownParser'
-import { parseMarkdownInline, MarkdownInlineSegment } from '../../utils/MarkdownInlineParser'
+import { MarkdownBlock } from '../../utils/MarkdownParser'
+import { MarkdownInlineSegment } from '../../utils/MarkdownInlineParser'
+import { cachedParseMarkdown, cachedParseMarkdownInline } from '../../utils/MarkdownParseCache'
 import { MathTextRenderer } from './MathTextRenderer'
+
+const MARKDOWN_INITIAL_BLOCK_LIMIT: number = 3
+const MARKDOWN_BLOCK_BATCH_SIZE: number = 3
+const MARKDOWN_BATCH_RENDER_DELAY_MS: number = 48
+const MARKDOWN_PARSE_DEFER_MS: number = 16
+const MARKDOWN_IMMEDIATE_PARSE_LIMIT: number = 280
+const MARKDOWN_PREVIEW_LIMIT: number = 420
 
 @Component
 export struct MarkdownRenderer {
-  @Prop text: string = ''
+  @Prop @Watch('onTextChanged') text: string = ''
+  @Prop progressive: boolean = true
+  @State visibleBlockCount: number = MARKDOWN_INITIAL_BLOCK_LIMIT
+  @State parseReady: boolean = false
+  @State parsedBlocks: MarkdownBlock[] = []
+  private renderSeq: number = 0
+  private parsedKey: string = ''
+
+  aboutToAppear(): void {
+    this.resetVisibleBlocks()
+  }
+
+  aboutToDisappear(): void {
+    this.renderSeq += 1
+  }
+
+  onTextChanged(): void {
+    this.resetVisibleBlocks()
+  }
 
   build() {
     Column() {
-      ForEach(parseMarkdown(this.text),
-        (block: MarkdownBlock, index: number): void => {
-          if (block.kind === 'heading') {
-            this.Heading(block)
-          } else if (block.kind === 'list') {
-            this.ListBlock(block)
-          } else if (block.kind === 'quote') {
-            this.QuoteBlock(block)
-          } else if (block.kind === 'code') {
-            this.CodeBlock(block)
-          } else if (block.kind === 'formula') {
-            this.FormulaBlock(block)
-          } else if (block.kind === 'rule') {
-            this.RuleBlock()
-          } else {
-            this.Paragraph(block.text)
-          }
-        },
-        (_block: MarkdownBlock, index: number): string => index.toString()
-      )
+      if (this.parseReady) {
+        ForEach(this.visibleBlocks(),
+          (block: MarkdownBlock, index: number): void => {
+            if (block.kind === 'heading') {
+              this.Heading(block)
+            } else if (block.kind === 'list') {
+              this.ListBlock(block)
+            } else if (block.kind === 'quote') {
+              this.QuoteBlock(block)
+            } else if (block.kind === 'code') {
+              this.CodeBlock(block)
+            } else if (block.kind === 'formula') {
+              this.FormulaBlock(block)
+            } else if (block.kind === 'rule') {
+              this.RuleBlock()
+            } else {
+              this.Paragraph(block.text)
+            }
+          },
+          (block: MarkdownBlock, index: number): string => this.blockKey(block, index)
+        )
+      } else {
+        this.PreviewText(this.previewText())
+      }
+
+      if (this.hasDeferredBlocks()) {
+        Blank().height(S_2)
+      }
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  PreviewText(text: string) {
+    if (text.length > 0) {
+      Text(text)
+        .fontSize(F_BASE)
+        .fontColor(TEXT_2)
+        .lineHeight(26)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+        .margin({ bottom: S_2 })
+    }
   }
 
   @Builder
@@ -78,7 +125,7 @@ export struct MarkdownRenderer {
       })
     } else {
       Text() {
-        ForEach(parseMarkdownInline(text),
+        ForEach(cachedParseMarkdownInline(text),
           (segment: MarkdownInlineSegment, index: number): void => {
             Span(segment.text)
               .fontSize(F_BASE)
@@ -202,19 +249,19 @@ export struct MarkdownRenderer {
       .margin({ top: S_3, bottom: S_3 })
   }
 
-  private headingSize(level: number): number {
+  private headingSize = (level: number): number => {
     if (level === 1) { return F_LG }
     if (level === 2) { return F_MD }
     return F_SM
   }
 
-  private headingLineHeight(level: number): number {
+  private headingLineHeight = (level: number): number => {
     if (level === 1) { return 28 }
     if (level === 2) { return 24 }
     return 20
   }
 
-  private containsFormulaSyntax(text: string): boolean {
+  private containsFormulaSyntax = (text: string): boolean => {
     return text.indexOf('$$') >= 0
       || text.indexOf('$') >= 0
       || text.indexOf('\\[') >= 0
@@ -227,5 +274,104 @@ export struct MarkdownRenderer {
       || text.indexOf('\\lim') >= 0
       || text.indexOf('\\begin') >= 0
       || (text.indexOf('=') >= 0 && (text.indexOf('^') >= 0 || text.indexOf('_') >= 0 || text.indexOf('\\') >= 0))
+  }
+
+  private resetVisibleBlocks = (): void => {
+    this.renderSeq += 1
+    const seq: number = this.renderSeq
+    const key: string = this.textSignature()
+    if (key === this.parsedKey && this.parseReady) {
+      return
+    }
+    this.parsedKey = key
+    this.parsedBlocks = []
+    this.parseReady = false
+    this.visibleBlockCount = 0
+    if (this.text.trim().length <= MARKDOWN_IMMEDIATE_PARSE_LIMIT) {
+      this.applyParsedBlocks(cachedParseMarkdown(this.text), seq)
+      return
+    }
+    this.scheduleParse(seq)
+  }
+
+  private scheduleParse = (seq: number): void => {
+    setTimeout((): void => {
+      if (seq !== this.renderSeq) {
+        return
+      }
+      this.applyParsedBlocks(cachedParseMarkdown(this.text), seq)
+    }, MARKDOWN_PARSE_DEFER_MS)
+  }
+
+  private applyParsedBlocks = (blocks: MarkdownBlock[], seq: number): void => {
+    if (seq !== this.renderSeq) {
+      return
+    }
+    this.parsedBlocks = blocks
+    this.parseReady = true
+    if (!this.progressive) {
+      this.visibleBlockCount = blocks.length
+      return
+    }
+    if (blocks.length <= MARKDOWN_INITIAL_BLOCK_LIMIT) {
+      this.visibleBlockCount = blocks.length
+      return
+    }
+    this.visibleBlockCount = MARKDOWN_INITIAL_BLOCK_LIMIT
+    this.scheduleNextBlockBatch(seq)
+  }
+
+  private scheduleNextBlockBatch = (seq: number): void => {
+    setTimeout((): void => {
+      if (seq !== this.renderSeq || !this.parseReady) {
+        return
+      }
+      const total: number = this.parsedBlocks.length
+      const nextCount: number = Math.min(total, this.visibleBlockCount + MARKDOWN_BLOCK_BATCH_SIZE)
+      this.visibleBlockCount = nextCount
+      if (nextCount < total) {
+        this.scheduleNextBlockBatch(seq)
+      }
+    }, MARKDOWN_BATCH_RENDER_DELAY_MS)
+  }
+
+  private visibleBlocks = (): MarkdownBlock[] => {
+    if (!this.progressive) {
+      return this.parsedBlocks
+    }
+    if (this.parsedBlocks.length <= this.visibleBlockCount) {
+      return this.parsedBlocks
+    }
+    return this.parsedBlocks.slice(0, this.visibleBlockCount)
+  }
+
+  private hasDeferredBlocks = (): boolean => {
+    if (!this.progressive || !this.parseReady) {
+      return false
+    }
+    return this.parsedBlocks.length > this.visibleBlockCount
+  }
+
+  private previewText = (): string => {
+    const normalized: string = this.text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+    if (normalized.length <= MARKDOWN_PREVIEW_LIMIT) {
+      return normalized
+    }
+    return normalized.substring(0, MARKDOWN_PREVIEW_LIMIT).trim() + '...'
+  }
+
+  private textSignature = (): string => {
+    let hash: number = 5381
+    let index: number = 0
+    while (index < this.text.length) {
+      hash = ((hash << 5) + hash + this.text.charCodeAt(index)) | 0
+      index += 1
+    }
+    const positive: number = hash < 0 ? -hash : hash
+    return this.text.length.toString() + ':' + positive.toString() + ':' + (this.progressive ? '1' : '0')
+  }
+
+  private blockKey = (block: MarkdownBlock, index: number): string => {
+    return index.toString() + ':' + block.kind + ':' + block.text.length.toString()
   }
 }

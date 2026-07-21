@@ -5,6 +5,7 @@ import { ReviewGraphView } from "./ReviewGraphView"
 import { ReviewPlanView } from "./ReviewPlanView"
 import { ReviewTabSwitch } from "./ReviewTabSwitch"
 import { AppIcon } from "../../shared/components/AppIcon"
+import { UiDataCacheService } from "../../services/UiDataCacheService"
 
 const REVIEW_TAB_PLAN: number = 0
 const REVIEW_TAB_GRAPH: number = 1
@@ -23,6 +24,9 @@ export struct ReviewPage {
     new StudyPlanItem("极限 ε-δ 定义", 2),
     new StudyPlanItem("线性方程组基础变形", 2),
   ]
+  private loadedPlanVersion: number = -1
+  private loadingPlanVersion: number = -1
+
   aboutToAppear(): void {
     this.reloadPlans()
   }
@@ -32,12 +36,25 @@ export struct ReviewPage {
   }
 
   private reloadPlans(): void {
+    const version: number = UiDataCacheService.currentStudyPlanVersion()
+    if (this.loadedPlanVersion === version || this.loadingPlanVersion === version) {
+      return
+    }
+    this.loadingPlanVersion = version
     this.vm.init(getContext(this)).then((): void => {
       if (this.vm.initError) {
         try { promptAction.showToast({ message: "复习数据加载失败", duration: 1500 }) } catch (_e) {}
       }
+      if (this.vm.initError) {
+        return
+      }
+      this.loadedPlanVersion = version
       this.syncPlanOrder()
       this.pruneLiveQueue()
+    }).finally((): void => {
+      if (this.loadingPlanVersion === version) {
+        this.loadingPlanVersion = -1
+      }
     })
   }
 

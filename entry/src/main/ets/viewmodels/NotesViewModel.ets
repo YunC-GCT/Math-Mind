@@ -1,26 +1,27 @@
-// ============================================================================
-//  viewmodels/NotesViewModel.ets - notes list data logic
-// ============================================================================
+/**
+ * NotesViewModel.ets - notes page data logic
+ *
+ * Path: entry/src/main/ets/viewmodels/NotesViewModel.ets
+ * Responsibility: Load note snapshots, grouped subject data, detail records, and delete notes for Notes UI.
+ * Dependencies: NoteDao, UiDataCacheService.
+ *
+ * Data flow:
+ *   NotesPage / SubjectDetailPage -> NotesViewModel -> UiDataCacheService -> NoteDao on miss
+ *
+ * ArkTS 1.1 strict:
+ *   - Explicit types throughout
+ *   - Iteration uses for...of
+ */
 
-import { DatabaseHelper, KnowledgeUnit, NoteItem, subjectColor } from "common"
+import { DatabaseHelper, KnowledgeUnit, NoteItem } from "common"
 import { NoteDao } from "../database/NoteDao"
-import { unitsToNoteItems } from "../utils/NoteItemMapper"
+import {
+  NotesSnapshot,
+  SubjectGroup,
+  UiDataCacheService,
+} from "../services/UiDataCacheService"
 
-export class SubjectGroup {
-  subject: string = ""
-  color: string = ""
-  count: number = 0
-  notes: NoteItem[] = []
-  previewTitles: string[] = []
-
-  constructor(subject: string, color: string, count: number, notes: NoteItem[], previewTitles: string[]) {
-    this.subject = subject
-    this.color = color
-    this.count = count
-    this.notes = notes
-    this.previewTitles = previewTitles
-  }
-}
+export { SubjectGroup } from "../services/UiDataCacheService"
 
 @Observed
 export class NotesViewModel {
@@ -31,11 +32,17 @@ export class NotesViewModel {
 
   async loadNotes(context: Context): Promise<boolean> {
     try {
-      const store = await DatabaseHelper.init(context)
-      const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
-      this.units = units
-      this.notes = unitsToNoteItems(units)
-      this.subjectGroups = this.groupBySubject(this.notes)
+      const version: number = UiDataCacheService.currentNotesVersion()
+      const snapshot: NotesSnapshot = await UiDataCacheService.loadNotesSnapshot(context, version)
+      this.units = snapshot.units
+      this.notes = snapshot.notes
+      const cachedGroups: SubjectGroup[] | null = UiDataCacheService.getSubjectGroups(version)
+      if (cachedGroups !== null) {
+        this.subjectGroups = cachedGroups
+      } else {
+        this.subjectGroups = this.groupBySubject(this.notes)
+        UiDataCacheService.setSubjectGroups(version, this.subjectGroups)
+      }
       this.weeklyNewCount = this.countRecentNotes(this.notes, 7)
       return true
     } catch (e) {
@@ -53,8 +60,7 @@ export class NotesViewModel {
       return null
     }
     try {
-      const store = await DatabaseHelper.init(context)
-      return await new NoteDao(store).queryById(id)
+      return await UiDataCacheService.loadDetail(context, id, UiDataCacheService.currentNotesVersion())
     } catch (e) {
       console.warn("[NotesViewModel] loadNote failed: " + ((e as Error).message ?? String(e)))
       return null
@@ -63,8 +69,11 @@ export class NotesViewModel {
 
   async deleteNote(context: Context, id: string): Promise<boolean> {
     try {
+      UiDataCacheService.invalidateNote(id)
       const store = await DatabaseHelper.init(context)
       await new NoteDao(store).deleteById(id)
+      const version: number = UiDataCacheService.currentNotesVersion()
+      AppStorage.setOrCreate("notesVersion", version + 1)
       return await this.loadNotes(context)
     } catch (e) {
       console.warn("[NotesViewModel] deleteNote failed: " + ((e as Error).message ?? String(e)))
@@ -73,42 +82,7 @@ export class NotesViewModel {
   }
 
   groupBySubject(notes: NoteItem[]): SubjectGroup[] {
-    const subjectNames: string[] = []
-    const subjectNotes: NoteItem[][] = []
-
-    for (const note of notes) {
-      const subject: string = this.resolveSubject(note)
-      let idx: number = subjectNames.indexOf(subject)
-      if (idx < 0) {
-        subjectNames.push(subject)
-        subjectNotes.push([])
-        idx = subjectNames.length - 1
-      }
-      subjectNotes[idx].push(note)
-    }
-
-    const groups: SubjectGroup[] = []
-    let subjectIndex: number = 0
-    while (subjectIndex < subjectNames.length) {
-      const sortedNotes: NoteItem[] = this.sortByDateDesc(subjectNotes[subjectIndex])
-      const previewTitles: string[] = []
-      const previewCount: number = Math.min(3, sortedNotes.length)
-      let previewIndex: number = 0
-      while (previewIndex < previewCount) {
-        previewTitles.push(sortedNotes[previewIndex].title)
-        previewIndex++
-      }
-      groups.push(new SubjectGroup(
-        subjectNames[subjectIndex],
-        subjectColor(subjectNames[subjectIndex], subjectIndex),
-        sortedNotes.length,
-        sortedNotes,
-        previewTitles,
-      ))
-      subjectIndex++
-    }
-
-    return this.sortGroups(groups)
+    return UiDataCacheService.buildSubjectGroups(notes)
   }
 
   notesForSubject(subject: string): NoteItem[] {
@@ -120,25 +94,6 @@ export class NotesViewModel {
     return []
   }
 
-  private resolveSubject(note: NoteItem): string {
-    const subject: string = note.subject.trim()
-    return subject.length > 0 ? subject : "未分类"
-  }
-
-  private sortByDateDesc(notes: NoteItem[]): NoteItem[] {
-    const sorted: NoteItem[] = notes.slice(0)
-    sorted.sort((a: NoteItem, b: NoteItem): number => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime()
-    })
-    return sorted
-  }
-
-  private sortGroups(groups: SubjectGroup[]): SubjectGroup[] {
-    const sorted: SubjectGroup[] = groups.slice(0)
-    sorted.sort((a: SubjectGroup, b: SubjectGroup): number => b.count - a.count)
-    return sorted
-  }
-
   private countRecentNotes(notes: NoteItem[], days: number): number {
     const now: number = Date.now()
     const windowMs: number = days * 86400000
@@ -146,7 +101,7 @@ export class NotesViewModel {
     for (const note of notes) {
       const ts: number = new Date(note.date).getTime()
       if (ts === ts && now - ts >= 0 && now - ts <= windowMs) {
-        count++
+        count += 1
       }
     }
     return count

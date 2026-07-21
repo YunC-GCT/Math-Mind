@@ -1,18 +1,16 @@
 /**
- * NoteDetailBody.ets — 笔记详情正文六类分发入口
+ * NoteDetailBody.ets - note detail body renderer dispatcher
  *
- * 路径: entry/src/main/ets/overlays/NoteDetailOverlay/NoteDetailBody.ets
- * 职责: 将 KnowledgeUnit / NoteItem 转为 DetailRenderModel，并按 category 分发到六类正文 renderer。
- * 依赖: common models, DetailRenderModel, 六类 renderer
+ * Path: entry/src/main/ets/overlays/NoteDetailOverlay/NoteDetailBody.ets
+ * Responsibility: Build one DetailRenderModel and dispatch it to the category-specific renderer.
+ * Dependencies: common models, DetailRenderCache, six detail renderers.
  *
- * 数据流:
- *   NoteDetailOverlay → NoteDetailBody
- *     → buildDetailRenderModel
- *     → Concept / Theorem / Formula / Proof / Computation / Fallback renderer
+ * Data flow:
+ *   NoteDetailOverlay -> NoteDetailBody -> getDetailRenderModel -> detail renderer
  *
- * ArkTS 1.1 strict 适配:
- *   - struct 内无普通方法
- *   - 不使用 any / unknown
+ * ArkTS 1.1 strict:
+ *   - Struct logic uses arrow fields and builders
+ *   - Render model is obtained once per build branch
  */
 
 import {
@@ -21,8 +19,10 @@ import {
 } from 'common'
 import {
   DetailRenderModel,
-  buildDetailRenderModel,
+  emptyDetailRenderModel,
 } from './model/DetailRenderModel'
+import { getDetailRenderModel } from './model/DetailRenderCache'
+import { resetDetailRenderQueue } from './components/DetailRenderQueue'
 import { ConceptDetailView } from './renderers/ConceptDetailView'
 import { TheoremDetailView } from './renderers/TheoremDetailView'
 import { FormulaDetailView } from './renderers/FormulaDetailView'
@@ -32,30 +32,63 @@ import { FallbackDetailView } from './renderers/FallbackDetailView'
 
 @Component
 export struct NoteDetailBody {
-  @Prop note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '')
-  @Prop unit: KnowledgeUnit | null = null
+  @Prop @Watch('onRenderInputChanged') note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '')
+  @Prop @Watch('onRenderInputChanged') unit: KnowledgeUnit | null = null
   @Prop units: KnowledgeUnit[] = []
+  private renderResetKey: string = ''
+
+  aboutToAppear(): void {
+    this.resetRenderQueueIfNeeded()
+  }
+
+  onRenderInputChanged(): void {
+    this.resetRenderQueueIfNeeded()
+  }
 
   build() {
     Column() {
-      if (this.renderModel().category === '概念') {
-        ConceptDetailView({ model: this.renderModel() })
-      } else if (this.renderModel().category === '定理') {
-        TheoremDetailView({ model: this.renderModel() })
-      } else if (this.renderModel().category === '公式') {
-        FormulaDetailView({ model: this.renderModel() })
-      } else if (this.renderModel().category === '证明题') {
-        ProofDetailView({ model: this.renderModel() })
-      } else if (this.renderModel().category === '计算题') {
-        ComputationDetailView({ model: this.renderModel() })
-      } else {
-        FallbackDetailView({ model: this.renderModel() })
-      }
+      this.RenderByModel(this.renderModel())
     }
     .width('100%')
   }
 
+  @Builder
+  RenderByModel(model: DetailRenderModel) {
+    if (model.category === '概念') {
+      ConceptDetailView({ model: model })
+    } else if (model.category === '定理') {
+      TheoremDetailView({ model: model })
+    } else if (model.category === '公式') {
+      FormulaDetailView({ model: model })
+    } else if (model.category === '证明题') {
+      ProofDetailView({ model: model })
+    } else if (model.category === '计算题') {
+      ComputationDetailView({ model: model })
+    } else {
+      FallbackDetailView({ model: model })
+    }
+  }
+
   private renderModel = (): DetailRenderModel => {
-    return buildDetailRenderModel(this.note, this.unit, this.units)
+    if (this.unit === null && this.note.title.length === 0) {
+      return emptyDetailRenderModel()
+    }
+    return getDetailRenderModel(this.note, this.unit, this.units)
+  }
+
+  private resetRenderQueueIfNeeded = (): void => {
+    const key: string = this.currentRenderKey()
+    if (key === this.renderResetKey) {
+      return
+    }
+    this.renderResetKey = key
+    resetDetailRenderQueue()
+  }
+
+  private currentRenderKey = (): string => {
+    if (this.unit !== null) {
+      return this.unit.id + '|' + this.unit.updatedAt.toString() + '|' + this.unit.version.toString()
+    }
+    return this.note.rawId + '|' + this.note.id.toString() + '|' + this.note.date
   }
 }

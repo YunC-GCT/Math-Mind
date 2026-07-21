@@ -11,38 +11,105 @@ import { ChatBubble } from './chat/ChatBubble';
 import { EmptyStateHint } from './chat/EmptyStateHint';
 import { ChatMsg, ChatStatusMeta } from './chat/ChatModels';
 
+function safeIndex(index: number | undefined): number {
+  return index === undefined ? 0 : index;
+}
+
+class ChatMessageDataSource implements IDataSource {
+  private messages: ChatMsg[] = [];
+  private listeners: DataChangeListener[] = [];
+  private fallback: ChatMsg = { id: 0, role: 'ai', content: '', ts: 0 };
+
+  constructor(messages: ChatMsg[]) {
+    this.messages = messages.slice(0);
+  }
+
+  totalCount(): number {
+    return this.messages.length;
+  }
+
+  getData(index: number): ChatMsg {
+    const message: ChatMsg | undefined = this.messages[index];
+    return message === undefined ? this.fallback : message;
+  }
+
+  registerDataChangeListener(listener: DataChangeListener): void {
+    if (this.listeners.indexOf(listener) < 0) {
+      this.listeners.push(listener);
+    }
+  }
+
+  unregisterDataChangeListener(listener: DataChangeListener): void {
+    this.listeners = this.listeners.filter((item: DataChangeListener): boolean => item !== listener);
+  }
+
+  setMessages(messages: ChatMsg[]): void {
+    this.messages = messages.slice(0);
+    this.notifyReload();
+  }
+
+  private notifyReload(): void {
+    for (const listener of this.listeners) {
+      listener.onDataReloaded();
+    }
+  }
+}
+
 @Component
 export struct AgentMessageList {
-  @Prop messages: ChatMsg[] = [];
+  @Prop @Watch('onMessagesChanged') messages: ChatMsg[] = [];
   @Prop busy: boolean = false;
   @Prop statusMeta: ChatStatusMeta | null = null;
   scroller: Scroller = new Scroller();
+  private dataSource: ChatMessageDataSource = new ChatMessageDataSource([]);
   onRetry: (msg: ChatMsg) => void = (_msg: ChatMsg): void => {};
 
-  build() {
-    Scroll(this.scroller) {
-      Column() {
-        if (this.messages.length === 0 && !this.busy) { EmptyStateHint(); }
+  aboutToAppear(): void {
+    this.dataSource.setMessages(this.messages);
+  }
 
-        ForEach(this.messages,
-          (msg: ChatMsg): void => {
+  onMessagesChanged(): void {
+    this.dataSource.setMessages(this.messages);
+  }
+
+  build() {
+    List({ scroller: this.scroller, initialIndex: this.initialIndex() }) {
+      if (this.messages.length === 0 && !this.busy) {
+        ListItem() {
+          EmptyStateHint();
+        }
+      }
+
+      LazyForEach(this.dataSource,
+        (msg: ChatMsg, index: number | undefined): void => {
+          ListItem() {
             ChatBubble({
               msg: msg,
               onCopy: (_text: string): void => {},
               onFeedback: (_msg: ChatMsg): void => {},
               onRegen: (retryMsg: ChatMsg): void => { this.onRetry(retryMsg); },
             });
-          },
-          (msg: ChatMsg): string => msg.id.toString()
-        );
+          }
+          .width('100%')
+          .padding({ left: S_4, right: S_4, top: safeIndex(index) === 0 ? S_2 : 0 });
+        },
+        (msg: ChatMsg): string => msg.id.toString()
+      );
 
-        if (this.busy) {
+      if (this.busy) {
+        ListItem() {
           this.TransientStatusBubble(this.statusMeta);
         }
-
-        Blank().height(S_2);
+        .width('100%')
+        .padding({ left: S_4, right: S_4 });
       }
-      .width('100%').padding({ left: S_4, right: S_4, top: S_2 });
+
+      ListItem() {
+        Column() {
+          Blank().height(S_2);
+        }
+        .width('100%')
+      }
     }
     .layoutWeight(1).width('100%').scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring);
   }
@@ -63,5 +130,12 @@ export struct AgentMessageList {
         onRegen: (_msg: ChatMsg): void => {},
       });
     }
+  }
+
+  private initialIndex = (): number => {
+    if (this.messages.length === 0) {
+      return 0;
+    }
+    return this.messages.length - 1;
   }
 }

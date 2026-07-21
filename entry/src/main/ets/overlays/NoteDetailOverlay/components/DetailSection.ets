@@ -20,16 +20,62 @@ import {
   W_BOLD,
 } from 'common'
 import { MarkdownRenderer } from '../../../shared/components/MarkdownRenderer'
+import {
+  DETAIL_RENDER_PRIORITY_NORMAL,
+  enqueueDetailRender,
+} from './DetailRenderQueue'
+
+export function detailTextSignature(text: string): string {
+  let hash: number = 5381
+  let index: number = 0
+  while (index < text.length) {
+    hash = ((hash << 5) + hash + text.charCodeAt(index)) | 0
+    index += 1
+  }
+  const positive: number = hash < 0 ? -hash : hash
+  return text.length.toString() + ':' + positive.toString()
+}
+
+export function detailLinesSignature(items: string[]): string {
+  let hash: number = 5381
+  let length: number = 0
+  for (const item of items) {
+    length += item.length + 1
+    let index: number = 0
+    while (index < item.length) {
+      hash = ((hash << 5) + hash + item.charCodeAt(index)) | 0
+      index += 1
+    }
+    hash = ((hash << 5) + hash + 10) | 0
+  }
+  const positive: number = hash < 0 ? -hash : hash
+  return length.toString() + ':' + positive.toString()
+}
 
 @Component
 export struct DetailSection {
-  @Prop title: string = ''
-  @Prop content: string = ''
+  @Prop @Watch('onContentChanged') title: string = ''
+  @Prop @Watch('onContentChanged') content: string = ''
   @Prop accentColor: ResourceColor = MINT
-  @Prop emphasized: boolean = false
+  @Prop @Watch('onContentChanged') emphasized: boolean = false
+  @State contentReady: boolean = false
+  private renderSeq: number = 0
+  private contentRenderKey: string = ''
+
+  aboutToAppear(): void {
+    this.resetContentRender()
+  }
+
+  aboutToDisappear(): void {
+    this.renderSeq += 1
+  }
+
+  onContentChanged(): void {
+    this.resetContentRender()
+  }
 
   build() {
-    if (this.content.trim().length > 0) {
+    if (this.content.trim().length > 0 && this.shouldRenderContent()) {
       Column() {
         if (this.title.trim().length > 0) {
           Row() {
@@ -54,12 +100,42 @@ export struct DetailSection {
           .margin({ bottom: S_2 })
         }
 
-        MarkdownRenderer({ text: this.content })
+        MarkdownRenderer({ text: this.content, progressive: true })
       }
       .width('100%')
       .padding({ top: S_4, bottom: S_3 })
       .border({ width: { bottom: 0.5 }, color: BORDER })
       .alignItems(HorizontalAlign.Start)
     }
+  }
+
+  private resetContentRender = (): void => {
+    const content: string = this.content.trim()
+    const key: string = this.title + '|' + detailTextSignature(content) + '|' + (this.emphasized ? '1' : '0')
+    if (key === this.contentRenderKey) {
+      return
+    }
+    this.contentRenderKey = key
+    this.renderSeq += 1
+    const seq: number = this.renderSeq
+    if (content.length === 0) {
+      this.contentReady = false
+      return
+    }
+    if (this.emphasized) {
+      this.contentReady = true
+      return
+    }
+    this.contentReady = false
+    enqueueDetailRender(key, DETAIL_RENDER_PRIORITY_NORMAL, (): void => {
+      if (seq !== this.renderSeq) {
+        return
+      }
+      this.contentReady = true
+    })
+  }
+
+  private shouldRenderContent = (): boolean => {
+    return this.emphasized || this.contentReady
   }
 }

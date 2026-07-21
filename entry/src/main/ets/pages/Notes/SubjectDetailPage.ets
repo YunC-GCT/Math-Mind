@@ -11,6 +11,8 @@ import { TypeTabRow } from "./TypeTabRow"
 import { SubjectNoteList } from "./SubjectNoteList"
 import { SubjectTypeEmpty } from "./SubjectTypeEmpty"
 import { unitToNoteItem } from "../../utils/NoteItemMapper"
+import { PreloadQueue } from "../../services/UiDataCacheService"
+import { invalidateDetailRender } from "../../overlays/NoteDetailOverlay/model/DetailRenderCache"
 
 @Entry
 @Component
@@ -22,8 +24,15 @@ struct SubjectDetailPage {
   @State vm: NotesViewModel = new NotesViewModel()
   @State selectedNote: NoteItem | null = null
   @State selectedUnit: KnowledgeUnit | null = null
+  private loadedReloadKey: string = ""
+  private loadingReloadKey: string = ""
 
   aboutToAppear(): void {
+    this.readParams()
+    this.reloadNotes()
+  }
+
+  onPageShow(): void {
     this.readParams()
     this.reloadNotes()
   }
@@ -41,12 +50,24 @@ struct SubjectDetailPage {
   }
 
   private reloadNotes(): void {
+    const version: number = AppStorage.get<number>("notesVersion") ?? 0
+    const reloadKey: string = version.toString() + "|" + this.subject
+    if (this.loadedReloadKey === reloadKey || this.loadingReloadKey === reloadKey) {
+      return
+    }
+    this.loadingReloadKey = reloadKey
     this.vm.loadNotes(getContext(this)).then((ok: boolean): void => {
       if (!ok) {
         try { promptAction.showToast({ message: "绗旇鍔犺浇澶辫触", duration: 1500 }) } catch (_e) {}
         return
       }
       this.ensureSubject()
+      this.loadedReloadKey = version.toString() + "|" + this.subject
+      PreloadQueue.preloadSubjectDetails(getContext(this), this.subjectNotes())
+    }).finally((): void => {
+      if (this.loadingReloadKey === reloadKey) {
+        this.loadingReloadKey = ""
+      }
     })
   }
 
@@ -112,10 +133,9 @@ struct SubjectDetailPage {
   private deleteNote = async (id: string): Promise<void> => {
     const ok: boolean = await this.vm.deleteNote(getContext(this), id)
     if (ok) {
+      invalidateDetailRender(id)
       this.selectedNote = null
       this.selectedUnit = null
-      const v: number = AppStorage.get<number>("notesVersion") ?? 0
-      AppStorage.setOrCreate("notesVersion", v + 1)
       try { promptAction.showToast({ message: "Note deleted", duration: 1200 }) } catch (_e) {}
     } else {
       try { promptAction.showToast({ message: "Delete failed", duration: 1500 }) } catch (_e) {}
@@ -138,28 +158,28 @@ struct SubjectDetailPage {
           onSelect: (type: string): void => { this.activeType = type },
         })
 
-        Scroll() {
-          Column() {
-            if (this.filteredNotes().length === 0) {
+        if (this.filteredNotes().length === 0) {
+          Scroll() {
+            Column() {
               SubjectTypeEmpty({ activeType: this.activeType })
-            } else {
-              SubjectNoteList({
-                notes: this.filteredNotes(),
-                onSelect: this.openDetail,
-              })
+              Blank().height(96)
             }
-            Blank().height(96)
+            .width("100%")
+            .constraintSize({ minHeight: "100%" })
+            .padding({ left: 10, right: 10, bottom: 20 })
+            .justifyContent(FlexAlign.Start)
+            .alignItems(HorizontalAlign.Start)
           }
+          .layoutWeight(1)
           .width("100%")
-          .constraintSize({ minHeight: "100%" })
-          .padding({ left: 10, right: 10, bottom: 20 })
-          .justifyContent(FlexAlign.Start)
-          .alignItems(HorizontalAlign.Start)
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
+        } else {
+          SubjectNoteList({
+            notes: this.filteredNotes(),
+            onSelect: this.openDetail,
+          })
         }
-        .layoutWeight(1)
-        .width("100%")
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
       }
       .width("100%")
       .height("100%")

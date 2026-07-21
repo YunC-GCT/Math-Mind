@@ -9,7 +9,7 @@
  *   KnowledgeUnit / NoteItem → buildDetailRenderModel → renderer
  *
  * ArkTS 1.1 strict 适配:
- *   - 不使用 any / unknown
+ *   - Explicit typed values throughout
  *   - 用 for...of / while，不使用 C 风格 for
  */
 
@@ -44,6 +44,7 @@ export interface DetailRenderModel {
 }
 
 const SOURCE_CAMERA: string = 'camera_capture'
+export const EXTRA_SECTION_TITLE: string = '\u8865\u5145\u5185\u5bb9'
 
 export function emptyDetailRenderModel(): DetailRenderModel {
   return {
@@ -99,6 +100,32 @@ export function sectionText(model: DetailRenderModel, names: string[]): string {
   return section !== null ? section.content : ''
 }
 
+export function sectionTextByKeys(model: DetailRenderModel, keys: string[]): string {
+  const normalizedKeys: string[] = normalizeSectionKeys(keys)
+  const parts: string[] = []
+  for (const section of model.sections) {
+    if (normalizedKeys.indexOf(section.normalizedTitle) >= 0 && section.content.trim().length > 0) {
+      appendUniqueText(parts, section.content.trim())
+    }
+  }
+  return parts.join('\n\n')
+}
+
+export function hasAnySectionKey(model: DetailRenderModel, keys: string[]): boolean {
+  return sectionTextByKeys(model, keys).length > 0
+}
+
+export function unmatchedSectionText(model: DetailRenderModel, consumedKeys: string[]): string {
+  const normalizedKeys: string[] = normalizeSectionKeys(consumedKeys)
+  const parts: string[] = []
+  for (const section of model.sections) {
+    if (normalizedKeys.indexOf(section.normalizedTitle) < 0 && section.content.trim().length > 0) {
+      appendUniqueText(parts, '## ' + section.title + '\n' + section.content.trim())
+    }
+  }
+  return parts.join('\n\n')
+}
+
 export function fallbackMainText(model: DetailRenderModel): string {
   if (model.body.length > 0) {
     return model.body
@@ -141,6 +168,24 @@ export function firstAvailableSectionText(model: DetailRenderModel, groups: stri
 
 export function hasAnySectionText(model: DetailRenderModel, groups: string[][]): boolean {
   return firstAvailableSectionText(model, groups).length > 0
+}
+
+function normalizeSectionKeys(keys: string[]): string[] {
+  const result: string[] = []
+  for (const key of keys) {
+    const normalized: string = normalizeSectionTitle(key)
+    if (normalized.length > 0 && result.indexOf(normalized) < 0) {
+      result.push(normalized)
+    }
+  }
+  return result
+}
+
+function appendUniqueText(parts: string[], value: string): void {
+  const text: string = value.trim()
+  if (text.length > 0 && parts.indexOf(text) < 0) {
+    parts.push(text)
+  }
 }
 
 export function parseDetailSections(body: string): DetailSectionData[] {
@@ -195,6 +240,10 @@ function normalizeSectionTitle(title: string): string {
     .replace(/：/g, ':')
     .replace(/\s+/g, '')
     .toLowerCase()
+  const robustTitle: string = normalizeKnownSectionTitle(text)
+  if (robustTitle.length > 0) {
+    return robustTitle
+  }
   if (text === '核心公式' || text === '公式' || text === '表达式') { return 'expression' }
   if (text === '参数' || text === '变量' || text === '符号说明' || text === '参数说明') { return 'parameters' }
   if (text === '适用范围' || text === '条件' || text === '使用条件') { return 'range' }
@@ -218,6 +267,56 @@ function normalizeSectionTitle(title: string): string {
   if (text === '原文' || text === 'ocr原文') { return 'original' }
   if (text.length === 0) { return 'content' }
   return text
+}
+
+function normalizeKnownSectionTitle(text: string): string {
+  const value: string = trimSectionTitleDecorations(text)
+  if (value.length === 0) { return 'content' }
+  if (containsAnyTitle(value, ['parameters', '\u53c2\u6570', '\u53d8\u91cf', '\u7b26\u53f7\u8bf4\u660e', '\u53c2\u6570\u8bf4\u660e'])) { return 'parameters' }
+  if (containsAnyTitle(value, ['range', 'condition', '\u9002\u7528\u8303\u56f4', '\u4f7f\u7528\u6761\u4ef6', '\u6761\u4ef6'])) { return 'range' }
+  if (containsAnyTitle(value, ['derivation', '\u63a8\u5bfc', '\u63a8\u5bfc\u8fc7\u7a0b'])) { return 'derivation' }
+  if (containsAnyTitle(value, ['notes', '\u5907\u6ce8', '\u6613\u9519', '\u5e38\u89c1\u9519\u8bef', '\u6ce8\u610f'])) { return 'notes' }
+  if (containsAnyTitle(value, ['expression', '\u6838\u5fc3\u516c\u5f0f', '\u516c\u5f0f', '\u8868\u8fbe\u5f0f'])) { return 'expression' }
+  if (containsAnyTitle(value, ['parameters', '\u53c2\u6570', '\u53d8\u91cf', '\u7b26\u53f7\u8bf4\u660e', '\u53c2\u6570\u8bf4\u660e'])) { return 'parameters' }
+  if (containsAnyTitle(value, ['range', 'condition', '\u9002\u7528\u8303\u56f4', '\u4f7f\u7528\u6761\u4ef6', '\u6761\u4ef6'])) { return 'range' }
+  if (containsAnyTitle(value, ['derivation', '\u63a8\u5bfc', '\u63a8\u5bfc\u8fc7\u7a0b'])) { return 'derivation' }
+  if (containsAnyTitle(value, ['notes', '\u5907\u6ce8', '\u6613\u9519', '\u5e38\u89c1\u9519\u8bef', '\u6ce8\u610f'])) { return 'notes' }
+  if (containsAnyTitle(value, ['definition', '\u5b9a\u4e49'])) { return 'definition' }
+  if (containsAnyTitle(value, ['properties', '\u6027\u8d28', '\u7279\u5f81'])) { return 'properties' }
+  if (containsAnyTitle(value, ['examples', 'example', '\u793a\u4f8b', '\u4f8b\u5b50', '\u53cd\u4f8b'])) { return 'examples' }
+  if (containsAnyTitle(value, ['relatedconcepts', '\u76f8\u5173\u6982\u5ff5'])) { return 'relatedconcepts' }
+  if (containsAnyTitle(value, ['statement', '\u5b9a\u7406\u9648\u8ff0', '\u9648\u8ff0'])) { return 'statement' }
+  if (containsAnyTitle(value, ['conclusion', '\u7ed3\u8bba'])) { return 'conclusion' }
+  if (containsAnyTitle(value, ['insight', '\u5173\u952e\u601d\u8def', '\u8bc1\u660e\u601d\u8def', '\u601d\u8def'])) { return 'insight' }
+  if (containsAnyTitle(value, ['applications', 'application', '\u5e94\u7528'])) { return 'applications' }
+  if (containsAnyTitle(value, ['proposition', '\u547d\u9898'])) { return 'proposition' }
+  if (containsAnyTitle(value, ['given', '\u5df2\u77e5'])) { return 'given' }
+  if (containsAnyTitle(value, ['proofprocess', '\u8bc1\u660e\u8fc7\u7a0b', '\u8fc7\u7a0b'])) { return 'proofprocess' }
+  if (containsAnyTitle(value, ['problem', '\u95ee\u9898', '\u9898\u76ee'])) { return 'problem' }
+  if (containsAnyTitle(value, ['steps', '\u6b65\u9aa4', '\u89e3\u9898\u6b65\u9aa4'])) { return 'steps' }
+  if (containsAnyTitle(value, ['answer', '\u7b54\u6848', '\u7ed3\u679c'])) { return 'answer' }
+  if (containsAnyTitle(value, ['methodsummary', '\u65b9\u6cd5\u603b\u7ed3'])) { return 'methodsummary' }
+  if (containsAnyTitle(value, ['original', 'ocr\u539f\u6587', '\u539f\u6587'])) { return 'original' }
+  if (containsAnyTitle(value, ['content', '\u5185\u5bb9'])) { return 'content' }
+  return ''
+}
+
+function trimSectionTitleDecorations(text: string): string {
+  return text
+    .replace(/[:\uFF1A]/g, '')
+    .replace(/[0-9]/g, '')
+    .replace(/[.\u3001\uff0e]/g, '')
+    .replace(/-/g, '')
+    .trim()
+}
+
+function containsAnyTitle(text: string, candidates: string[]): boolean {
+  for (const candidate of candidates) {
+    if (candidate.length > 0 && text.indexOf(candidate) >= 0) {
+      return true
+    }
+  }
+  return false
 }
 
 function resolveBody(note: NoteItem, unit: KnowledgeUnit | null): string {

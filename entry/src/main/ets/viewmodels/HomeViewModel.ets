@@ -4,7 +4,7 @@
 
 import { DatabaseHelper, KnowledgeUnit, NoteItem } from "common"
 import { NoteDao } from "../database/NoteDao"
-import { unitsToNoteItems } from "../utils/NoteItemMapper"
+import { NotesSnapshot, PreloadQueue, UiDataCacheService } from "../services/UiDataCacheService"
 
 @Observed
 export class HomeViewModel {
@@ -23,11 +23,12 @@ export class HomeViewModel {
 
   async loadNotes(context: Context): Promise<boolean> {
     try {
-      const store = await DatabaseHelper.init(context)
-      const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
-      this.units = units
-      this.notes = unitsToNoteItems(units)
+      const version: number = UiDataCacheService.currentNotesVersion()
+      const snapshot: NotesSnapshot = await UiDataCacheService.loadNotesSnapshot(context, version)
+      this.units = snapshot.units
+      this.notes = snapshot.notes
       this.refreshStats()
+      PreloadQueue.preloadHome(context, this.notes)
       return true
     } catch (e) {
       console.warn("[HomeViewModel] loadNotes failed: " + ((e as Error).message ?? String(e)))
@@ -43,8 +44,7 @@ export class HomeViewModel {
       return null
     }
     try {
-      const store = await DatabaseHelper.init(context)
-      return await new NoteDao(store).queryById(id)
+      return await UiDataCacheService.loadDetail(context, id, UiDataCacheService.currentNotesVersion())
     } catch (e) {
       console.warn("[HomeViewModel] loadNote failed: " + ((e as Error).message ?? String(e)))
       return null
@@ -53,8 +53,11 @@ export class HomeViewModel {
 
   async deleteNote(context: Context, id: string): Promise<boolean> {
     try {
+      UiDataCacheService.invalidateNote(id)
       const store = await DatabaseHelper.init(context)
       await new NoteDao(store).deleteById(id)
+      const version: number = UiDataCacheService.currentNotesVersion()
+      AppStorage.setOrCreate("notesVersion", version + 1)
       return await this.loadNotes(context)
     } catch (e) {
       console.warn("[HomeViewModel] deleteNote failed: " + ((e as Error).message ?? String(e)))

@@ -26,13 +26,16 @@ import { NoteDetailBody } from './NoteDetailBody'
 import { NoteActionBar } from './NoteActionBar'
 import { NoteIconButton } from './NoteIconButton'
 import { NoteEditForm } from './NoteEditForm'
+import { UiDataCacheService } from '../../services/UiDataCacheService'
+import { invalidateDetailRender } from './model/DetailRenderCache'
+import { invalidateMarkdownText } from '../../utils/MarkdownParseCache'
 
 @Component
 export struct NoteDetailOverlay {
-  @Prop note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '')
-  @Prop unit: KnowledgeUnit | null = null
-  @Prop units: KnowledgeUnit[] = []
-  @Prop isCreating: boolean = false
+  @Prop @Watch('onDetailInputChanged') note: NoteItem = new NoteItem(0, '', '', '', '', 0, '', [], '')
+  @Prop @Watch('onDetailInputChanged') unit: KnowledgeUnit | null = null
+  @Prop @Watch('onDetailInputChanged') units: KnowledgeUnit[] = []
+  @Prop @Watch('onDetailInputChanged') isCreating: boolean = false
   @StorageProp('statusBarHeight') sbh: number = 0
   @State localUnit: KnowledgeUnit | null = null
   @State isEditing: boolean = false
@@ -109,11 +112,14 @@ export struct NoteDetailOverlay {
                 onContentChange: (value: string): void => { this.contentText = value },
                 onTagsChange: (value: string): void => { this.tagsText = value },
               })
-            } else if (this.effectiveUnit() === null) {
+            } else if (!this.canRenderReadOnlyDetail()) {
               this.LoadingState()
             } else {
-              NoteDetailMeta({ note: this.note, unit: this.effectiveUnit(), units: this.units })
-              NoteDetailBody({ note: this.note, unit: this.effectiveUnit(), units: this.units })
+              Column() {
+                NoteDetailMeta({ note: this.note, unit: this.effectiveUnit(), units: this.units })
+                NoteDetailBody({ note: this.note, unit: this.effectiveUnit(), units: this.units })
+              }
+              .width('100%')
             }
           }
           .width('100%')
@@ -268,6 +274,19 @@ export struct NoteDetailOverlay {
     return this.localUnit !== null ? this.localUnit : this.unit
   }
 
+  private canRenderReadOnlyDetail = (): boolean => {
+    if (this.effectiveUnit() !== null) {
+      return true
+    }
+    return this.note.title.trim().length > 0 || this.note.body.trim().length > 0
+  }
+
+  onDetailInputChanged(): void {
+    if (this.localUnit !== null && this.localUnit.id !== this.currentNoteRawId()) {
+      this.localUnit = null
+    }
+  }
+
   private modeTitle = (): string => {
     if (this.isCreating) {
       return '新建笔记'
@@ -366,11 +385,13 @@ export struct NoteDetailOverlay {
       } else {
         await dao.update(saved)
       }
+      this.invalidateSavedRenderCaches(saved)
       this.localUnit = saved
       this.isEditing = false
       this.showDiscardConfirm = false
       this.loadForm(saved)
       this.bumpNotesVersion()
+      UiDataCacheService.setDetail(saved, UiDataCacheService.currentNotesVersion())
       this.onSaved(saved)
       promptAction.showToast({ message: this.isCreating ? '笔记已新建' : '笔记已保存', duration: 1200 })
     } catch (e) {
@@ -511,6 +532,22 @@ export struct NoteDetailOverlay {
   private bumpNotesVersion(): void {
     const v: number = AppStorage.get<number>('notesVersion') ?? 0
     AppStorage.setOrCreate('notesVersion', v + 1)
+  }
+
+  private invalidateSavedRenderCaches = (unit: KnowledgeUnit): void => {
+    const previous: KnowledgeUnit | null = this.effectiveUnit()
+    UiDataCacheService.invalidateNote(unit.id)
+    invalidateDetailRender(unit.id)
+    invalidateMarkdownText(unit.summary)
+    invalidateMarkdownText(unit.content)
+    if (previous !== null) {
+      invalidateMarkdownText(previous.summary)
+      invalidateMarkdownText(previous.content)
+    }
+  }
+
+  private currentNoteRawId = (): string => {
+    return this.note.rawId.length > 0 ? this.note.rawId : this.note.id.toString()
   }
 
   private mockShare = (): void => {

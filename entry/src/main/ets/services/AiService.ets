@@ -36,6 +36,7 @@ import { relationalStore } from '@kit.ArkData';
 import { ImageUriResolver, ResolvedImageFile } from './ImageUriResolver';
 import { NoteDao } from '../database/NoteDao';
 import { DatabaseHelper } from 'common';
+import { UiDataCacheService } from './UiDataCacheService';
 
 const log: Logger = new Logger('AiService');
 
@@ -111,7 +112,7 @@ export class AiService {
 
     // 3) 调度失败 → 抛错(UI 用 Toast 提示)
     if (!result.success) {
-      const errMsg: string = result.errorMessage ?? 'unknown error';
+      const errMsg: string = result.errorMessage ?? 'unresolved error';
       log.error('dispatch 失败: ' + errMsg);
       throw new Error('处理失败: ' + errMsg);
     }
@@ -154,6 +155,8 @@ export class AiService {
       }
       const dao: NoteDao = new NoteDao(rdb);
       const rowId: number = await dao.insert(unit);
+      UiDataCacheService.invalidateNotesSnapshots();
+      UiDataCacheService.setDetail(unit, UiDataCacheService.currentNotesVersion());
       log.info('NoteDao.insert 成功,rowId=' + rowId.toString());
     } catch (e) {
       log.error('NoteDao.insert 失败: ' + JSON.stringify(e));

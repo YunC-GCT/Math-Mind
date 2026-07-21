@@ -22,14 +22,32 @@ import {
 } from 'common'
 import { MarkdownRenderer } from '../../../shared/components/MarkdownRenderer'
 
+const DETAIL_STEP_INITIAL_COUNT: number = 3
+const DETAIL_STEP_BATCH_SIZE: number = 3
+const DETAIL_STEP_BATCH_RENDER_DELAY_MS: number = 48
+
 @Component
 export struct DetailStepList {
-  @Prop items: string[] = []
+  @Prop @Watch('onItemsChanged') items: string[] = []
   @Prop accentColor: ResourceColor = MINT
+  @State visibleItemCount: number = DETAIL_STEP_INITIAL_COUNT
+  private renderSeq: number = 0
+
+  aboutToAppear(): void {
+    this.resetVisibleItems()
+  }
+
+  aboutToDisappear(): void {
+    this.renderSeq += 1
+  }
+
+  onItemsChanged(): void {
+    this.resetVisibleItems()
+  }
 
   build() {
     Column() {
-      ForEach(this.items,
+      ForEach(this.visibleItems(),
         (item: string, index: number): void => {
           Row() {
             Text((index + 1).toString())
@@ -45,7 +63,7 @@ export struct DetailStepList {
               .margin({ right: S_2 })
 
             Column() {
-              MarkdownRenderer({ text: item })
+              MarkdownRenderer({ text: item, progressive: true })
             }
             .layoutWeight(1)
           }
@@ -55,8 +73,43 @@ export struct DetailStepList {
         },
         (item: string, index: number): string => index.toString() + '_' + item
       )
+
+      if (this.items.length > this.visibleItemCount) {
+        Blank().height(S_2)
+      }
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
+  }
+
+  private resetVisibleItems = (): void => {
+    this.renderSeq += 1
+    const seq: number = this.renderSeq
+    if (this.items.length <= DETAIL_STEP_INITIAL_COUNT) {
+      this.visibleItemCount = this.items.length
+      return
+    }
+    this.visibleItemCount = DETAIL_STEP_INITIAL_COUNT
+    this.scheduleNextItemBatch(seq)
+  }
+
+  private scheduleNextItemBatch = (seq: number): void => {
+    setTimeout((): void => {
+      if (seq !== this.renderSeq) {
+        return
+      }
+      const nextCount: number = Math.min(this.items.length, this.visibleItemCount + DETAIL_STEP_BATCH_SIZE)
+      this.visibleItemCount = nextCount
+      if (nextCount < this.items.length) {
+        this.scheduleNextItemBatch(seq)
+      }
+    }, DETAIL_STEP_BATCH_RENDER_DELAY_MS)
+  }
+
+  private visibleItems = (): string[] => {
+    if (this.items.length <= this.visibleItemCount) {
+      return this.items
+    }
+    return this.items.slice(0, this.visibleItemCount)
   }
 }

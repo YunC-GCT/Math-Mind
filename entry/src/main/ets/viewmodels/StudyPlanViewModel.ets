@@ -6,7 +6,7 @@
 //  AI: generatePlan() 通过 LlmClient 调 DeepSeek，基于已有 KnowledgeUnit 生成计划。
 //
 //  ArkTS 1.1 strict:
-//    - 无 any/unknown，显式类型，无 Record<>，无 RegExpMatchArray
+//    - 显式类型，无 Record<>，无 RegExpMatchArray
 //    - 变更后 this.items = this.items.slice(0) 强制数组引用更新，触发 @Observed→ForEach 重渲染
 //  ============================================================================
 
@@ -15,6 +15,7 @@ import { DatabaseHelper } from "common"
 import { LlmClient } from "common"
 import type { ChatMessage } from "common"
 import { StudyPlanDao } from "../database/StudyPlanDao"
+import { StudyPlanSnapshot, UiDataCacheService } from "../services/UiDataCacheService"
 
 @Observed
 export class StudyPlanViewModel {
@@ -29,9 +30,15 @@ export class StudyPlanViewModel {
   // ---- 初始化 ----
   async init(context: Context): Promise<void> {
     try {
+      const cached: StudyPlanSnapshot | null = UiDataCacheService.getStudyPlanSnapshot()
+      if (cached !== null) {
+        this.items = cached.items.slice(0)
+        this.initError = false
+      }
       const store = await DatabaseHelper.init(context)
       this.dao = new StudyPlanDao(store)
       this.items = await this.dao.queryAll()
+      UiDataCacheService.setStudyPlanSnapshot(this.items)
       this.initError = false
     } catch (e) {
       console.error("[StudyPlanViewModel.init] " + (e as Error).message)
@@ -84,6 +91,7 @@ export class StudyPlanViewModel {
     }
     this.items.push(item)
     this.items = this.items.slice(0)
+    this.refreshStudyPlanCache()
     this.newTitle = ""
   }
 
@@ -108,6 +116,7 @@ export class StudyPlanViewModel {
 
     this.items[idx].title = trimmed
     this.items = this.items.slice(0)
+    this.refreshStudyPlanCache()
 
     if (this.dao !== null) {
       try {
@@ -128,6 +137,7 @@ export class StudyPlanViewModel {
     }
     this.items[idx].isDone = !this.items[idx].isDone
     this.items = this.items.slice(0)
+    this.refreshStudyPlanCache()
 
     if (this.dao !== null) {
       try {
@@ -147,6 +157,7 @@ export class StudyPlanViewModel {
       }
     }
     this.items = newItems
+    this.refreshStudyPlanCache()
 
     if (this.dao !== null) {
       try {
@@ -172,6 +183,7 @@ export class StudyPlanViewModel {
       }
     }
     this.items = newItems
+    this.refreshStudyPlanCache()
     if (this.editingId === item.id) {
       this.editingId = ""
       this.newTitle = ""
@@ -223,6 +235,7 @@ export class StudyPlanViewModel {
         this.items.push(item)
       }
       this.items = this.items.slice(0)
+      this.refreshStudyPlanCache()
     } catch (e) {
       console.error("[StudyPlanViewModel.generatePlan] " + (e as Error).message)
     } finally {
@@ -251,5 +264,10 @@ export class StudyPlanViewModel {
       console.error("[StudyPlanViewModel.parsePlanTitles] " + (e as Error).message)
       return []
     }
+  }
+
+  private refreshStudyPlanCache(): void {
+    UiDataCacheService.bumpStudyPlanVersion()
+    UiDataCacheService.setStudyPlanSnapshot(this.items)
   }
 }

@@ -9,6 +9,7 @@ import {
 } from 'common'
 import type { LatexRiskResult } from 'common'
 import webview from '@ohos.web.webview'
+import { uiCacheLog } from '../../utils/UiCacheDebug'
 
 class MathRenderCacheEntry {
   key: string = ''
@@ -38,11 +39,21 @@ const MATH_RENDER_CACHE_LIMIT: number = 64
 const MATH_RENDER_CACHE_MAX_CHARS: number = 600000
 const MATH_RENDER_CACHE_TTL_MS: number = 10 * 60 * 1000
 const MATH_RENDER_CACHE_PASSIVE_TRIM_TICKS: number = 12
+const NOTE_MATH_RENDER_DEFER_BASE_MS: number = 24
+const NOTE_MATH_RENDER_DEFER_STEP_MS: number = 22
+const NOTE_MATH_RENDER_DEFER_SLOTS: number = 8
 let mathRenderCacheClock: number = 0
+let noteMathRenderDeferClock: number = 0
 
 function nextCacheTick(): number {
   mathRenderCacheClock += 1
   return mathRenderCacheClock
+}
+
+function nextNoteMathRenderDelay(): number {
+  const slot: number = noteMathRenderDeferClock % NOTE_MATH_RENDER_DEFER_SLOTS
+  noteMathRenderDeferClock += 1
+  return NOTE_MATH_RENDER_DEFER_BASE_MS + slot * NOTE_MATH_RENDER_DEFER_STEP_MS
 }
 
 function cacheGet(key: string): MathRenderCacheEntry | null {
@@ -52,9 +63,11 @@ function cacheGet(key: string): MathRenderCacheEntry | null {
     if (entry.key === key) {
       entry.touched = nextCacheTick()
       entry.touchedAt = now
+      uiCacheLog('[UiDataCache] math hit key=' + key)
       return entry
     }
   }
+  uiCacheLog('[UiDataCache] math miss key=' + key)
   return null
 }
 
@@ -174,30 +187,69 @@ export struct MathTextRenderer {
   private lastAppliedKey: string = ''
   private riskNormalizer: LatexRiskNormalizer = new LatexRiskNormalizer()
   @State private pageReady: boolean = false
+  @State private renderReady: boolean = true
   @State private webHeight: number = 42
+  private renderSeq: number = 0
 
   aboutToAppear(): void {
+    this.renderSeq += 1
+    const seq: number = this.renderSeq
     const renderInput: LatexRiskResult = this.normalizeForRender(this.text)
     if (renderInput.renderMode === 'plainFallback') {
+      this.renderReady = true
       this.webHeight = this.clampHeight(this.estimateHeight(renderInput.normalizedText))
       return
     }
     const markdown: string = this.prepareMarkdownFromResult(renderInput)
     const cached: MathRenderCacheEntry | null = cacheGet(this.cacheKey(markdown))
     if (cached !== null) {
+      this.renderReady = true
       this.webHeight = this.clampHeight(cached.height)
       return
+    }
+    if (this.shouldDeferWebRender()) {
+      this.renderReady = false
+      this.pageReady = false
+      this.scheduleDeferredWebRender(seq)
+    } else {
+      this.renderReady = true
     }
     this.webHeight = this.estimateHeight(markdown)
   }
 
+  aboutToDisappear(): void {
+    this.renderSeq += 1
+  }
+
   onTextChanged(): void {
+    this.renderSeq += 1
+    const seq: number = this.renderSeq
     const renderInput: LatexRiskResult = this.normalizeForRender(this.text)
     if (renderInput.renderMode === 'plainFallback') {
       this.lastAppliedKey = ''
+      this.renderReady = true
       this.webHeight = this.clampHeight(this.estimateHeight(renderInput.normalizedText))
       return
     }
+    const markdown: string = this.prepareMarkdownFromResult(renderInput)
+    const cacheKey: string = this.cacheKey(markdown)
+    const cached: MathRenderCacheEntry | null = cacheGet(cacheKey)
+    if (cached !== null) {
+      this.renderReady = true
+      this.webHeight = this.clampHeight(cached.height)
+      if (this.pageReady) {
+        this.applyCachedRender(cacheKey, cached)
+      }
+      return
+    }
+    this.webHeight = this.estimateHeight(markdown)
+    if (this.shouldDeferWebRender()) {
+      this.renderReady = false
+      this.pageReady = false
+      this.scheduleDeferredWebRender(seq)
+      return
+    }
+    this.renderReady = true
     if (this.pageReady) {
       this.renderContent()
     }
@@ -330,6 +382,23 @@ export struct MathTextRenderer {
     return normalized.length > 0 ? normalized : this.text.trim()
   }
 
+  private shouldDeferWebRender = (): boolean => {
+    return this.profile === 'note'
+  }
+
+  private scheduleDeferredWebRender = (seq: number): void => {
+    const delay: number = nextNoteMathRenderDelay()
+    setTimeout((): void => {
+      if (seq !== this.renderSeq) {
+        return
+      }
+      this.renderReady = true
+      if (this.pageReady) {
+        this.renderContent()
+      }
+    }, delay)
+  }
+
   private stripDisplayFence = (raw: string): string => {
     let text: string = raw.trim()
     if (text.startsWith('$$') && text.endsWith('$$') && text.length > 4) {
@@ -399,6 +468,13 @@ export struct MathTextRenderer {
 
   build() {
     if (this.normalizeForRender(this.text).renderMode === 'plainFallback') {
+      Text(this.plainFallbackText())
+        .fontSize(this.fontSize)
+        .fontColor(this.textColor)
+        .lineHeight(this.lineHeight)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+    } else if (!this.renderReady) {
       Text(this.plainFallbackText())
         .fontSize(this.fontSize)
         .fontColor(this.textColor)
