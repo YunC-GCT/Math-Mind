@@ -2,7 +2,23 @@
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z
-> 最近更新: 2026-07-20
+> 最近更新: 2026-07-22
+
+---
+
+## 2026-07-22 笔记页细节修复
+
+### 做了什么
+
+- 修复笔记详情页右上角删除按钮：`AppIcon(name="trash")` 不再回退到 `×` 字符，改为独立的垃圾桶线条图标。
+- 修复笔记页点击搜索入口时的 Toast 乱码：提示文案改为 `搜索功能开发中`，并使用 Unicode 转义写入，避免终端编码导致再次乱码。
+- 顺手对触碰到的 `AppIcon.ets` / `NotesPage.ets` 做 ArkTS 1.1 strict 适配，避免 struct 内普通私有方法。
+
+### 验证
+
+- 已做文件级 `git diff --check`，无 whitespace error。
+- 已做禁用写法扫描，无 C 风格 `for` / `any` / `unknown` / struct 普通私有方法命中。
+- DevEco Studio GUI 编译仍需手动执行。
 
 ---
 
