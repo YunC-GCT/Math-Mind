@@ -3,6 +3,7 @@ import type { LlmGuardValidationResult } from 'common';
 import { common } from '@kit.AbilityKit';
 import { AiService } from './AiService';
 import { AgentMemoryService } from './AgentMemoryService';
+import type { ChatStatusMeta, ChatStatusStep } from '../overlays/AgentFloatWindow/chat/ChatModels';
 
 type TextIntent = 'note_generation' | 'chat';
 
@@ -10,6 +11,7 @@ export interface AgentChatCallbacks {
   addAiMsg: (content: string) => void;
   bumpNotesVersion: () => void;
   setBusy: (v: boolean) => void;
+  setStatusMeta: (meta: ChatStatusMeta | null) => void;
   getContext: () => common.UIAbilityContext;
   getConversationText: (excludeLatestUser: boolean) => string;
   getSessionId: () => string;
@@ -25,43 +27,58 @@ export class AgentChatService {
 
   async captureReply(imageUri: string, userText: string): Promise<void> {
     const sessionId: string = this.currentSessionId();
-    await this.safeSaveUserMessage(sessionId, userText.trim().length > 0 ? userText : '[图片]');
     this.cbs.setBusy(true);
+    this.setStep('image_message_save');
     try {
+      await this.safeSaveUserMessage(sessionId, userText.trim().length > 0 ? userText : '[图片]');
+      this.setStep('image_recognize');
       const result: ClassificationResult = await new AiService(this.cbs.getContext()).analyzeImage(imageUri, userText);
+      this.setStep('image_material_save');
       await this.safeSaveOcrResult(sessionId, imageUri, userText, result);
-      await this.addAiMessage(sessionId, this.formatAnalyzeReply(result));
+      const reply: string = this.formatAnalyzeReply(result);
+      await this.addAiMessage(sessionId, reply);
+      this.setStep('completed');
     } catch (e) {
       await this.addAiMessage(sessionId, '图片识别失败: ' + AgentChatService.errorMessage(e).substring(0, 120));
     } finally {
-      this.cbs.setBusy(false);
+      this.finishBusy();
     }
   }
 
   async realReply(userContent: string): Promise<void> {
-    const intent: TextIntent = await this.classifyTextIntent(userContent);
-    if (intent === 'note_generation') {
-      await this.generateNoteFromConversation(userContent);
-      return;
-    }
-
     const sessionId: string = this.currentSessionId();
-    const memoryContext: string = await this.safeGetContextForReply(sessionId);
-    const learnerProfileContext: string = await this.safeGetLearnerProfileContext(sessionId);
-    await this.safeSaveUserMessage(sessionId, userContent);
     this.cbs.setBusy(true);
+    this.setStep('intent_check');
     try {
+      const intent: TextIntent = await this.classifyTextIntent(userContent);
+      if (intent === 'note_generation') {
+        const generated: boolean = await this.generateNoteFromConversation(sessionId, userContent);
+        if (generated) {
+          this.setStep('completed');
+        } else {
+          this.setStep('completed');
+        }
+        return;
+      }
+
+      this.setStep('reply_context_load');
+      const memoryContext: string = await this.safeGetContextForReply(sessionId);
+      const learnerProfileContext: string = await this.safeGetLearnerProfileContext(sessionId);
+      await this.safeSaveUserMessage(sessionId, userContent);
       const configured: boolean = await LlmConfig.getInstance().isConfigured();
       if (!configured) {
         await this.addAiMessage(sessionId, '⚠️ 请先在「我的 → 设置」中配置 API Key');
+        this.setStep('completed');
         return;
       }
+      this.setStep('reply_model_call');
       const client: LlmClient = new LlmClient();
       const reply: string = await client.call(this.buildReplyMessages(memoryContext, learnerProfileContext, userContent), {
         maxTokens: 4096,
         timeoutMs: 120000,
       });
       await this.addAiMessage(sessionId, reply);
+      this.finishBusy();
       await this.safeUpdateLearnerProfileIfNeeded(sessionId);
       await this.safeSummarizeIfNeeded(sessionId);
     } catch (e) {
@@ -74,25 +91,26 @@ export class AgentChatService {
         await this.addAiMessage(sessionId, '⚠️ AI 回复异常: ' + errMsg.substring(0, 100));
       }
     } finally {
-      this.cbs.setBusy(false);
+      this.finishBusy();
     }
   }
 
-  private async generateNoteFromConversation(userInstruction: string): Promise<void> {
-    const sessionId: string = this.currentSessionId();
+  private async generateNoteFromConversation(sessionId: string, userInstruction: string): Promise<boolean> {
+    this.setStep('note_intent_check');
     const intent: TextIntent = await this.classifyTextIntent(userInstruction);
     if (intent !== 'note_generation') {
       console.warn('[AgentChatService] blocked note generation without explicit intent');
-      return;
+      return false;
     }
+    this.setStep('note_context_load');
     const memoryContext: string = await this.safeGetContextForNoteGeneration(sessionId);
+    this.setStep('note_source_prepare');
     await this.safeSaveUserMessage(sessionId, userInstruction);
-    this.cbs.setBusy(true);
     try {
       const configured: boolean = await LlmConfig.getInstance().isConfigured();
       if (!configured) {
         await this.addAiMessage(sessionId, '⚠️ 请先在「我的 → 设置」中配置 API Key');
-        return;
+        return false;
       }
 
       let conversation: string = memoryContext.trim();
@@ -104,20 +122,23 @@ export class AgentChatService {
       }
       if (conversation.length === 0) {
         await this.addAiMessage(sessionId, '当前会话还没有可整理的内容');
-        return;
+        return false;
       }
 
+      this.setStep('note_material_summary');
       const summary: string = await this.summarizeConversation(conversation, userInstruction);
+      this.setStep('note_structure_save');
       const unit: KnowledgeUnit = await new AiService(this.cbs.getContext()).captureText(summary);
       this.cbs.bumpNotesVersion();
+      this.setStep('note_finalize');
       await this.safeMarkPendingMaterialUsed(sessionId);
       await this.addAiMessage(sessionId, '已生成笔记：' + unit.title);
       await this.safeSummarizeIfNeeded(sessionId);
+      return true;
     } catch (e) {
       const errMsg: string = AgentChatService.errorMessage(e);
       await this.addAiMessage(sessionId, '生成笔记失败: ' + errMsg.substring(0, 120));
-    } finally {
-      this.cbs.setBusy(false);
+      return false;
     }
   }
 
@@ -451,6 +472,63 @@ export class AgentChatService {
   private clip(text: string, limit: number): string {
     if (text.length <= limit) { return text; }
     return text.substring(0, limit) + '\n...';
+  }
+
+  private setStep(step: ChatStatusStep): void {
+    this.cbs.setStatusMeta(AgentChatService.statusFromStep(step));
+  }
+
+  private finishBusy(): void {
+    this.cbs.setStatusMeta(null);
+    this.cbs.setBusy(false);
+  }
+
+  private static statusFromStep(step: ChatStatusStep): ChatStatusMeta {
+    if (step === 'intent_check') {
+      return AgentChatService.status(step, '判断任务', '确认这轮是直接回答还是整理成笔记。');
+    }
+    if (step === 'reply_context_load') {
+      return AgentChatService.status(step, '读取上下文', '取当前会话里和问题有关的内容。');
+    }
+    if (step === 'reply_model_call') {
+      return AgentChatService.status(step, '生成回答', '组织结论、步骤和必要条件。');
+    }
+    if (step === 'image_message_save') {
+      return AgentChatService.status(step, '记录图片问题', '先保存本轮图片和补充说明。');
+    }
+    if (step === 'image_recognize') {
+      return AgentChatService.status(step, '识别图片内容', '读取图片里的题目、公式和文字。');
+    }
+    if (step === 'image_material_save') {
+      return AgentChatService.status(step, '整理识别材料', '把识别结果留作后续笔记素材。');
+    }
+    if (step === 'note_intent_check') {
+      return AgentChatService.status(step, '确认整理需求', '确认这轮需要生成可保存的笔记。');
+    }
+    if (step === 'note_context_load') {
+      return AgentChatService.status(step, '读取笔记材料', '读取当前会话、图片识别结果和待整理内容。');
+    }
+    if (step === 'note_source_prepare') {
+      return AgentChatService.status(step, '整理笔记素材', '确定要写进笔记的原题、公式和关键步骤。');
+    }
+    if (step === 'note_material_summary') {
+      return AgentChatService.status(step, '汇总成笔记底稿', '把零散材料合成一份完整底稿。');
+    }
+    if (step === 'note_structure_save') {
+      return AgentChatService.status(step, '生成并保存笔记', '结构化标题、章节、标签和正文。');
+    }
+    if (step === 'note_finalize') {
+      return AgentChatService.status(step, '更新笔记列表', '刷新本地笔记并标记材料已使用。');
+    }
+    return AgentChatService.status(step, '完成', '本轮处理已结束。');
+  }
+
+  private static status(step: ChatStatusStep, title: string, detail: string): ChatStatusMeta {
+    return {
+      step: step,
+      title: title,
+      detail: detail,
+    };
   }
 
   private currentSessionId(): string {

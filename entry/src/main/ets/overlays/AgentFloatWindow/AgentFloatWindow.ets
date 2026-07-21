@@ -21,7 +21,7 @@ import { ChatHeader } from './chat/ChatHeader';
 import { QuickSuggestions } from './chat/QuickSuggestions';
 import { ChatSessionManager, sid } from './chat/ChatSession';
 import { SessionBar } from './chat/SessionBar';
-import { ChatMsg, ChatSession } from './chat/ChatModels';
+import { ChatMsg, ChatSession, ChatStatusMeta } from './chat/ChatModels';
 import { AgentMessageList } from './AgentMessageList';
 import { ImagePreviewBar } from './ImagePreviewBar';
 import { AgentInputBar } from './AgentInputBar';
@@ -42,6 +42,7 @@ export struct AgentFloatWindow {
   @State @Watch('onMessagesChange') messages: ChatMsg[] = [];
   @State inputText: string = '';
   @State busy: boolean = false;
+  @State statusMeta: ChatStatusMeta | null = null;
   @State deepThink: boolean = false;
   @State imagePreview: string = '';
   @State keyboardHeight: number = 0;
@@ -101,6 +102,7 @@ export struct AgentFloatWindow {
       addAiMsg: (c: string): void => { this.messages = [...this.messages, { id: nowId(), role: 'ai', content: c, ts: Date.now() }]; },
       bumpNotesVersion: (): void => { const v: number = AppStorage.get<number>('notesVersion') ?? 0; AppStorage.setOrCreate('notesVersion', v + 1); },
       setBusy: (v: boolean): void => { this.busy = v; },
+      setStatusMeta: (meta: ChatStatusMeta | null): void => { this.statusMeta = meta; },
       getContext: (): common.UIAbilityContext => getContext(this) as common.UIAbilityContext,
       getConversationText: (excludeLatestUser: boolean): string => this.buildConversationText(excludeLatestUser),
       getSessionId: (): string => this.activeSid,
@@ -122,12 +124,14 @@ export struct AgentFloatWindow {
       && this.messages[this.messages.length - 1].role === 'user'
       ? this.messages.length - 1
       : this.messages.length;
-    for (let i: number = 0; i < end; i++) {
+    let i: number = 0;
+    while (i < end) {
       const msg: ChatMsg = this.messages[i];
       const role: string = msg.role === 'user' ? '用户' : 'AI';
       if (msg.content.trim().length > 0) {
         parts.push(role + ': ' + msg.content.trim());
       }
+      i += 1;
     }
     return parts.join('\n\n');
   }
@@ -231,7 +235,7 @@ export struct AgentFloatWindow {
 
           SessionBar({ sessions: this.sessions, activeSid: this.activeSid, onSwitch: (sid: string): void => { this.switchSession(sid); }, onDelete: (sid: string): void => { this.deleteSession(sid); }, onNew: (): void => { this.newSession(); } });
 
-          AgentMessageList({ messages: this.messages, busy: this.busy, scroller: this.scroller, onRetry: (msg: ChatMsg): void => { this.retryFromAiMessage(msg); } });
+          AgentMessageList({ messages: this.messages, busy: this.busy, statusMeta: this.statusMeta, scroller: this.scroller, onRetry: (msg: ChatMsg): void => { this.retryFromAiMessage(msg); } });
           Row().width('100%').height(0.5).backgroundColor(BORDER);
 
           QuickSuggestions({ onSelect: (p: string): void => { this.send(p); } });
