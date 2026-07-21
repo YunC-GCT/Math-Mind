@@ -5,7 +5,9 @@
 import {
   TEXT, TEXT_2, GLASS_10, BORDER,
   F_BASE,
+  LatexRiskNormalizer,
 } from 'common'
+import type { LatexRiskResult } from 'common'
 import webview from '@ohos.web.webview'
 
 class MathRenderCacheEntry {
@@ -170,11 +172,17 @@ export struct MathTextRenderer {
 
   private controller: webview.WebviewController = new webview.WebviewController()
   private lastAppliedKey: string = ''
+  private riskNormalizer: LatexRiskNormalizer = new LatexRiskNormalizer()
   @State private pageReady: boolean = false
   @State private webHeight: number = 42
 
   aboutToAppear(): void {
-    const markdown: string = this.prepareMarkdown(this.text)
+    const renderInput: LatexRiskResult = this.normalizeForRender(this.text)
+    if (renderInput.renderMode === 'plainFallback') {
+      this.webHeight = this.clampHeight(this.estimateHeight(renderInput.normalizedText))
+      return
+    }
+    const markdown: string = this.prepareMarkdownFromResult(renderInput)
     const cached: MathRenderCacheEntry | null = cacheGet(this.cacheKey(markdown))
     if (cached !== null) {
       this.webHeight = this.clampHeight(cached.height)
@@ -184,13 +192,23 @@ export struct MathTextRenderer {
   }
 
   onTextChanged(): void {
+    const renderInput: LatexRiskResult = this.normalizeForRender(this.text)
+    if (renderInput.renderMode === 'plainFallback') {
+      this.lastAppliedKey = ''
+      this.webHeight = this.clampHeight(this.estimateHeight(renderInput.normalizedText))
+      return
+    }
     if (this.pageReady) {
       this.renderContent()
     }
   }
 
   private renderContent = (): void => {
-    const markdown: string = this.prepareMarkdown(this.text)
+    const renderInput: LatexRiskResult = this.normalizeForRender(this.text)
+    if (renderInput.renderMode === 'plainFallback') {
+      return
+    }
+    const markdown: string = this.prepareMarkdownFromResult(renderInput)
     const cacheKey: string = this.cacheKey(markdown)
     if (cacheKey === this.lastAppliedKey) {
       return
@@ -276,22 +294,40 @@ export struct MathTextRenderer {
   }
 
   private currentCacheKey = (): string => {
-    return this.cacheKey(this.prepareMarkdown(this.text))
+    const renderInput: LatexRiskResult = this.normalizeForRender(this.text)
+    if (renderInput.renderMode === 'plainFallback') {
+      return ''
+    }
+    return this.cacheKey(this.prepareMarkdownFromResult(renderInput))
   }
 
   private clampHeight = (height: number): number => {
     return Math.max(this.minHeight, Math.min(this.maxHeight, height))
   }
 
-  private prepareMarkdown = (raw: string): string => {
-    const normalized: string = raw.replace(/\r\n/g, '\n').trim()
+  private normalizeForRender = (raw: string): LatexRiskResult => {
+    const normalized: string = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+    if (normalized.length === 0) {
+      return this.riskNormalizer.normalize('')
+    }
+    if (this.forceDisplay) {
+      return this.riskNormalizer.normalize('$$\n' + this.stripDisplayFence(normalized) + '\n$$')
+    }
+    return this.riskNormalizer.normalize(normalized)
+  }
+
+  private prepareMarkdownFromResult = (renderInput: LatexRiskResult): string => {
+    const normalized: string = renderInput.normalizedText.trim()
     if (normalized.length === 0) {
       return ''
     }
-    if (this.forceDisplay) {
-      return '$$\n' + this.stripDisplayFence(normalized) + '\n$$'
-    }
     return this.wrapFormulaOnlyLines(normalized)
+  }
+
+  private plainFallbackText = (): string => {
+    const renderInput: LatexRiskResult = this.normalizeForRender(this.text)
+    const normalized: string = renderInput.normalizedText.trim()
+    return normalized.length > 0 ? normalized : this.text.trim()
   }
 
   private stripDisplayFence = (raw: string): string => {
@@ -335,10 +371,10 @@ export struct MathTextRenderer {
     if (!hasMathCommand) {
       return false
     }
-    return (line.indexOf('，') < 0
-      && line.indexOf('。') < 0
-      && line.indexOf('；') < 0
-      && line.indexOf('：') < 0
+    return (line.indexOf('\uFF0C') < 0
+      && line.indexOf('\u3002') < 0
+      && line.indexOf('\uFF1B') < 0
+      && line.indexOf('\uFF1A') < 0
       && line.indexOf(' ') < 0) || line.indexOf('=') >= 0
   }
 
@@ -356,25 +392,33 @@ export struct MathTextRenderer {
     }
     const displayFormulaCount: number = Math.floor((normalized.split('$$').length - 1) / 2)
       + Math.floor((normalized.split('\\[').length - 1))
-      + (this.forceDisplay ? 1 : 0)
     const formulaExtra: number = displayFormulaCount * (this.profile === 'note' ? 42 : 34)
     const estimated: number = lineCount * baseLineHeight + formulaExtra + 18
     return this.clampHeight(estimated)
   }
 
   build() {
-    Web({ src: $rawfile('render.html'), controller: this.controller })
-      .javaScriptAccess(true)
-      .domStorageAccess(false)
-      .fileAccess(false)
-      .horizontalScrollBarAccess(true)
-      .verticalScrollBarAccess(false)
-      .backgroundColor('rgba(0,0,0,0)')
-      .width('100%')
-      .height(this.webHeight)
-      .onPageEnd((): void => {
-        this.pageReady = true
-        this.renderContent()
-      })
+    if (this.normalizeForRender(this.text).renderMode === 'plainFallback') {
+      Text(this.plainFallbackText())
+        .fontSize(this.fontSize)
+        .fontColor(this.textColor)
+        .lineHeight(this.lineHeight)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+    } else {
+      Web({ src: $rawfile('render.html'), controller: this.controller })
+        .javaScriptAccess(true)
+        .domStorageAccess(false)
+        .fileAccess(false)
+        .horizontalScrollBarAccess(true)
+        .verticalScrollBarAccess(false)
+        .backgroundColor('rgba(0,0,0,0)')
+        .width('100%')
+        .height(this.webHeight)
+        .onPageEnd((): void => {
+          this.pageReady = true
+          this.renderContent()
+        })
+    }
   }
 }

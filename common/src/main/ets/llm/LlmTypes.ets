@@ -23,6 +23,11 @@ export interface LlmRequestBody {
   temperature: number;
   max_tokens: number;
   stream: boolean;
+  response_format?: LlmResponseFormat;
+}
+
+export interface LlmResponseFormat {
+  type: 'json_object';
 }
 
 // ==================== LlmResponse (OpenAI 兼容响应,只取常用字段)====================
@@ -81,4 +86,5 @@ export interface LlmCallOptions {
   maxTokens?: number;
   model?: string;
   timeoutMs?: number;
+  responseFormat?: LlmResponseFormat;
 }

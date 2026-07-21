@@ -35,7 +35,9 @@ import {
 import {
   DifficultyLevel,
   isKnownNoteType,
-  LlmClient,
+  JSON_ONLY_RULES,
+  LATEX_GENERATION_RULES,
+  LlmGuard,
   normalizeNoteType,
   NOTE_TYPE_KEYS,
   ReviewStatus,
@@ -44,6 +46,8 @@ import type {
   ChatMessage,
   ClassificationResult,
   KnowledgeUnit,
+  LlmGuardJsonResult,
+  LlmGuardValidationResult,
 } from 'common';
 import { TypeClassifier } from './TypeClassifier';
 
@@ -111,7 +115,8 @@ export class KnowledgeModel {
       : undefined;
     const chapterHint: string = classificationHint.chapter ?? chapter;
 
-    // 尝试 AI 结构化；失败时用已有分类结果构造 fallback 笔记，不丢数据
+    // 尝试 AI 结构化；失败时暂时沿用 fallback 笔记，不丢数据。
+    // TODO: 后续改为结构化失败直接返回错误，由上层阻止入库，避免生成低质量占位笔记。
     let aiRaw: AiRawResponse;
     try {
       aiRaw = await this.callAi(
@@ -202,6 +207,7 @@ export class KnowledgeModel {
   }
 
   // AI 调用失败 fallback: 用 TypeClassifier 已有分类结果构造基础笔记
+  // TODO: 后续删除该 fallback，改成显式失败，不再自动创建笔记。
   // 不调 AI，直接返回 KnowledgeUnit（标题来自 OCR 首行，标签来自分类结果）
   private buildFallbackFromClassify(
     ocrText: string, type?: string, subject?: string, chapter: string = '',
@@ -293,36 +299,35 @@ export class KnowledgeModel {
       : '';
     const prompt: string = this.buildPrompt(ocrText) + hint;
 
-    const systemMsg: ChatMessage = { role: 'system', content: prompt };
+    const systemMsg: ChatMessage = {
+      role: 'system',
+      content: prompt + '\n' + JSON_ONLY_RULES + '\n' + LATEX_GENERATION_RULES,
+    };
     const userText: string = ocrText.length > KNOWLEDGE_INPUT_LIMIT ? ocrText.substring(0, KNOWLEDGE_INPUT_LIMIT) : ocrText;
     const userMsg: ChatMessage = { role: 'user', content: userText };
     const messages: ChatMessage[] = [systemMsg, userMsg];
 
     console.info('[KnowledgeModel] callAi: systemPrompt=' + prompt.length.toString() + ' chars, userText=' + userText.length.toString() + ' chars');
-    let rawContent: string;
+    let guarded: LlmGuardJsonResult;
     try {
-      const client: LlmClient = new LlmClient();
-      rawContent = await client.call(messages, {
+      guarded = await new LlmGuard().callJsonWithRetry(messages, {
         maxTokens: KNOWLEDGE_MAX_TOKENS,
         timeoutMs: KNOWLEDGE_TIMEOUT_MS,
-      });
-      console.info('[KnowledgeModel] callAi response received, len=' + rawContent.length.toString());
+        label: 'KnowledgeModel structure',
+      }, (json: Record<string, Object>): LlmGuardValidationResult => this.validateAiJson(json));
+      console.info('[KnowledgeModel] callAi response received, len=' + guarded.raw.length.toString()
+        + ', attempts=' + guarded.attempts.toString());
     } catch (llmErr) {
       console.error('[KnowledgeModel] callAi LLM error: ' + (llmErr as Error).message);
       throw new Error('LLM 调用失败: ' + (llmErr as Error).message);
     }
 
-    if (!rawContent || rawContent.length === 0) {
+    if (!guarded.raw || guarded.raw.length === 0) {
       console.error('[KnowledgeModel] callAi empty content after 200 OK');
       throw new Error('AI 返回为空:content 为空');
     }
 
-    let jsonStr: string = rawContent.trim();
-    const codeMatch: RegExpMatchArray | null = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (codeMatch !== null && codeMatch.length >= 2) { jsonStr = codeMatch[1].trim(); }
-    const braceMatch: RegExpMatchArray | null = jsonStr.match(/\{[\s\S]*\}/);
-    if (braceMatch !== null) { jsonStr = braceMatch[0]; }
-    const parsed: Record<string, Object> = JSON.parse(jsonStr) as Record<string, Object>;
+    const parsed: Record<string, Object> = guarded.json;
 
     const aiRaw: AiRawResponse = {
       category: this.normalizeCategory(String(parsed['category'] ?? ''), typeHint),
@@ -335,6 +340,67 @@ export class KnowledgeModel {
     };
 
     return aiRaw;
+  }
+
+  private validateAiJson(parsed: Record<string, Object>): LlmGuardValidationResult {
+    const issues: string[] = [];
+    const categoryValue: Object | undefined = parsed['category'];
+    const categoryText: string = typeof categoryValue === 'string' ? categoryValue : '';
+    if (categoryText.length === 0 || !isKnownNoteType(normalizeNoteType(categoryText))) {
+      issues.push('category must be one of: ' + NOTE_TYPE_KEYS.join('/'));
+    }
+    if (typeof parsed['subject'] !== 'string') {
+      issues.push('subject must be a string');
+    }
+    const titleValue: Object | undefined = parsed['title'];
+    if (typeof titleValue !== 'string' || titleValue.trim().length === 0) {
+      issues.push('title must be a non-empty string');
+    }
+    if (!Array.isArray(parsed['tags'])) {
+      issues.push('tags must be an array');
+    }
+    if (!this.isScoreValue(parsed['difficulty'])) {
+      issues.push('difficulty must be a number from 1 to 5');
+    }
+    if (!this.isScoreValue(parsed['importance'])) {
+      issues.push('importance must be a number from 1 to 5');
+    }
+    const fieldsValue: Object | undefined = parsed['fields'];
+    if (!Array.isArray(fieldsValue)) {
+      issues.push('fields must be an array');
+    } else {
+      const fields: Object[] = fieldsValue as Object[];
+      if (fields.length === 0) {
+        issues.push('fields must not be empty');
+      }
+      for (const field of fields) {
+        const record: Record<string, Object> = field as Record<string, Object>;
+        if (typeof record['key'] !== 'string' || String(record['key']).trim().length === 0) {
+          issues.push('each field.key must be a non-empty string');
+          break;
+        }
+        if (typeof record['label'] !== 'string' || String(record['label']).trim().length === 0) {
+          issues.push('each field.label must be a non-empty string');
+          break;
+        }
+        if (typeof record['value'] !== 'string' || String(record['value']).trim().length === 0) {
+          issues.push('each field.value must be a non-empty string');
+          break;
+        }
+      }
+    }
+    return {
+      ok: issues.length === 0,
+      issues: issues,
+    };
+  }
+
+  private isScoreValue(value: Object | undefined): boolean {
+    if (typeof value !== 'number' && typeof value !== 'string') {
+      return false;
+    }
+    const score: number = Number(value);
+    return !Number.isNaN(score) && score >= 1 && score <= 5;
   }
   // === Build AI Prompt ===
 

@@ -1,6 +1,7 @@
 import { relationalStore } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
-import { ClassificationResult, ChatMessage, DatabaseHelper, LlmClient, LlmConfig } from 'common';
+import { ClassificationResult, ChatMessage, DatabaseHelper, LlmClient, LlmConfig, LlmGuard } from 'common';
+import type { LlmGuardValidationResult } from 'common';
 import { AgentMemoryDao } from '../database/AgentMemoryDao';
 import { ChatMessageDao } from '../database/ChatMessageDao';
 import {
@@ -152,11 +153,13 @@ export class AgentMemoryService {
     const currentProfile: LearnerProfile = AgentMemoryService.mergeLearnerProfile(globalProfile, sessionProfile);
     const recentMessages: ChatMessageRecord[] = await messageDao.queryRecent(sessionId, PROFILE_CONTEXT_RECENT_LIMIT);
     const llmMessages: ChatMessage[] = AgentMemoryService.buildLearnerProfileMessages(currentProfile, recentMessages);
-    const raw: string = await new LlmClient().call(llmMessages, {
+    const raw = await new LlmGuard().callJsonWithRetry(llmMessages, {
       maxTokens: 512,
       timeoutMs: 60000,
-    });
-    const updated: LearnerProfile | null = AgentMemoryService.parseLearnerProfileJson(raw, Date.now());
+      responseFormat: { type: 'json_object' },
+      label: 'learner profile update',
+    }, (json: Record<string, Object>): LlmGuardValidationResult => AgentMemoryService.validateLearnerProfileJson(json));
+    const updated: LearnerProfile | null = AgentMemoryService.parseLearnerProfileJson(raw.raw, Date.now());
     if (updated === null) {
       return;
     }
@@ -362,6 +365,32 @@ export class AgentMemoryService {
       return null;
     }
     return AgentMemoryService.parseLearnerProfileJson(record.content, record.updatedAt);
+  }
+
+  private static validateLearnerProfileJson(json: Record<string, Object>): LlmGuardValidationResult {
+    const issues: string[] = [];
+    if (AgentMemoryService.parseLearnerLevel(json['globalLevel']) === null) {
+      issues.push('globalLevel must be beginner, novice, or advanced');
+    }
+    if (AgentMemoryService.parseLearnerLevel(json['sessionLevel']) === null) {
+      issues.push('sessionLevel must be beginner, novice, or advanced');
+    }
+    const confidence: Object | undefined = json['confidence'];
+    if (typeof confidence !== 'number' && typeof confidence !== 'string') {
+      issues.push('confidence must be numeric from 0 to 1');
+    } else {
+      const value: number = Number(confidence);
+      if (Number.isNaN(value) || value < 0 || value > 1) {
+        issues.push('confidence must be numeric from 0 to 1');
+      }
+    }
+    if (typeof json['evidence'] !== 'string') {
+      issues.push('evidence must be a string');
+    }
+    return {
+      ok: issues.length === 0,
+      issues: issues,
+    };
   }
 
   private static parseLearnerProfileJson(raw: string, fallbackUpdatedAt: number): LearnerProfile | null {

@@ -2,7 +2,6 @@
   "src": [
     "pages/Index",
     "pages/AiSettings/AiSettingsPage",
-    "pages/StudyPlan/StudyPlanPage",
     "pages/Notes/SubjectDetailPage"
   ]
 }

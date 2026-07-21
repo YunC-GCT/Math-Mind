@@ -1,4 +1,5 @@
-import { KnowledgeUnit, ClassificationResult, LlmClient, LlmConfig, ChatMessage } from 'common';
+import { KnowledgeUnit, ClassificationResult, LlmClient, LlmConfig, ChatMessage, LlmGuard } from 'common';
+import type { LlmGuardValidationResult } from 'common';
 import { common } from '@kit.AbilityKit';
 import { AiService } from './AiService';
 import { AgentMemoryService } from './AgentMemoryService';
@@ -99,6 +100,9 @@ export class AgentChatService {
         conversation = this.cbs.getConversationText(true).trim();
       }
       if (conversation.length === 0) {
+        conversation = this.inlineNoteMaterial(userInstruction);
+      }
+      if (conversation.length === 0) {
         await this.addAiMessage(sessionId, '当前会话还没有可整理的内容');
         return;
       }
@@ -180,11 +184,13 @@ export class AgentChatService {
       const configured: boolean = await LlmConfig.getInstance().isConfigured();
       if (!configured) { return 'chat'; }
       const messages: ChatMessage[] = this.buildIntentMessages(normalized);
-      const raw: string = await new LlmClient().call(messages, {
+      const result = await new LlmGuard().callJsonWithRetry(messages, {
         maxTokens: 80,
         timeoutMs: 30000,
-      });
-      return this.parseTextIntent(raw);
+        responseFormat: { type: 'json_object' },
+        label: 'text intent classification',
+      }, (json: Record<string, Object>): LlmGuardValidationResult => this.validateTextIntentJson(json));
+      return this.parseTextIntent(result.raw);
     } catch (e) {
       console.warn('[AgentChatService] text intent classify failed: ' + AgentChatService.errorMessage(e));
       return 'chat';
@@ -218,6 +224,20 @@ export class AgentChatService {
       console.warn('[AgentChatService] parse intent json failed: ' + AgentChatService.errorMessage(e));
     }
     return 'chat';
+  }
+
+  private validateTextIntentJson(json: Record<string, Object>): LlmGuardValidationResult {
+    const issues: string[] = [];
+    const intent: Object | undefined = json['intent'];
+    if (typeof intent !== 'string') {
+      issues.push('intent must be a string');
+    } else if (intent !== 'note_generation' && intent !== 'chat') {
+      issues.push('intent must be note_generation or chat');
+    }
+    return {
+      ok: issues.length === 0,
+      issues: issues,
+    };
   }
 
   private extractJsonObject(raw: string): string {
@@ -335,6 +355,60 @@ export class AgentChatService {
     return this.hasActionNearTarget(text, createActions, noteTargets, 4)
       || this.hasActionNearTarget(text, transformActions, noteTargets, 6)
       || this.hasActionNearTarget(text, currentTargets, rememberActions, 8);
+  }
+
+  private inlineNoteMaterial(userInstruction: string): string {
+    let text: string = userInstruction.trim();
+    const separators: string[] = ['：', ':', '\n'];
+    for (const separator of separators) {
+      const idx: number = text.indexOf(separator);
+      if (idx >= 0 && idx + separator.length < text.length) {
+        const tail: string = text.substring(idx + separator.length).trim();
+        if (tail.length >= 8) {
+          return tail;
+        }
+      }
+    }
+
+    const removablePhrases: string[] = [
+      '请帮我',
+      '帮我',
+      '把这个',
+      '把这题',
+      '把这段',
+      '把上面',
+      '把刚才',
+      '生成笔记',
+      '创建笔记',
+      '新建笔记',
+      '整理成笔记',
+      '整理为笔记',
+      '保存为笔记',
+      '保存成笔记',
+      '总结成笔记',
+      '总结为笔记',
+      '归纳成笔记',
+      '归纳为笔记',
+      '做成笔记',
+      '转成笔记',
+      '转为笔记',
+      '收进笔记',
+      '加入笔记',
+      '存到笔记',
+      '存进笔记',
+      '留作笔记',
+      '记一下',
+      '记下来',
+      '记下',
+    ];
+    for (const phrase of removablePhrases) {
+      text = text.replace(phrase, ' ');
+    }
+    text = text.replace(/\s+/g, ' ').trim();
+    if (text.length >= 12) {
+      return text;
+    }
+    return '';
   }
 
   private formatAnalyzeReply(result: ClassificationResult): string {

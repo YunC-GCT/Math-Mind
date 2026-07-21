@@ -5,6 +5,10 @@
  * 此空文件确保测试构建系统不会因缺少测试入口而报错。
  */
 
+import llmGuardTest from './LlmGuard.test';
+import latexRiskNormalizerTest from './LatexRiskNormalizer.test';
+
 export default function testsuite(): void {
-  // no-op: common 模块的测试逻辑后续添加
+  llmGuardTest();
+  latexRiskNormalizerTest();
 }
