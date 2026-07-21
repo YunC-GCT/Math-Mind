@@ -35,7 +35,7 @@ export struct NotesPage {
     this.reloadNotes()
   }
 
-  private reloadNotes(): void {
+  private reloadNotes = (): void => {
     const version: number = AppStorage.get<number>("notesVersion") ?? 0
     if (this.loadedNotesVersion === version || this.loadingNotesVersion === version) {
       return
@@ -66,7 +66,7 @@ export struct NotesPage {
   }
 
   private showSearchTodo = (): void => {
-    try { promptAction.showToast({ message: "鎼滅储鍔熻兘寮€鍙戜腑", duration: 1500 }) } catch (_e) {}
+    try { promptAction.showToast({ message: "\u641c\u7d22\u529f\u80fd\u5f00\u53d1\u4e2d", duration: 1500 }) } catch (_e) {}
   }
 
   build() {

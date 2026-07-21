@@ -14,11 +14,10 @@ export struct AppIcon {
   @Prop color: ResourceColor = TEXT_3
   @Prop strokeWidth: number = 2
 
-  private glyph(): string {
+  private glyph = (): string => {
     if (this.name === "close") { return "x" }
     if (this.name === "check") { return "\u2713" }
     if (this.name === "plus") { return "+" }
-    if (this.name === "trash") { return "\u00d7" }
     if (this.name === "edit") { return "Edit" }
     if (this.name === "share") { return "\u2197" }
     if (this.name === "more") { return "..." }
@@ -53,6 +52,47 @@ export struct AppIcon {
         Image($r("app.media.ic_album")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
       } else if (this.name === "recycle") {
         Image($r("app.media.ic_recycle")).width(this.iconSize).height(this.iconSize).fillColor(this.color)
+      } else if (this.name === "trash") {
+        Stack() {
+          Row()
+            .width(this.iconSize * 0.68)
+            .height(this.strokeWidth)
+            .backgroundColor(this.color)
+            .borderRadius(this.strokeWidth / 2)
+            .translate({ y: -this.iconSize * 0.34 })
+          Row()
+            .width(this.iconSize * 0.28)
+            .height(this.strokeWidth)
+            .backgroundColor(this.color)
+            .borderRadius(this.strokeWidth / 2)
+            .translate({ y: -this.iconSize * 0.46 })
+          Row() {
+            Column()
+              .width(this.strokeWidth)
+              .height(this.iconSize * 0.52)
+              .backgroundColor(this.color)
+              .borderRadius(this.strokeWidth / 2)
+            Blank().width(this.iconSize * 0.18)
+            Column()
+              .width(this.strokeWidth)
+              .height(this.iconSize * 0.52)
+              .backgroundColor(this.color)
+              .borderRadius(this.strokeWidth / 2)
+          }
+          .width(this.iconSize * 0.5)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(VerticalAlign.Center)
+          .translate({ y: this.iconSize * 0.04 })
+          Row()
+            .width(this.iconSize * 0.58)
+            .height(this.strokeWidth)
+            .backgroundColor(this.color)
+            .borderRadius(this.strokeWidth / 2)
+            .translate({ y: this.iconSize * 0.32 })
+        }
+        .width(this.iconSize)
+        .height(this.iconSize)
+        .alignContent(Alignment.Center)
       } else if (this.name === "search") {
         Stack() {
           Circle({ width: this.iconSize * 0.62, height: this.iconSize * 0.62 })
