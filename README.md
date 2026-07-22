@@ -2,7 +2,49 @@
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z
-> 最近更新: 2026-07-22
+> 最近更新: 2026-07-22 · W3.5 渲染协议与缓存分层已落地
+
+---
+
+## 当前阶段总览 (2026-07-22)
+
+W3.5 完成 **MM-MD-v1 渲染协议 + 双层缓存 + 五类详情渲染** 整链,核心交付:
+
+**渲染协议层 (common):**
+- `LlmGuard` + `LlmOutputRules`:LLM 输出多通道守卫(类型/字段/风险/HTML 转义),失败时 `validate()` 返回结构化 `LlmGuardReport`
+- `LatexRiskNormalizer`:LaTeX 风险归一化,把裸 `\\frac` / 缺失定界符 / 误用 `*` 转义等编译失败模式换成安全等价形式
+- `ContentProtocol` + `ContentExcerptBuilder`:`MM-MD-v1` 协议归一化 AI/OCR/历史三源,统一 `summary`/`markdown`/`raw` 三段结构,摘要按公式边界安全截断(不切 `$...$` 内部)
+- `MathTextParser` 增强:行内 `$...$` / `$$...$$` / `\(...\)` / `\[...\]` 四种定界符混排
+
+**渲染组件层 (entry):**
+- `MathTextRenderer` 重构:先走原生 ArkUI,含公式才挂 WebView + KaTeX 0.16.9 auto-render;KaTeX 失败回退原文不空白
+- `MarkdownRenderer` 拆分 chat / detail 双模式,chat 不建 WebView,detail 走协议 + 5 类专属 renderer
+- `MathPreviewText` 短公式单行 KaTeX 编译,笔记卡片摘要/学科内笔记块共用
+- `AgentChatService.realReply()` 显示与入库走同一份协议归一化,即时消息与历史消息渲染一致
+
+**详情渲染层 (NoteDetail):**
+- `DetailRenderModel` + `DetailRenderCache` 分离元数据与节点树,LRU 限制 8 条 / 512KB
+- `DetailRenderQueue` 二阶段 `List + LazyForEach` 虚拟化:首次仅挂 3 节点,"继续阅读"每次追加 3 节点
+- 5 个专属 renderer:Computation / Concept / Fallback / Formula / Proof / Theorem,统一走 `DetailSection + DetailStepList + DetailMetaFooter`
+- `NoteEditForm` / `NoteSection` 旧组件清理,`NoteDetailBody` 缩 234 行
+
+**缓存与预加载:**
+- `UiDataCacheService` 主页 + 学科页 + 详情页三段式数据缓存,带 `UiCacheDebug` 调试面板
+- `MarkdownParseCache` block / inline 双层缓存,带总字符预算和超大条目绕过
+- 笔记列表查询改用元数据,不再批量读 `content` / `embedding` / 关系字段
+
+**清理:**
+- 删除 9 个 `*MVP.ets` + 旧 `AiTestPage`(`KnowledgeModelMVP` / `DispatcherMVP` / `DatabaseHelperMVP` / `NoteDaoMVP` / `AgentFloatWindowMVP` / `AiServiceMVP` / `IndexMVP` / `AiTestPage` / `AiTestPageMVP`),合并内容已合入正式版
+- `AgentFloatWindow` 状态气泡重做,失败/解析/兜底三态显式区分
+
+完整方案、缓存参数、KaTeX 资料、风险模式清单见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/render-protocol-optimization-route-20260722.md)。
+
+### 当前 W3.5 已验证
+
+- `ContentProtocol` / `LatexRiskNormalizer` / `ContentExcerptBuilder` / `LlmGuard` / `MarkdownRendererProtocol` 共 5 套单测全部通过
+- 真实数据库 AI 回放结果为 `renderMode=katex`,3 条历史笔记预览全部通过协议检查
+- `git diff --check` 无 whitespace error,ArkTS 1.1 禁用写法扫描无命中
+- 按项目约束不跑 `hvigorw`,DevEco Studio GUI Build / 真机滚动 / Profiler 内存峰值需手动确认
 
 ---
 
