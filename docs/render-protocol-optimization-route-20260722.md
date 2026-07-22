@@ -1889,3 +1889,138 @@ KnowledgeUnit.summary/content
 - 1 个超长正态分布密度公式被安全折叠，没有残缺 `\frac` 或未闭合 `$`。
 - 新摘要构造结果不含公式源码，长度从旧上限 500 降到约 220。
 - 新增测试覆盖长 inline、短 inline、短 display、长 display、纯文字摘要和幂等预览。
+
+---
+
+## 21. 长正文缓存、预加载与渐进渲染优化
+
+### 21.1 本轮确认的卡顿根因
+
+公式错误基本收敛后，详情页剩余卡顿来自数据和 UI 的全量工作，而不是 KaTeX 编译本身。
+
+| 层级 | 旧行为 | 结果 |
+|---|---|---|
+| RDB 列表查询 | `NoteDao.queryAll()` 使用 `['*']` | 进入首页/笔记页就读取所有 `content` 和 `embedding` |
+| UI 快照 | `setNotesSnapshot()` 把每条完整记录再次写入详情缓存 | 列表快照和详情缓存重复持有正文 |
+| 预加载 | 首页预取 3 篇、学科页预取 5 篇完整正文 | 用户没有点击也发生数据库读取、对象构造和缓存挤占 |
+| 详情模型 | 最多缓存 100 个模型且没有总字符预算 | `body`、section 内容和关联数组长期驻留 |
+| Markdown 缓存 | block/inline 各 96 条，仅按条数和 TTL 淘汰 | 少量超长正文即可占用大量内存 |
+| Markdown 渲染 | 每 48 ms 自动增加 3 个 block，直到全部挂载 | 只是延迟卡顿，没有减少总 ArkUI/WebView 数量 |
+| 步骤渲染 | 每 48 ms 自动增加 3 步，直到全部挂载 | 长证明、长计算过程仍会在进入后自动全量创建 |
+| 原文 | `原文` 被当成未消费 section 拼入“补充内容” | 结构化字段展示一次，OCR/原文再完整展示一次 |
+| 超长段落 | 一个没有空行的长段落对应一个 Markdown block | 含公式时可能创建一个高度很大的 ArkWeb 实例 |
+
+模拟器现有笔记中，`正态分布与泰勒公式核心笔记` 的正文约 4074 字，其中 `原文` 约 2278 字，明显大于定义、性质和示例之和。它是首屏最重且与结构化内容重复的部分。
+
+### 21.2 长文本产品的共同处理方式
+
+不同产品的 UI 技术栈不同，但长期稳定的实现通常遵循同一组边界:
+
+1. **列表只取元数据**：标题、摘要、时间和状态先到，正文按文档 ID 单独读取。
+2. **文档按页或按块渲染**：PDF.js 先加载文档，再异步取得和渲染单页；编辑器和消息流只保留视口附近节点。
+3. **缓存有内存预算**：不仅限制条目数，还限制总字符数/估算字节数；超大单条通常不进入通用 LRU。
+4. **原始材料按需打开**：摘要和结构化正文承担日常阅读，来源、附件、OCR 原文默认折叠。
+5. **长段落先语义切块**：优先在段落、句号或空白边界切分，公式、代码围栏和 Markdown 标记必须保持完整。
+6. **预加载只覆盖高概率邻近内容**：移动端内存紧张时，宁可预取元数据，也不批量创建正文对象和 WebView。
+
+相关官方资料:
+
+- MDN `content-visibility`: <https://developer.mozilla.org/en-US/docs/Web/CSS/content-visibility>
+- PDF.js examples（逐页获取并渲染）: <https://mozilla.github.io/pdf.js/examples/>
+- HarmonyOS `LazyForEach`: <https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-rendering-control-lazyforeach>
+- HarmonyOS `List` 的 `cachedCount` 应用于视口邻近项缓存；MathMind API 9 目标下不使用 API 10 的 `onVisibleAreaChange` 或 API 11 的 `onReachEnd`。
+
+### 21.3 本轮已落地方案
+
+#### 数据读取
+
+```text
+Home / Notes / Subject list
+  -> NoteDao.queryAllMetadata()
+       -> 不查询 content
+       -> 不查询 embedding
+       -> 不查询列表不需要的 prerequisites / related
+  -> NotesSnapshot
+
+点击单条笔记
+  -> UiDataCacheService.loadDetail(id)
+  -> NoteDao.queryById(id)
+  -> 完整 KnowledgeUnit
+```
+
+- `setNotesSnapshot()` 不再把所有列表项写入详情缓存。
+- 首页仍可预加载轻量 Notes 快照和 StudyPlan；不再预加载 3 篇正文。
+- 学科详情页不再预加载前 5 篇正文。
+- 详情记录缓存调整为最多 8 条、总文本约 512 KB。
+
+#### 渲染与解析缓存
+
+- `DetailRenderCache`: 最多 8 条、总文本约 512 KB；单模型超过 128 KB 时直接绕过缓存。
+- Markdown block cache: 最多 48 条、总文本约 256 KB；单条超过 32 KB 时绕过缓存。
+- Markdown inline cache: 最多 48 条、总文本约 128 KB；单条超过 8 KB 时绕过缓存。
+- Markdown 缓存 TTL 从 10 分钟收紧到 5 分钟。
+
+字符预算是低成本估算，不等同于精确堆内存；它的作用是建立稳定上限，防止“条数不多但每条极大”的失控情况。
+
+#### 正文挂载
+
+- `原文/OCR 原文` 不再进入模板 renderer 的“补充内容”。
+- Fallback renderer 也跳过原文 section；底部只显示“原始材料”折叠入口。
+- 折叠状态下不会创建对应 `MarkdownRenderer` 和 `MathTextRenderer`。
+- Markdown 首次只挂载 3 个 block；不再用定时器自动挂载全部，点击“继续阅读”后每次增加 3 个。
+- 证明/计算步骤首次只挂载 3 项；点击“继续阅读”后每次增加 3 项。
+- 超过约 700 字的 paragraph/quote 在公式外的句号、空白或换行处切块；`$...$`、`$$...$$`、`\(...\)`、`\[...\]` 内部禁止切分。
+
+### 21.4 当前渲染顺序
+
+```text
+1. RDB 元数据快照
+2. ArkUI 列表卡片
+3. 用户点击笔记
+4. RDB 按 ID 读取完整正文
+5. ContentProtocol 归一化
+6. MarkdownParser 拆结构块并执行公式安全长段切分
+7. ArkUI 挂载首批 3 个 Markdown block
+8. 普通块走原生 Text/Span，公式块才创建 MathTextRenderer + ArkWeb + KaTeX
+9. 用户继续阅读时追加下一批
+10. 用户展开“原始材料”后才解析并挂载原文
+```
+
+KaTeX 仍然不是第一层。正确顺序是 Markdown 先确定结构，ArkUI 再决定需要挂载哪些块，只有已经进入可见批次的公式块才交给 KaTeX。
+
+### 21.5 二阶段虚拟化路线
+
+当前方案已经避免自动全量挂载，但已经显示的 ArkUI 节点仍会保留在外层 `Scroll -> Column` 中。笔记达到数万字或几十个公式块后，应升级为真正的窗口化阅读器:
+
+1. `DetailRenderModel` 输出扁平 `DetailBlock[]`，每块包含稳定 ID、类型、正文、是否含公式和 section 信息。
+2. `NoteDetailOverlay` 改用 `List + LazyForEach`，每个 `DetailBlock` 对应一个 `ListItem`。
+3. `List.cachedCount(2)` 只保留视口前后少量 block；不要把整个类别 renderer 放进单个 `ListItem`。
+4. 公式 block 自己管理 ArkWeb 生命周期，离开缓存窗口后允许销毁，重新进入时从受限 HTML cache 恢复。
+5. 只有单篇正文达到约 64 KB 以上并且数据库读取也成为瓶颈时，再考虑新增 `knowledge_content_chunk` 表；当前 1.6 KB 到 4 KB 的样本不需要先做数据库分表。
+6. 为避免 API 版本回退，API 9 只使用 `LazyForEach`、`cachedCount` 和已支持的滚动事件，不依赖 API 10/11 的可见区域或触底接口。
+
+### 21.6 验收指标与手动验证
+
+目标指标:
+
+| 指标 | 目标 |
+|---|---|
+| 列表查询 payload | 不包含 `content` / `embedding` |
+| 未点击笔记时完整详情查询 | 0 条 |
+| 详情 LRU | 不超过 8 条和约 512 KB 文本 |
+| 进入详情首批 Markdown block | 最多 3 个/section |
+| 原始材料默认状态 | 折叠，ArkWeb 数量为 0 |
+| 长公式切块 | 任一块内公式定界符成对，不出现半个公式 |
+| 交互 | 展开原文、继续阅读、返回再打开均不空白、不重复正文 |
+
+DevEco Studio 验证步骤:
+
+1. 清日志后冷启动，进入首页和 Notes 页，确认没有批量 `detail preload` 日志。
+2. 打开 4074 字的真实笔记，确认先显示结构化字段，原始材料保持折叠。
+3. 连续点击“继续阅读”，确认每次增加一批且滚动位置不跳回顶部。
+4. 展开原始材料，检查其中行内公式、展示公式和 Markdown 均正常；收起后再次滚动应明显轻于旧版。
+5. 连续打开 10 篇笔记，观察 `[UiDataCache] evict detail` 和 `detailRender` 日志，确认 LRU 生效。
+6. 编辑并保存笔记，关闭后重新打开，确认读取的是完整正文，不会用元数据对象的空 `content` 覆盖数据库。
+7. 用 Profiler 对比详情打开前后主线程长任务、ArkWeb 数量和内存峰值。
+
+本轮已新增长段公式安全切块测试。按工程约束未运行 `hvigorw`；最终 Build Hap 和真机性能数据仍以 DevEco Studio GUI 为准。

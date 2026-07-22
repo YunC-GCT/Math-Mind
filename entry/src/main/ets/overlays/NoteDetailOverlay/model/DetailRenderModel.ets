@@ -119,14 +119,29 @@ export function unmatchedSectionText(model: DetailRenderModel, consumedKeys: str
   const normalizedKeys: string[] = normalizeSectionKeys(consumedKeys)
   const parts: string[] = []
   for (const section of model.sections) {
-    if (normalizedKeys.indexOf(section.normalizedTitle) < 0 && section.content.trim().length > 0) {
+    if (section.normalizedTitle !== 'original'
+      && normalizedKeys.indexOf(section.normalizedTitle) < 0
+      && section.content.trim().length > 0) {
       appendUniqueText(parts, '## ' + section.title + '\n' + section.content.trim())
     }
   }
   return parts.join('\n\n')
 }
 
+export function originalSectionText(model: DetailRenderModel): string {
+  const parts: string[] = []
+  for (const section of model.sections) {
+    if (section.normalizedTitle === 'original' && section.content.trim().length > 0) {
+      appendUniqueText(parts, section.content.trim())
+    }
+  }
+  return parts.join('\n\n')
+}
+
 export function fallbackMainText(model: DetailRenderModel): string {
+  if (originalSectionText(model).length > 0 && model.summary.length > 0) {
+    return model.summary
+  }
   if (model.body.length > 0) {
     return model.body
   }
@@ -139,6 +154,7 @@ export function hasDetailMeta(model: DetailRenderModel): boolean {
     || model.related.length > 0
     || model.sourceLabel.length > 0
     || model.reviewLine.length > 0
+    || originalSectionText(model).length > 0
 }
 
 export function splitReadableLines(content: string): string[] {
@@ -264,7 +280,7 @@ function normalizeSectionTitle(title: string): string {
   if (text === '步骤' || text === '解题步骤') { return 'steps' }
   if (text === '答案' || text === '结果') { return 'answer' }
   if (text === '方法总结') { return 'methodsummary' }
-  if (text === '原文' || text === 'ocr原文') { return 'original' }
+  if (text === '原文' || text === 'ocr原文' || text === '原始材料' || text === 'ocr原始材料') { return 'original' }
   if (text.length === 0) { return 'content' }
   return text
 }
@@ -296,7 +312,9 @@ function normalizeKnownSectionTitle(text: string): string {
   if (containsAnyTitle(value, ['steps', '\u6b65\u9aa4', '\u89e3\u9898\u6b65\u9aa4'])) { return 'steps' }
   if (containsAnyTitle(value, ['answer', '\u7b54\u6848', '\u7ed3\u679c'])) { return 'answer' }
   if (containsAnyTitle(value, ['methodsummary', '\u65b9\u6cd5\u603b\u7ed3'])) { return 'methodsummary' }
-  if (containsAnyTitle(value, ['original', 'ocr\u539f\u6587', '\u539f\u6587'])) { return 'original' }
+  if (containsAnyTitle(value, [
+    'original', 'ocr\u539f\u6587', '\u539f\u6587', 'ocr\u539f\u59cb\u6750\u6599', '\u539f\u59cb\u6750\u6599',
+  ])) { return 'original' }
   if (containsAnyTitle(value, ['content', '\u5185\u5bb9'])) { return 'content' }
   return ''
 }

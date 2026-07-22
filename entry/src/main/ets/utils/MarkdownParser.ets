@@ -4,6 +4,8 @@
 
 import { ContentProtocol } from 'common'
 
+const MARKDOWN_TEXT_BLOCK_LIMIT: number = 700
+
 export interface MarkdownBlock {
   kind: string
   text: string
@@ -24,12 +26,87 @@ function emptyBlock(kind: string): MarkdownBlock {
   }
 }
 
+function isEscaped(text: string, index: number): boolean {
+  let slashCount: number = 0
+  let cursor: number = index - 1
+  while (cursor >= 0 && text.charAt(cursor) === '\\') {
+    slashCount += 1
+    cursor -= 1
+  }
+  return slashCount % 2 === 1
+}
+
+function isReadableBreak(ch: string): boolean {
+  return ch === '\n' || ch === ' ' || ch === '\t'
+    || ch === '。' || ch === '！' || ch === '？' || ch === '；'
+    || ch === '.' || ch === '!' || ch === '?' || ch === ';'
+}
+
+function splitLongReadableText(text: string): string[] {
+  if (text.length <= MARKDOWN_TEXT_BLOCK_LIMIT) {
+    return [text]
+  }
+  const chunks: string[] = []
+  let start: number = 0
+  let index: number = 0
+  let safeBreak: number = -1
+  let inDollarFormula: boolean = false
+  let inParenFormula: boolean = false
+  let inBracketFormula: boolean = false
+  while (index < text.length) {
+    const ch: string = text.charAt(index)
+    const next: string = index + 1 < text.length ? text.charAt(index + 1) : ''
+    if (ch === '$' && next === '$' && !isEscaped(text, index)) {
+      inDollarFormula = !inDollarFormula
+      index += 1
+    } else if (ch === '$' && !isEscaped(text, index)) {
+      inDollarFormula = !inDollarFormula
+    } else if (ch === '\\' && next === '(' && !isEscaped(text, index)) {
+      inParenFormula = true
+      index += 1
+    } else if (ch === '\\' && next === ')' && !isEscaped(text, index)) {
+      inParenFormula = false
+      index += 1
+    } else if (ch === '\\' && next === '[' && !isEscaped(text, index)) {
+      inBracketFormula = true
+      index += 1
+    } else if (ch === '\\' && next === ']' && !isEscaped(text, index)) {
+      inBracketFormula = false
+      index += 1
+    }
+    const outsideFormula: boolean = !inDollarFormula && !inParenFormula && !inBracketFormula
+    if (outsideFormula && isReadableBreak(ch)) {
+      safeBreak = index + 1
+    }
+    if (outsideFormula && index - start + 1 >= MARKDOWN_TEXT_BLOCK_LIMIT && safeBreak > start) {
+      const chunk: string = text.substring(start, safeBreak).trim()
+      if (chunk.length > 0) {
+        chunks.push(chunk)
+      }
+      start = safeBreak
+      safeBreak = -1
+    }
+    index += 1
+  }
+  const tail: string = text.substring(start).trim()
+  if (tail.length > 0) {
+    chunks.push(tail)
+  }
+  return chunks.length > 0 ? chunks : [text]
+}
+
+function pushTextBlocks(blocks: MarkdownBlock[], kind: string, text: string): void {
+  for (const chunk of splitLongReadableText(text)) {
+    const block: MarkdownBlock = emptyBlock(kind)
+    block.text = chunk
+    blocks.push(block)
+  }
+}
+
 function pushParagraph(blocks: MarkdownBlock[], lines: string[]): void {
   const text: string = lines.join('\n').trim()
   if (text.length > 0) {
-    const block: MarkdownBlock = emptyBlock('paragraph')
-    block.text = text
-    blocks.push(block)
+    pushTextBlocks(blocks, 'paragraph', text)
   }
   lines.splice(0, lines.length)
 }
@@ -37,9 +114,7 @@ function pushParagraph(blocks: MarkdownBlock[], lines: string[]): void {
 function pushQuote(blocks: MarkdownBlock[], lines: string[]): void {
   const text: string = lines.join('\n').trim()
   if (text.length > 0) {
-    const block: MarkdownBlock = emptyBlock('quote')
-    block.text = text
-    blocks.push(block)
+    pushTextBlocks(blocks, 'quote', text)
   }
   lines.splice(0, lines.length)
 }

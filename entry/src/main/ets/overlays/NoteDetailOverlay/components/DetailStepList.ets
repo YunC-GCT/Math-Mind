@@ -21,24 +21,19 @@ import {
   W_BOLD,
 } from 'common'
 import { MarkdownRenderer } from '../../../shared/components/MarkdownRenderer'
+import { AppIcon } from '../../../shared/components/AppIcon'
 
 const DETAIL_STEP_INITIAL_COUNT: number = 3
 const DETAIL_STEP_BATCH_SIZE: number = 3
-const DETAIL_STEP_BATCH_RENDER_DELAY_MS: number = 48
 
 @Component
 export struct DetailStepList {
   @Prop @Watch('onItemsChanged') items: string[] = []
   @Prop accentColor: ResourceColor = MINT
   @State visibleItemCount: number = DETAIL_STEP_INITIAL_COUNT
-  private renderSeq: number = 0
 
   aboutToAppear(): void {
     this.resetVisibleItems()
-  }
-
-  aboutToDisappear(): void {
-    this.renderSeq += 1
   }
 
   onItemsChanged(): void {
@@ -75,7 +70,20 @@ export struct DetailStepList {
       )
 
       if (this.items.length > this.visibleItemCount) {
-        Blank().height(S_2)
+        Row() {
+          Text('继续阅读')
+            .fontSize(F_SM)
+            .fontWeight(W_BOLD)
+            .fontColor(this.accentColor)
+
+          Blank().width(S_2)
+          AppIcon({ name: 'chevron-down', iconSize: F_SM, color: this.accentColor, strokeWidth: 1.8 })
+        }
+        .width('100%')
+        .height(40)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick((): void => this.showNextItemBatch())
       }
     }
     .width('100%')
@@ -83,27 +91,15 @@ export struct DetailStepList {
   }
 
   private resetVisibleItems = (): void => {
-    this.renderSeq += 1
-    const seq: number = this.renderSeq
     if (this.items.length <= DETAIL_STEP_INITIAL_COUNT) {
       this.visibleItemCount = this.items.length
       return
     }
     this.visibleItemCount = DETAIL_STEP_INITIAL_COUNT
-    this.scheduleNextItemBatch(seq)
   }
 
-  private scheduleNextItemBatch = (seq: number): void => {
-    setTimeout((): void => {
-      if (seq !== this.renderSeq) {
-        return
-      }
-      const nextCount: number = Math.min(this.items.length, this.visibleItemCount + DETAIL_STEP_BATCH_SIZE)
-      this.visibleItemCount = nextCount
-      if (nextCount < this.items.length) {
-        this.scheduleNextItemBatch(seq)
-      }
-    }, DETAIL_STEP_BATCH_RENDER_DELAY_MS)
+  private showNextItemBatch = (): void => {
+    this.visibleItemCount = Math.min(this.items.length, this.visibleItemCount + DETAIL_STEP_BATCH_SIZE)
   }
 
   private visibleItems = (): string[] => {

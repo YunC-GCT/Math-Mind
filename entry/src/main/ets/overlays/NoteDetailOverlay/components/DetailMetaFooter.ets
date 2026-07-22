@@ -20,14 +20,23 @@ import {
   W_BOLD,
 } from 'common'
 import { ChipTag } from '../ChipTag'
-import { DetailRenderModel, emptyDetailRenderModel, hasDetailMeta } from '../model/DetailRenderModel'
+import {
+  DetailRenderModel,
+  emptyDetailRenderModel,
+  hasDetailMeta,
+  originalSectionText,
+} from '../model/DetailRenderModel'
 import { detailLinesSignature, detailTextSignature } from './DetailSection'
 import { DETAIL_RENDER_PRIORITY_META, enqueueDetailRender } from './DetailRenderQueue'
+import { MarkdownRenderer } from '../../../shared/components/MarkdownRenderer'
+import { AppIcon } from '../../../shared/components/AppIcon'
 
 @Component
 export struct DetailMetaFooter {
   @Prop @Watch('onModelChanged') model: DetailRenderModel = emptyDetailRenderModel()
   @State contentReady: boolean = false
+  @State originalExpanded: boolean = false
+  @State originalText: string = ''
   private contentRenderKey: string = ''
   private renderSeq: number = 0
 
@@ -44,7 +53,7 @@ export struct DetailMetaFooter {
   }
 
   build() {
-    if (hasDetailMeta(this.model) && this.contentReady) {
+    if (this.contentReady) {
       Column() {
         if (this.model.tags.length > 0) {
           this.ChipGroup('标签', this.model.tags, 'tag_')
@@ -64,6 +73,10 @@ export struct DetailMetaFooter {
 
         if (this.model.reviewLine.length > 0) {
           this.MetaLine('复习', this.model.reviewLine)
+        }
+
+        if (this.originalText.length > 0) {
+          this.OriginalMaterial(this.originalText)
         }
       }
       .width('100%')
@@ -127,12 +140,48 @@ export struct DetailMetaFooter {
     .margin({ bottom: S_2 })
   }
 
+  @Builder
+  OriginalMaterial(content: string) {
+    Column() {
+      Row() {
+        Text('原始材料')
+          .fontSize(F_SM)
+          .fontWeight(W_BOLD)
+          .fontColor(TEXT_2)
+          .layoutWeight(1)
+
+        AppIcon({
+          name: this.originalExpanded ? 'chevron-up' : 'chevron-down',
+          iconSize: F_SM,
+          color: TEXT_3,
+          strokeWidth: 1.8,
+        })
+      }
+      .width('100%')
+      .height(44)
+      .alignItems(VerticalAlign.Center)
+      .onClick((): void => {
+        this.originalExpanded = !this.originalExpanded
+      })
+
+      if (this.originalExpanded) {
+        MarkdownRenderer({ text: content, progressive: true })
+      }
+    }
+    .width('100%')
+    .border({ width: { top: 0.5 }, color: BORDER })
+    .alignItems(HorizontalAlign.Start)
+  }
+
   private resetContentRender = (): void => {
-    const key: string = this.modelSignature()
+    const originalText: string = originalSectionText(this.model)
+    const key: string = this.modelSignature(originalText)
     if (key === this.contentRenderKey) {
       return
     }
     this.contentRenderKey = key
+    this.originalExpanded = false
+    this.originalText = originalText
     this.renderSeq += 1
     const seq: number = this.renderSeq
     if (!hasDetailMeta(this.model)) {
@@ -148,11 +197,12 @@ export struct DetailMetaFooter {
     })
   }
 
-  private modelSignature = (): string => {
+  private modelSignature = (originalText: string): string => {
     return detailLinesSignature(this.model.tags)
       + '|' + detailLinesSignature(this.model.prerequisites)
       + '|' + detailLinesSignature(this.model.related)
       + '|' + detailTextSignature(this.model.sourceLabel)
       + '|' + detailTextSignature(this.model.reviewLine)
+      + '|' + detailTextSignature(originalText)
   }
 }

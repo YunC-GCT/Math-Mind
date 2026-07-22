@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  pages/Notes/SubjectDetailPage.ets - subject-level notes page
 // ============================================================================
 
@@ -11,7 +11,6 @@ import { TypeTabRow } from "./TypeTabRow"
 import { SubjectNoteList } from "./SubjectNoteList"
 import { SubjectTypeEmpty } from "./SubjectTypeEmpty"
 import { unitToNoteItem } from "../../utils/NoteItemMapper"
-import { PreloadQueue } from "../../services/UiDataCacheService"
 import { invalidateDetailRender } from "../../overlays/NoteDetailOverlay/model/DetailRenderCache"
 
 @Entry
@@ -63,7 +62,6 @@ struct SubjectDetailPage {
       }
       this.ensureSubject()
       this.loadedReloadKey = version.toString() + "|" + this.subject
-      PreloadQueue.preloadSubjectDetails(getContext(this), this.subjectNotes())
     }).finally((): void => {
       if (this.loadingReloadKey === reloadKey) {
         this.loadingReloadKey = ""

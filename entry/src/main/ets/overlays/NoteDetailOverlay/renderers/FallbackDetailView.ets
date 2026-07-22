@@ -66,10 +66,10 @@ export struct FallbackDetailView {
 
   build() {
     Column() {
-      if (this.model.sections.length > 0) {
+      if (this.hasReadableSections()) {
         ForEach(this.model.sections,
           (section: DetailSectionData, index: number): void => {
-            if (this.shouldShowSection(index)) {
+            if (section.normalizedTitle !== 'original' && this.shouldShowSection(index)) {
               this.SourceSection(section.title, section.content, index)
             }
           },
@@ -142,6 +142,15 @@ export struct FallbackDetailView {
       return this.visibleStage >= 2
     }
     return this.visibleStage >= 3
+  }
+
+  private hasReadableSections = (): boolean => {
+    for (const section of this.model.sections) {
+      if (section.normalizedTitle !== 'original' && section.content.trim().length > 0) {
+        return true
+      }
+    }
+    return false
   }
 
   private resetFallbackFlow = (): void => {

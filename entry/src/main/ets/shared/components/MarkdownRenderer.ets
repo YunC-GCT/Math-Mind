@@ -20,10 +20,10 @@ import { MarkdownBlock } from '../../utils/MarkdownParser'
 import { MarkdownInlineSegment } from '../../utils/MarkdownInlineParser'
 import { cachedParseMarkdown, cachedParseMarkdownInline } from '../../utils/MarkdownParseCache'
 import { MathTextRenderer } from './MathTextRenderer'
+import { AppIcon } from './AppIcon'
 
 const MARKDOWN_INITIAL_BLOCK_LIMIT: number = 3
 const MARKDOWN_BLOCK_BATCH_SIZE: number = 3
-const MARKDOWN_BATCH_RENDER_DELAY_MS: number = 48
 const MARKDOWN_PARSE_DEFER_MS: number = 16
 const MARKDOWN_IMMEDIATE_PARSE_LIMIT: number = 280
 const MARKDOWN_PREVIEW_LIMIT: number = 420
@@ -80,7 +80,7 @@ export struct MarkdownRenderer {
       }
 
       if (this.hasDeferredBlocks()) {
-        Blank().height(S_2)
+        this.ContinueReading()
       }
     }
     .width('100%')
@@ -265,6 +265,24 @@ export struct MarkdownRenderer {
     return F_SM
   }
 
+  @Builder
+  ContinueReading() {
+    Row() {
+      Text('继续阅读')
+        .fontSize(F_SM)
+        .fontWeight(W_SEMIBOLD)
+        .fontColor(MINT)
+
+      Blank().width(S_1)
+      AppIcon({ name: 'chevron-down', iconSize: F_SM, color: MINT, strokeWidth: 1.8 })
+    }
+    .width('100%')
+    .height(40)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+    .onClick((): void => this.showNextBlockBatch())
+  }
+
   private headingLineHeight = (level: number): number => {
     if (this.profile === 'chat') {
       if (level === 1) { return 24 }
@@ -349,21 +367,16 @@ export struct MarkdownRenderer {
       return
     }
     this.visibleBlockCount = MARKDOWN_INITIAL_BLOCK_LIMIT
-    this.scheduleNextBlockBatch(seq)
   }
 
-  private scheduleNextBlockBatch = (seq: number): void => {
-    setTimeout((): void => {
-      if (seq !== this.renderSeq || !this.parseReady) {
-        return
-      }
-      const total: number = this.parsedBlocks.length
-      const nextCount: number = Math.min(total, this.visibleBlockCount + MARKDOWN_BLOCK_BATCH_SIZE)
-      this.visibleBlockCount = nextCount
-      if (nextCount < total) {
-        this.scheduleNextBlockBatch(seq)
-      }
-    }, MARKDOWN_BATCH_RENDER_DELAY_MS)
+  private showNextBlockBatch = (): void => {
+    if (!this.parseReady) {
+      return
+    }
+    this.visibleBlockCount = Math.min(
+      this.parsedBlocks.length,
+      this.visibleBlockCount + MARKDOWN_BLOCK_BATCH_SIZE,
+    )
   }
 
   private visibleBlocks = (): MarkdownBlock[] => {

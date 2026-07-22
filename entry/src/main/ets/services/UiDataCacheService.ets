@@ -107,8 +107,8 @@ class DetailLoadingEntry {
   }
 }
 
-const UI_DETAIL_LIMIT: number = 100
-const UI_DETAIL_TEXT_LIMIT: number = 2 * 1024 * 1024
+const UI_DETAIL_LIMIT: number = 8
+const UI_DETAIL_TEXT_LIMIT: number = 512 * 1024
 const UI_PRELOAD_DELAY_MS: number = 360
 
 export class UiDataCacheService {
@@ -143,9 +143,6 @@ export class UiDataCacheService {
   static setNotesSnapshot(version: number, units: KnowledgeUnit[]): NotesSnapshot {
     const snapshot: NotesSnapshot = new NotesSnapshot(version, units.slice(0), unitsToNoteItems(units))
     UiDataCacheService.notesSnapshot = snapshot
-    for (const unit of units) {
-      UiDataCacheService.setDetail(unit, version)
-    }
     uiCacheLog("[UiDataCache] notes store version=" + version.toString() + " count=" + units.length.toString())
     return snapshot
   }
@@ -289,7 +286,7 @@ export class UiDataCacheService {
 
   private static async queryNotesSnapshot(context: Context, version: number): Promise<NotesSnapshot> {
     const store = await DatabaseHelper.init(context)
-    const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
+    const units: KnowledgeUnit[] = await new NoteDao(store).queryAllMetadata()
     return UiDataCacheService.setNotesSnapshot(version, units)
   }
 
@@ -366,6 +363,7 @@ export class UiDataCacheService {
       + unit.tags.join("").length
       + unit.prerequisites.join("").length
       + unit.related.join("").length
+      + unit.embedding.length * 8
   }
 
   private static detailKey(unit: KnowledgeUnit, version: number): string {
@@ -501,37 +499,13 @@ class PreloadQueueService {
 const UI_PRELOAD_QUEUE: PreloadQueueService = new PreloadQueueService()
 
 export class PreloadQueue {
-  static preloadHome(context: Context, recentNotes: NoteItem[]): void {
+  static preloadHome(context: Context): void {
     const version: number = UiDataCacheService.currentNotesVersion()
     UI_PRELOAD_QUEUE.enqueue("notes|" + version.toString(), async (): Promise<void> => {
       await UiDataCacheService.loadNotesSnapshot(context, version)
     })
     UI_PRELOAD_QUEUE.enqueue("studyPlan", async (): Promise<void> => {
       await UiDataCacheService.loadStudyPlanSnapshot(context)
-    })
-    let index: number = 0
-    while (index < recentNotes.length && index < 3) {
-      const note: NoteItem = recentNotes[index]
-      PreloadQueue.preloadDetail(context, note.rawId, version)
-      index += 1
-    }
-  }
-
-  static preloadSubjectDetails(context: Context, notes: NoteItem[]): void {
-    const version: number = UiDataCacheService.currentNotesVersion()
-    let index: number = 0
-    while (index < notes.length && index < 5) {
-      PreloadQueue.preloadDetail(context, notes[index].rawId, version)
-      index += 1
-    }
-  }
-
-  static preloadDetail(context: Context, id: string, version: number): void {
-    if (id.length === 0) {
-      return
-    }
-    UI_PRELOAD_QUEUE.enqueue("detail|" + id + "|" + version.toString(), async (): Promise<void> => {
-      await UiDataCacheService.loadDetail(context, id, version)
     })
   }
 }

@@ -28,7 +28,7 @@ export class HomeViewModel {
       this.units = snapshot.units
       this.notes = snapshot.notes
       this.refreshStats()
-      PreloadQueue.preloadHome(context, this.notes)
+      PreloadQueue.preloadHome(context)
       return true
     } catch (e) {
       console.warn("[HomeViewModel] loadNotes failed: " + ((e as Error).message ?? String(e)))

@@ -12,6 +12,12 @@
 import { relationalStore } from '@kit.ArkData';
 import { KnowledgeUnit, DifficultyLevel, ReviewStatus } from 'common';
 
+const NOTE_METADATA_COLUMNS: string[] = [
+  'id', 'title', 'summary', 'tags', 'subject', 'category', 'difficulty', 'source',
+  'created_at', 'updated_at', 'review_status', 'next_review_at', 'interval_days',
+  'ease_factor', 'repetitions', 'user_id', 'version',
+];
+
 export class NoteDao {
   private store: relationalStore.RdbStore;
 
@@ -113,6 +119,29 @@ export class NoteDao {
     });
   }
 
+  // List and grouping pages only need metadata. Full content is loaded by id when a detail opens.
+  async queryAllMetadata(): Promise<KnowledgeUnit[]> {
+    const predicates = new relationalStore.RdbPredicates('knowledge_unit');
+    predicates.orderByDesc('created_at');
+
+    return new Promise<KnowledgeUnit[]>((resolve, reject) => {
+      this.store.query(predicates, NOTE_METADATA_COLUMNS, (_err, resultSet) => {
+        if (_err) {
+          reject(new Error('NoteDao.queryAllMetadata failed: ' + _err.message));
+          return;
+        }
+        const units: KnowledgeUnit[] = [];
+        if (resultSet.goToFirstRow()) {
+          do {
+            units.push(NoteDao.rowToMetadataUnit(resultSet));
+          } while (resultSet.goToNextRow());
+        }
+        resultSet.close();
+        resolve(units);
+      });
+    });
+  }
+
   // 按复习状态查询
   async queryByReviewStatus(status: ReviewStatus): Promise<KnowledgeUnit[]> {
     const predicates = new relationalStore.RdbPredicates('knowledge_unit');
@@ -159,6 +188,32 @@ export class NoteDao {
       prerequisites: NoteDao.parseArray(NoteDao.readString(rs, 'prerequisites', '[]')),
       related: NoteDao.parseArray(NoteDao.readString(rs, 'related', '[]')),
       embedding: NoteDao.parseNumberArray(NoteDao.readString(rs, 'embedding', '[]')),
+      userId: NoteDao.readString(rs, 'user_id', ''),
+      version: NoteDao.readLong(rs, 'version', 1),
+    };
+  }
+
+  private static rowToMetadataUnit(rs: relationalStore.ResultSet): KnowledgeUnit {
+    return {
+      id: NoteDao.readString(rs, 'id', ''),
+      title: NoteDao.readString(rs, 'title', ''),
+      content: '',
+      summary: NoteDao.readString(rs, 'summary', ''),
+      tags: NoteDao.parseArray(NoteDao.readString(rs, 'tags', '[]')),
+      subject: NoteDao.readString(rs, 'subject', ''),
+      category: NoteDao.readString(rs, 'category', ''),
+      difficulty: NoteDao.parseDifficulty(NoteDao.readLong(rs, 'difficulty', DifficultyLevel.EASY)),
+      source: NoteDao.readString(rs, 'source', ''),
+      createdAt: NoteDao.readLong(rs, 'created_at', 0),
+      updatedAt: NoteDao.readLong(rs, 'updated_at', 0),
+      reviewStatus: NoteDao.parseReviewStatus(NoteDao.readString(rs, 'review_status', ReviewStatus.NEW)),
+      nextReviewAt: NoteDao.readLong(rs, 'next_review_at', 0),
+      intervalDays: NoteDao.readLong(rs, 'interval_days', 0),
+      easeFactor: NoteDao.readDouble(rs, 'ease_factor', 2.5),
+      repetitions: NoteDao.readLong(rs, 'repetitions', 0),
+      prerequisites: [],
+      related: [],
+      embedding: [],
       userId: NoteDao.readString(rs, 'user_id', ''),
       version: NoteDao.readLong(rs, 'version', 1),
     };

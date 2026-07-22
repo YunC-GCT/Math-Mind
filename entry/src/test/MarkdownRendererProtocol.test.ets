@@ -18,6 +18,28 @@ import type { MarkdownBlock } from '../main/ets/utils/MarkdownParser';
 import { parseMarkdownInline } from '../main/ets/utils/MarkdownInlineParser';
 import type { MarkdownInlineSegment } from '../main/ets/utils/MarkdownInlineParser';
 
+function repeatText(value: string, count: number): string {
+  let result: string = '';
+  let index: number = 0;
+  while (index < count) {
+    result += value;
+    index += 1;
+  }
+  return result;
+}
+
+function dollarCount(value: string): number {
+  let count: number = 0;
+  let index: number = 0;
+  while (index < value.length) {
+    if (value.charAt(index) === '$') {
+      count += 1;
+    }
+    index += 1;
+  }
+  return count;
+}
+
 export default function markdownRendererProtocolTest(): void {
   describe('MarkdownRenderer.chat_protocol', () => {
     it('parses_heading_emphasis_code_and_flat_lists', 0, () => {
@@ -42,6 +64,23 @@ export default function markdownRendererProtocolTest(): void {
       expect(inline[1].text).assertEqual('important');
       expect(inline[3].kind).assertEqual('code');
       expect(inline[3].text).assertEqual('solve()');
+    });
+
+    it('chunks_long_paragraph_without_splitting_inline_formula', 0, () => {
+      const source: string = repeatText('前置说明。', 100)
+        + '公式 $' + repeatText('x+', 180) + 'y$ 推导完成。'
+        + repeatText('后续结论。', 100);
+      const blocks: MarkdownBlock[] = parseMarkdown(source);
+      let formulaBlockCount: number = 0;
+      for (const block of blocks) {
+        const markers: number = dollarCount(block.text);
+        if (markers > 0) {
+          formulaBlockCount += 1;
+        }
+        expect(markers === 0 || markers === 2).assertTrue();
+      }
+      expect(blocks.length > 1).assertTrue();
+      expect(formulaBlockCount).assertEqual(1);
     });
   });
 }

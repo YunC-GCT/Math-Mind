@@ -6,6 +6,24 @@
 
 ---
 
+## 2026-07-22 长正文按需加载与缓存优化
+
+- 笔记列表改用元数据查询，不再提前读取所有 `content`、`embedding` 和关系字段；完整正文只在点击单条笔记后按 ID 加载。
+- 删除首页 3 篇、学科页 5 篇正文预加载，列表快照也不再批量写入详情缓存。
+- 详情记录和详情 render model 均限制为 8 条、约 512 KB；Markdown block/inline cache 增加总字符预算和超大条目绕过策略。
+- 结构化正文不再重复挂载 `原文/OCR 原文`；原始材料默认折叠，用户展开后才创建 Markdown/KaTeX 渲染树。
+- Markdown 与长步骤首次只挂载 3 个节点，不再通过定时器自动扩展到全文；“继续阅读”每次追加 3 个节点。
+- 超长段落在公式边界之外安全切块，避免单个长段落生成巨型 ArkWeb，同时保证 `$...$`、`$$...$$`、`\(...\)` 和 `\[...\]` 不被截断。
+- 完整设计、主流长文本处理模式、缓存参数、二阶段 `List + LazyForEach` 虚拟化路线和 DevEco 验收步骤见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/render-protocol-optimization-route-20260722.md#21-长正文缓存预加载与渐进渲染优化)。
+
+### 验证
+
+- 已新增“超长段落包含长行内公式”的 parser 回归测试，逐块检查公式定界符成对。
+- 已执行 `git diff --check` 和 ArkTS 1.1 禁用写法扫描。
+- 按项目约束不运行 `hvigorw`；DevEco Studio GUI Build、真机滚动流畅度和 Profiler 内存峰值需要手动确认。
+
+---
+
 ## 2026-07-22 MM-MD-v1 渲染协议与笔记摘要优化
 
 ### 渲染顺序

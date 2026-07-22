@@ -22,17 +22,21 @@ class DetailRenderEntry {
   key: string = ""
   model: DetailRenderModel = emptyDetailRenderModel()
   touched: number = 0
+  size: number = 0
 
-  constructor(id: string, key: string, model: DetailRenderModel, touched: number) {
+  constructor(id: string, key: string, model: DetailRenderModel, touched: number, size: number) {
     this.id = id
     this.key = key
     this.model = model
     this.touched = touched
+    this.size = size
   }
 }
 
 const DETAIL_RENDER_CACHE: DetailRenderEntry[] = []
-const DETAIL_RENDER_CACHE_LIMIT: number = 100
+const DETAIL_RENDER_CACHE_LIMIT: number = 8
+const DETAIL_RENDER_CACHE_TEXT_LIMIT: number = 512 * 1024
+const DETAIL_RENDER_ENTRY_TEXT_LIMIT: number = 128 * 1024
 let detailRenderClock: number = 0
 
 function nextDetailRenderTick(): number {
@@ -53,8 +57,13 @@ export function getDetailRenderModel(note: NoteItem, unit: KnowledgeUnit | null,
   uiCacheLog("[UiDataCache] detailRender miss id=" + id)
   const model: DetailRenderModel = buildDetailRenderModel(note, unit, units)
   removeDetailRenderById(id)
-  DETAIL_RENDER_CACHE.push(new DetailRenderEntry(id, key, model, nextDetailRenderTick()))
-  trimDetailRenderCache()
+  const size: number = estimateDetailRenderSize(model)
+  if (size <= DETAIL_RENDER_ENTRY_TEXT_LIMIT) {
+    DETAIL_RENDER_CACHE.push(new DetailRenderEntry(id, key, model, nextDetailRenderTick(), size))
+    trimDetailRenderCache()
+  } else {
+    uiCacheLog("[UiDataCache] detailRender bypass id=" + id + " size=" + size.toString())
+  }
   return model
 }
 
@@ -92,6 +101,28 @@ function trimDetailRenderCache(): void {
   while (DETAIL_RENDER_CACHE.length > DETAIL_RENDER_CACHE_LIMIT) {
     removeOldestDetailRenderEntry()
   }
+  while (detailRenderCacheTextSize() > DETAIL_RENDER_CACHE_TEXT_LIMIT && DETAIL_RENDER_CACHE.length > 0) {
+    removeOldestDetailRenderEntry()
+  }
+}
+
+function estimateDetailRenderSize(model: DetailRenderModel): number {
+  let total: number = model.body.length + model.summary.length + model.subject.length
+  total += model.tags.join('').length
+  total += model.prerequisites.join('').length
+  total += model.related.join('').length
+  for (const section of model.sections) {
+    total += section.title.length + section.normalizedTitle.length + section.content.length
+  }
+  return total
+}
+
+function detailRenderCacheTextSize(): number {
+  let total: number = 0
+  for (const entry of DETAIL_RENDER_CACHE) {
+    total += entry.size
+  }
+  return total
 }
 
 function removeOldestDetailRenderEntry(): void {
