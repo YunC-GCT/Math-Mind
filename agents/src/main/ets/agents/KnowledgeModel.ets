@@ -34,6 +34,8 @@ import {
 } from '../models/KnowledgeUnitExt';
 import {
   DifficultyLevel,
+  ContentExcerptBuilder,
+  ContentProtocol,
   isKnownNoteType,
   JSON_ONLY_RULES,
   LATEX_GENERATION_RULES,
@@ -45,6 +47,7 @@ import {
 import type {
   ChatMessage,
   ClassificationResult,
+  ContentValidationResult,
   KnowledgeUnit,
   LlmGuardJsonResult,
   LlmGuardValidationResult,
@@ -83,6 +86,8 @@ const KNOWLEDGE_FALLBACK_CATEGORY: KnowledgeCategory = '概念';
 const KNOWLEDGE_FALLBACK_SUBJECT: string = '其它';
 
 export class KnowledgeModel {
+  private contentProtocol: ContentProtocol = new ContentProtocol();
+  private contentExcerptBuilder: ContentExcerptBuilder = new ContentExcerptBuilder();
 
   /**
    * 主入口：AI 自分词 + 结构化 + 真值检验，返回主线 KnowledgeUnit。
@@ -222,10 +227,8 @@ export class KnowledgeModel {
     const tags: string[] = [];
     tags.push(fallbackCategory);
     if (chapter.length > 0) { tags.push(chapter); }
-    const fallbackSummaryLimit: number = 500;
-    const summary: string = ocrText.length > fallbackSummaryLimit
-      ? ocrText.substring(0, fallbackSummaryLimit).replace(/[#*]/g, '').trim()
-      : ocrText.replace(/[#*]/g, '').trim();
+    const summaryExcerpt: string = this.contentExcerptBuilder.buildPlainSummary(ocrText, 220);
+    const summary: string = summaryExcerpt.length > 0 ? summaryExcerpt : title;
 
     console.info('[KnowledgeModel] fallback note created, title=' + title);
     return {
@@ -254,21 +257,19 @@ export class KnowledgeModel {
   }
 
   private summaryFromFields(ext: KnowledgeUnitExt): string {
-    const summaryLimit: number = 500;
-    let summary: string = '';
+    const summaryParts: string[] = [];
     for (const field of ext.fields) {
-      if (field.value.length > 0) {
-        summary = summary + field.value + '\n';
-      }
-      if (summary.length >= summaryLimit) {
-        break;
+      const normalized: ContentValidationResult = this.contentProtocol.normalizeNoteMarkdown(field.value);
+      if (!normalized.fallbackRequired && normalized.normalizedText.length > 0) {
+        summaryParts.push(normalized.normalizedText);
       }
     }
-    if (summary.length === 0) {
-      summary = ext.content;
+    const source: string = summaryParts.length > 0 ? summaryParts.join('\n') : ext.content;
+    const summary: string = this.contentExcerptBuilder.buildPlainSummary(source, 220);
+    if (summary.length > 0) {
+      return summary;
     }
-    const cleaned: string = summary.replace(/[#*]/g, '').trim();
-    return cleaned.length > summaryLimit ? cleaned.substring(0, summaryLimit).trim() : cleaned;
+    return ext.title.trim();
   }
 
   private toDifficultyLevel(value: number): DifficultyLevel {
@@ -355,9 +356,24 @@ export class KnowledgeModel {
     const titleValue: Object | undefined = parsed['title'];
     if (typeof titleValue !== 'string' || titleValue.trim().length === 0) {
       issues.push('title must be a non-empty string');
+    } else if (this.contentProtocol.hasFormulaSyntax(titleValue)) {
+      issues.push('title must not contain a formula');
     }
-    if (!Array.isArray(parsed['tags'])) {
+    const tagsValue: Object | undefined = parsed['tags'];
+    if (!Array.isArray(tagsValue)) {
       issues.push('tags must be an array');
+    } else {
+      const tags: Object[] = tagsValue as Object[];
+      for (const tag of tags) {
+        if (typeof tag !== 'string' || String(tag).trim().length === 0) {
+          issues.push('each tag must be a non-empty string');
+          break;
+        }
+        if (this.contentProtocol.hasFormulaSyntax(String(tag))) {
+          issues.push('tags must not contain formulas');
+          break;
+        }
+      }
     }
     if (!this.isScoreValue(parsed['difficulty'])) {
       issues.push('difficulty must be a number from 1 to 5');
@@ -383,8 +399,18 @@ export class KnowledgeModel {
           issues.push('each field.label must be a non-empty string');
           break;
         }
+        if (this.contentProtocol.hasFormulaSyntax(String(record['key']))
+          || this.contentProtocol.hasFormulaSyntax(String(record['label']))) {
+          issues.push('field.key and field.label must not contain formulas');
+          break;
+        }
         if (typeof record['value'] !== 'string' || String(record['value']).trim().length === 0) {
           issues.push('each field.value must be a non-empty string');
+          break;
+        }
+        const contentResult: ContentValidationResult = this.contentProtocol.validateNoteMarkdown(String(record['value']));
+        if (!contentResult.ok) {
+          issues.push('field.value violates MM-MD-v1: ' + contentResult.issues.join(', '));
           break;
         }
       }
@@ -427,8 +453,14 @@ export class KnowledgeModel {
 - 行内短公式用 $...$ 包裹，如 $x^2 + y^2 = r^2$。
 - 重要的独立公式用 $$...$$ 包裹并单独成行，如：
   $$
-  \frac{-b \pm \sqrt{b^2-4ac}}{2a}
+  \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}
   $$
+- $$ 开始和结束定界符必须各自单独占一行，块内禁止再写 $。
+- 标题、标签、字段 key、字段 label 中禁止公式。
+- 多行推导只使用 \\begin{aligned}...\\end{aligned}，禁止 align/align* 和自定义宏。
+- JSON 字符串中的 LaTeX 反斜杠必须写成双反斜杠 \\\\，例如 JSON 原文写 \\\\frac，解析后字段值才是 \\frac。
+- 不输出原始 HTML、Markdown 表格、嵌套列表。
+- 每个字段先用 1-2 句纯文字概括核心含义，再另起段落放公式或推导，便于生成简洁列表摘要。
 - 尽量一个字段对应一个页面分区。
 - 保留完整信息，不要把原题和关键步骤摘要丢失。`;
   }
@@ -468,7 +500,8 @@ export class KnowledgeModel {
     const sections: string[] = [];
     for (const field of ext.fields) {
       const label: string = field.label.trim().length > 0 ? field.label.trim() : field.key.trim();
-      const value: string = field.value.trim();
+      const valueResult: ContentValidationResult = this.contentProtocol.normalizeNoteMarkdown(field.value);
+      const value: string = valueResult.normalizedText.trim();
       if (value.length > 0) {
         sections.push('## ' + label + '\n' + value);
       }
@@ -480,7 +513,7 @@ export class KnowledgeModel {
     if (sections.length === 0) {
       return ext.content;
     }
-    return sections.join('\n\n');
+    return this.contentProtocol.normalizeNoteMarkdown(sections.join('\n\n')).normalizedText;
   }
 
   private normalizeCategory(value: string, fallback?: string): KnowledgeCategory {

@@ -7,8 +7,12 @@
 
 import llmGuardTest from './LlmGuard.test';
 import latexRiskNormalizerTest from './LatexRiskNormalizer.test';
+import contentProtocolTest from './ContentProtocol.test';
+import contentExcerptBuilderTest from './ContentExcerptBuilder.test';
 
 export default function testsuite(): void {
   llmGuardTest();
   latexRiskNormalizerTest();
+  contentProtocolTest();
+  contentExcerptBuilderTest();
 }

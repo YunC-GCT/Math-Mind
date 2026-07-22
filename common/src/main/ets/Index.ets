@@ -118,3 +118,11 @@ export type {
   RenderSegment,
   LatexRiskResult,
 } from './utils/LatexRiskNormalizer';
+
+// ========== MM-MD-v1 内容渲染协议 ==========
+export { ContentProtocol } from './render/ContentProtocol';
+export { ContentExcerptBuilder } from './render/ContentExcerptBuilder';
+export type {
+  ContentProtocolRisk,
+  ContentValidationResult,
+} from './render/ContentProtocol';

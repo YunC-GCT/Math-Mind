@@ -51,6 +51,8 @@
     #content.preview {
       font-size: 12px;
       line-height: 1.42;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     #content p {
@@ -63,6 +65,9 @@
 
     #content.preview p {
       margin: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     #content h1,
@@ -213,84 +218,6 @@
   <script src="katex/katex.min.js"></script>
   <script src="katex/auto-render.min.js"></script>
   <script>
-    function normalizeInlineLatex(latex) {
-      return latex.replace(/\\\s/g, '\\,').trim();
-    }
-
-    function normalizeOutsideMath(segment) {
-      var withParentheses = segment.replace(/\(([^()\n]*\\[a-zA-Z]+[^()\n]*)\)/g, function (_, inner) {
-        return '($' + normalizeInlineLatex(inner) + '$)';
-      });
-      var parts = withParentheses.split('$');
-      for (var i = 0; i < parts.length; i += 2) {
-        parts[i] = parts[i]
-          .replace(/\\text\{([^{}]+)\}/g, '$\\operatorname{$1}$')
-          .replace(/\\(mu|sigma|alpha|beta|theta|lambda|pi|phi|varphi|infty|Delta|Omega)(\s*(?:=|>|<|\\le|\\ge)\s*[-+]?[\w.\\^{}]+)?/g, function (match) {
-            return '$' + match + '$';
-          });
-      }
-      return parts.join('$');
-    }
-
-    function looksLikeBareDisplayFormula(line) {
-      if (!line) {
-        return false;
-      }
-      if (line.indexOf('$$') >= 0 || line.indexOf('\\[') >= 0 || line.indexOf('\\(') >= 0) {
-        return false;
-      }
-      return /^\\(?:int|sum|lim|prod|frac|sqrt)\b/.test(line)
-        || (line.indexOf('=') >= 0 && /\\(?:int|sum|lim|prod|frac|sqrt|ln|sin|cos|tan|neq|leq|geq)\b/.test(line));
-    }
-
-    function normalizeBareDisplayFormula(line) {
-      return line
-        .replace(/\$/g, '')
-        .replace(/,(\s*)d([a-zA-Z])/g, '\\,$1d$2')
-        .trim();
-    }
-
-    function normalizeBareMath(markdown) {
-      var lines = (markdown || '').replace(/\r\n/g, '\n').split('\n');
-      var inCode = false;
-      var inDisplay = false;
-      for (var i = 0; i < lines.length; i++) {
-        var trimmed = lines[i].trim();
-        if (trimmed.indexOf('```') === 0) {
-          inCode = !inCode;
-          continue;
-        }
-        if (inCode) {
-          continue;
-        }
-        if (trimmed === '$$') {
-          inDisplay = !inDisplay;
-          continue;
-        }
-        if (trimmed === '[' || trimmed === '\\[') {
-          lines[i] = '\\[';
-          inDisplay = true;
-          continue;
-        }
-        if (trimmed === ']' || trimmed === '\\]') {
-          lines[i] = '\\]';
-          inDisplay = false;
-          continue;
-        }
-        if (inDisplay) {
-          continue;
-        }
-        if (looksLikeBareDisplayFormula(trimmed)) {
-          lines[i] = '$$' + normalizeBareDisplayFormula(trimmed) + '$$';
-          continue;
-        }
-        if (lines[i].indexOf('\\') >= 0) {
-          lines[i] = normalizeOutsideMath(lines[i]);
-        }
-      }
-      return lines.join('\n');
-    }
-
     function setContentMode(profile) {
       var contentEl = document.getElementById('content');
       var mode = profile === 'note' ? 'note' : (profile === 'chatUser' ? 'chatUser' : (profile === 'preview' ? 'preview' : 'chat'));
@@ -302,11 +229,14 @@
       return String(Math.max(Math.ceil(contentEl.getBoundingClientRect().height), 1));
     }
 
+    function escapeRawHtml(markdown) {
+      return (markdown || '').replace(/</g, '&lt;');
+    }
+
     function render(markdown, profile) {
       var contentEl = setContentMode(profile);
       try {
-        var normalizedMarkdown = normalizeBareMath(markdown || '');
-        contentEl.innerHTML = marked.parse(normalizedMarkdown);
+        contentEl.innerHTML = marked.parse(escapeRawHtml(markdown));
         renderMathInElement(contentEl, {
           delimiters: [
             { left: '$$', right: '$$', display: true },
@@ -314,8 +244,12 @@
             { left: '\\(', right: '\\)', display: false },
             { left: '$', right: '$', display: false }
           ],
+          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'],
           throwOnError: false,
-          strict: false
+          strict: 'warn',
+          trust: false,
+          maxExpand: 1000,
+          errorColor: '#ff6b6b'
         });
       } catch (err) {
         contentEl.innerHTML = '<pre class="render-error"></pre>';

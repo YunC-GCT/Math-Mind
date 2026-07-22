@@ -58,7 +58,7 @@ export interface KnowledgeUnit {
   id: string; // 唯一标识(UUID)
   title: string; // 标题
   content: string; // 完整内容
-  summary: string; // 摘要，详情页可展示较完整的结构化概览
+  summary: string; // 简洁概览；完整公式、推导和原文保存在 content
   tags: string[]; // 标签
   subject: string; // 学科（独立于 tags，如"高等数学"/"线性代数"）
   category: string; // 题型分类（五选一："概念"/"定理"/"公式"/"证明题"/"计算题"）

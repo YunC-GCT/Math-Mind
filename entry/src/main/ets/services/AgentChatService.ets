@@ -1,5 +1,13 @@
-import { KnowledgeUnit, ClassificationResult, LlmClient, LlmConfig, ChatMessage, LlmGuard } from 'common';
-import type { LlmGuardValidationResult } from 'common';
+import {
+  KnowledgeUnit,
+  ClassificationResult,
+  LlmClient,
+  LlmConfig,
+  ChatMessage,
+  LlmGuard,
+  ContentProtocol,
+} from 'common';
+import type { ContentValidationResult, LlmGuardValidationResult } from 'common';
 import { common } from '@kit.AbilityKit';
 import { AiService } from './AiService';
 import { AgentMemoryService } from './AgentMemoryService';
@@ -20,6 +28,7 @@ export interface AgentChatCallbacks {
 export class AgentChatService {
   private cbs: AgentChatCallbacks;
   private memory: AgentMemoryService | null = null;
+  private contentProtocol: ContentProtocol = new ContentProtocol();
 
   constructor(callbacks: AgentChatCallbacks) {
     this.cbs = callbacks;
@@ -172,7 +181,10 @@ export class AgentChatService {
       + '7. 总结/整理/复盘：使用标题和要点，覆盖核心结论、原因、方法、待补充内容；不要只输出一句总结。\n'
       + '8. 信息不足时先说明缺少什么，可以基于上文给出合理假设；无法确定时追问，不编造题目或结论。\n'
       + '9. 不要主动生成笔记；只有系统已判定用户明确要保存/生成笔记时，才会走笔记生成链路。\n'
-      + '10. 数学符号用 Unicode 或 LaTeX，排版要便于手机端阅读。LaTeX 必须带 delimiter：行内公式用 $...$，展示公式用 $$...$$；不要输出裸 \\mu、\\sigma、\\text{erf}，不要用单独的 [ ] 包公式。';
+      + '10. 输出采用 MM-MD-v1 子集：只使用标题、段落、单层有序/无序列表、加粗、行内代码和代码块；不要输出原始 HTML、Markdown 表格、任务列表、脚注或 Mermaid。\n'
+      + '11. 短公式必须融入文字并用单个美元符定界，例如 $a>0$；不要输出裸 \\mu、\\sigma、\\Phi、\\operatorname，也不要使用单独的 [ ] 充当公式边界。\n'
+      + '12. 重要公式、长公式和多行推导使用展示公式，起止 $$ 必须各占独立一行；不要写成 $$公式$$，不要在 $$ 内嵌套单个美元符，也不要用 Markdown 代码块包公式。\n'
+      + '13. 多行公式只能在独立的 $$ 块内使用 \\begin{aligned}...\\end{aligned}；不要使用 align 或 align* 环境。';
     const profileContext: string = learnerProfileContext.trim();
     if (profileContext.length > 0) {
       systemPrompt += '\n\n用户画像如下，只用于控制解释密度和回答粒度，不要在回答中复述画像：\n' + profileContext;
@@ -544,8 +556,15 @@ export class AgentChatService {
   }
 
   private async addAiMessage(sessionId: string, content: string): Promise<void> {
-    this.cbs.addAiMsg(content);
-    await this.safeSaveAssistantMessage(sessionId, content);
+    const protocolResult: ContentValidationResult = this.contentProtocol.normalizeNoteMarkdown(content);
+    const displayContent: string = protocolResult.fallbackRequired
+      ? content
+      : protocolResult.normalizedText;
+    if (protocolResult.fallbackRequired) {
+      console.warn('[AgentChatService] assistant content protocol fallback: ' + protocolResult.issues.join(','));
+    }
+    this.cbs.addAiMsg(displayContent);
+    await this.safeSaveAssistantMessage(sessionId, displayContent);
   }
 
   private async safeSaveUserMessage(sessionId: string, content: string): Promise<void> {

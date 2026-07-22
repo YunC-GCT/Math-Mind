@@ -6,9 +6,11 @@ import {
   MINT, PURPLE_LIGHT,
   TEXT, TEXT_2, TEXT_3, TEXT_4,
   S_1, S_2, S_3, R_MD, F_SM, W_SEMIBOLD,
+  ContentProtocol,
 } from 'common'
 import { ChatMsg, ChatStatusMeta } from './ChatModels'
 import { MathTextRenderer } from '../../../shared/components/MathTextRenderer'
+import { MarkdownRenderer } from '../../../shared/components/MarkdownRenderer'
 
 @Component
 export struct ChatBubble {
@@ -18,6 +20,7 @@ export struct ChatBubble {
   onCopy: (text: string) => void = (_text: string): void => {}
   onRegen: (msg: ChatMsg) => void = (_msg: ChatMsg): void => {}
   onFeedback: (msg: ChatMsg) => void = (_msg: ChatMsg): void => {}
+  private contentProtocol: ContentProtocol = new ContentProtocol()
 
   build() {
     Column() {
@@ -38,6 +41,7 @@ export struct ChatBubble {
                   lineHeight: 20,
                   formulaFontSize: F_SM,
                   formulaLineHeight: 20,
+                  maxHeight: 4000,
                 })
                 .width('100%')
               } else {
@@ -83,15 +87,16 @@ export struct ChatBubble {
                     lineHeight: 20,
                     formulaFontSize: F_SM,
                     formulaLineHeight: 20,
+                    maxHeight: 4000,
                   })
                   .width('100%')
                 } else {
-                  Text(this.msg.content)
-                    .fontSize(F_SM)
-                    .fontColor(TEXT_2)
-                    .lineHeight(20)
-                    .width('100%')
-                    .textAlign(TextAlign.Start)
+                  MarkdownRenderer({
+                    text: this.msg.content,
+                    progressive: false,
+                    profile: 'chat',
+                  })
+                  .width('100%')
                 }
               }
 
@@ -138,22 +143,7 @@ export struct ChatBubble {
   }
 
   private containsFormulaSyntax = (text: string): boolean => {
-    return text.indexOf('$$') >= 0
-      || text.indexOf('$') >= 0
-      || text.indexOf('\\[') >= 0
-      || text.indexOf('\\]') >= 0
-      || text.indexOf('\\(') >= 0
-      || text.indexOf('\\)') >= 0
-      || text.indexOf('\\frac') >= 0
-      || text.indexOf('\\sqrt') >= 0
-      || text.indexOf('\\sum') >= 0
-      || text.indexOf('\\int') >= 0
-      || text.indexOf('\\lim') >= 0
-      || text.indexOf('\\begin') >= 0
-      || text.indexOf('\\alpha') >= 0
-      || text.indexOf('\\beta') >= 0
-      || text.indexOf('\\theta') >= 0
-      || (text.indexOf('=') >= 0 && (text.indexOf('^') >= 0 || text.indexOf('_') >= 0))
+    return this.contentProtocol.hasFormulaSyntax(text)
   }
 
   @Builder StatusMetaLine(meta: ChatStatusMeta | null) {

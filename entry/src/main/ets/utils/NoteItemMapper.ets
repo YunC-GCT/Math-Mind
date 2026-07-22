@@ -22,9 +22,18 @@
  *   - JSON.parse 强转 as string[] 后逐项 typeof 检查兜底
  *   - 无 any / unknown，错误统一 (e as Error).message
  */
-import { isKnownNoteType, KnowledgeUnit, normalizeNoteType, NoteItem, ReviewStatus, stripMD } from "common"
+import {
+  ContentExcerptBuilder,
+  isKnownNoteType,
+  KnowledgeUnit,
+  normalizeNoteType,
+  NoteItem,
+  ReviewStatus,
+} from "common"
 
 const CAMERA_SOURCE: string = "camera_capture"
+const NOTE_CARD_PREVIEW_LIMIT: number = 46
+const CONTENT_EXCERPT_BUILDER: ContentExcerptBuilder = new ContentExcerptBuilder()
 
 function resolveType(tags: string[]): string {
   for (const tag of tags) {
@@ -93,7 +102,8 @@ export function unitToNoteItem(unit: KnowledgeUnit): NoteItem {
   const subject: string = unit.subject.trim().length > 0 ? unit.subject.trim() : resolveSubject(unit.tags)
   const type: string = unit.category.length > 0 ? unit.category : resolveType(unit.tags)
   const chapter: string = unit.source.length > 0 && unit.source !== CAMERA_SOURCE ? unit.source : subject
-  const body: string = unit.summary.trim().length > 0 ? stripMD(unit.summary, 80) : stripMD(unit.content, 80)
+  const previewSource: string = unit.summary.trim().length > 0 ? unit.summary : unit.content
+  const body: string = CONTENT_EXCERPT_BUILDER.buildListPreview(previewSource, NOTE_CARD_PREVIEW_LIMIT)
 
   return new NoteItem(
     stableNumericId(rawId),

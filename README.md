@@ -6,6 +6,44 @@
 
 ---
 
+## 2026-07-22 MM-MD-v1 渲染协议与笔记摘要优化
+
+### 渲染顺序
+
+MathMind 统一采用以下内容链路：
+
+```text
+AI / OCR / 历史数据
+  -> ContentProtocol (MM-MD-v1 归一化与风险校验)
+  -> Markdown 结构解析
+  -> KaTeX 仅编译已确认的完整公式
+  -> ArkUI 承载原生文本或 WebView
+```
+
+- AI 气泡含公式时，整条回复进入单个 `MathTextRenderer`，WebView 内固定执行 `marked.parse -> KaTeX auto-render`。
+- AI 气泡不含公式时走原生 `MarkdownRenderer(chat)`，支持标题、段落、加粗、代码和单层列表，不创建 WebView。
+- 协议或公式风险检查失败时显示原文，不允许渲染为空白。
+- `AgentChatService` 在显示和入库前使用同一份协议归一化结果，避免即时消息与历史消息不一致。
+
+### 笔记列表摘要
+
+- `ContentExcerptBuilder` 替代列表层的 `stripMD(..., 80)` 字符硬截断，截断点不会落入 `$...$`、`$$...$$` 或 LaTeX 公式内部。
+- `NoteCard` 摘要调整为约 46 字、单行显示；短公式完整保留并由 KaTeX 编译。
+- 长公式在列表折叠为“相应公式”或“核心公式”，完整公式、推导和原文仍保存在详情页 `content`。
+- 新生成笔记的 `summary` 调整为约 220 字的纯文字概览；旧数据库无需迁移，读取时动态构造安全预览。
+- `KnowledgeModel` Prompt 要求每个字段先写 1-2 句文字概括，再另起段落放公式或推导。
+
+### 验证
+
+- 模拟器数据库中的真实 AI 回复回放结果为 `renderMode=katex`，不再进入 `plainFallback`。
+- 现有 3 条笔记预览全部通过协议检查，保留的 3 个短公式均通过本地 KaTeX 0.16.9 编译。
+- 已增加 `ContentProtocol`、`LatexRiskNormalizer`、`ContentExcerptBuilder` 和 Markdown-only 回归测试。
+- `git diff --check`、TypeScript strict 诊断和 `render.html` JavaScript 语法检查通过。
+- 完整方案、各模型输出约束和 KaTeX 资料见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/render-protocol-optimization-route-20260722.md)。
+- DevEco Studio GUI 编译与真机视觉 smoke test 仍需手动执行。
+
+---
+
 ## 2026-07-22 笔记页细节修复
 
 ### 做了什么
@@ -234,7 +272,7 @@
 | **OCR 需本地服务** | 依赖 start.bat 启动 FastAPI，模拟器需改 LAN IP |
 | **文字 OCR 不可用** | Tesseract 未安装，只有公式识别 |
 | **LLM 依赖网络** | DeepSeek API 需联网，免费版不稳定偶发超时/空响应 |
-| **无单元测试** | 整链无自动化验证 |
+| **整链自动化覆盖不足** | 已有内容协议、LaTeX 风险、摘要和 Markdown 解析测试；OCR→LLM→RDB→UI 仍需真机 E2E |
 | **会话持久化未接入** | ChatSession 有实现但 AgentFloatWindow 未接入 UI |
 
 ### 待调整

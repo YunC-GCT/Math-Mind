@@ -2,7 +2,7 @@
 // shared/components/MathPreviewText.ets - compact note preview with KaTeX fallback
 // ============================================================================
 
-import { TEXT_3, F_SM } from 'common'
+import { ContentExcerptBuilder, ContentProtocol, TEXT_3, F_SM } from 'common'
 import { MathTextRenderer } from './MathTextRenderer'
 
 @Component
@@ -14,51 +14,42 @@ export struct MathPreviewText {
   @Prop maxLines: number = 2
   @Prop minHeight: number = 34
   @Prop maxHeight: number = 44
+  @Prop maxChars: number = 46
+  private contentProtocol: ContentProtocol = new ContentProtocol()
+  private contentExcerptBuilder: ContentExcerptBuilder = new ContentExcerptBuilder()
 
   private containsFormulaSyntax = (text: string): boolean => {
-    return text.indexOf('$') >= 0
-      || text.indexOf('\\[') >= 0
-      || text.indexOf('\\]') >= 0
-      || text.indexOf('\\(') >= 0
-      || text.indexOf('\\)') >= 0
-      || text.indexOf('\\') >= 0
-      || text.indexOf('\\frac') >= 0
-      || text.indexOf('\\sqrt') >= 0
-      || text.indexOf('\\sum') >= 0
-      || text.indexOf('\\int') >= 0
-      || text.indexOf('\\lim') >= 0
-      || text.indexOf('\\begin') >= 0
-      || text.indexOf('\\mu') >= 0
-      || text.indexOf('\\sigma') >= 0
-      || text.indexOf('\\alpha') >= 0
-      || text.indexOf('\\beta') >= 0
-      || text.indexOf('\\theta') >= 0
-      || (text.indexOf('^') >= 0 && text.indexOf('=') >= 0)
-      || (text.indexOf('_') >= 0 && text.indexOf('=') >= 0)
+    return this.contentProtocol.hasFormulaSyntax(text)
+  }
+
+  private previewText = (): string => {
+    return this.contentExcerptBuilder.buildListPreview(this.text, this.maxChars)
   }
 
   build() {
-    if (this.containsFormulaSyntax(this.text)) {
-      MathTextRenderer({
-        text: this.text,
-        profile: 'preview',
-        textColor: this.textColor,
-        formulaColor: this.textColor,
-        fontSize: this.fontSize,
-        lineHeight: this.lineHeightValue,
-        formulaFontSize: this.fontSize,
-        formulaLineHeight: this.lineHeightValue,
-        minHeight: this.minHeight,
-        maxHeight: this.maxHeight,
-      })
-    } else {
-      Text(this.text)
-        .fontSize(this.fontSize)
-        .fontColor(this.textColor)
-        .lineHeight(this.lineHeightValue)
-        .maxLines(this.maxLines)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .width('100%')
+    if (this.previewText().length > 0) {
+      if (this.containsFormulaSyntax(this.previewText())) {
+        MathTextRenderer({
+          text: this.previewText(),
+          profile: 'preview',
+          textColor: this.textColor,
+          formulaColor: this.textColor,
+          fontSize: this.fontSize,
+          lineHeight: this.lineHeightValue,
+          formulaFontSize: this.fontSize,
+          formulaLineHeight: this.lineHeightValue,
+          minHeight: this.minHeight,
+          maxHeight: this.maxHeight,
+        })
+      } else {
+        Text(this.previewText())
+          .fontSize(this.fontSize)
+          .fontColor(this.textColor)
+          .lineHeight(this.lineHeightValue)
+          .maxLines(this.maxLines)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+      }
     }
   }
 }

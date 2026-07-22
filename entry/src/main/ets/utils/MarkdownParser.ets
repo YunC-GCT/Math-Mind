@@ -2,6 +2,8 @@
 //  utils/MarkdownParser.ets - lightweight markdown block parser
 // ============================================================================
 
+import { ContentProtocol } from 'common'
+
 export interface MarkdownBlock {
   kind: string
   text: string
@@ -117,7 +119,7 @@ function flushOpenBlocks(
 }
 
 export function parseMarkdown(text: string): MarkdownBlock[] {
-  const normalized: string = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+  const normalized: string = new ContentProtocol().normalizeNoteMarkdown(text).normalizedText
   if (normalized.length === 0) {
     return []
   }
@@ -239,8 +241,8 @@ export function parseMarkdown(text: string): MarkdownBlock[] {
     pushCode(blocks, codeLines, codeLang)
   }
   if (inFormula) {
-    const block: MarkdownBlock = emptyBlock('formula')
-    block.text = formulaLines.join('\n').trim()
+    const block: MarkdownBlock = emptyBlock('paragraph')
+    block.text = formulaFence + '\n' + formulaLines.join('\n').trim()
     blocks.push(block)
   }
   flushOpenBlocks(blocks, paragraphLines, quoteLines, listItems, listOrdered)

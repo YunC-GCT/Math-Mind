@@ -14,6 +14,7 @@ import {
   R_MD,
   F_SM, F_BASE, F_MD, F_LG,
   W_MEDIUM, W_SEMIBOLD, W_BOLD,
+  ContentProtocol,
 } from 'common'
 import { MarkdownBlock } from '../../utils/MarkdownParser'
 import { MarkdownInlineSegment } from '../../utils/MarkdownInlineParser'
@@ -31,11 +32,13 @@ const MARKDOWN_PREVIEW_LIMIT: number = 420
 export struct MarkdownRenderer {
   @Prop @Watch('onTextChanged') text: string = ''
   @Prop progressive: boolean = true
+  @Prop profile: 'note' | 'chat' = 'note'
   @State visibleBlockCount: number = MARKDOWN_INITIAL_BLOCK_LIMIT
   @State parseReady: boolean = false
   @State parsedBlocks: MarkdownBlock[] = []
   private renderSeq: number = 0
   private parsedKey: string = ''
+  private contentProtocol: ContentProtocol = new ContentProtocol()
 
   aboutToAppear(): void {
     this.resetVisibleBlocks()
@@ -88,12 +91,12 @@ export struct MarkdownRenderer {
   PreviewText(text: string) {
     if (text.length > 0) {
       Text(text)
-        .fontSize(F_BASE)
+        .fontSize(this.bodyFontSize())
         .fontColor(TEXT_2)
-        .lineHeight(26)
+        .lineHeight(this.bodyLineHeight())
         .width('100%')
         .textAlign(TextAlign.Start)
-        .margin({ bottom: S_2 })
+        .margin({ bottom: this.paragraphBottomMargin() })
     }
   }
 
@@ -105,7 +108,7 @@ export struct MarkdownRenderer {
       .fontColor(block.level === 1 ? TEXT : MINT)
       .lineHeight(this.headingLineHeight(block.level))
       .width('100%')
-      .margin({ top: block.level === 1 ? S_3 : S_2, bottom: S_2 })
+      .margin({ top: this.headingTopMargin(block.level), bottom: this.headingBottomMargin() })
   }
 
   @Builder
@@ -113,22 +116,23 @@ export struct MarkdownRenderer {
     if (this.containsFormulaSyntax(text)) {
       MathTextRenderer({
         text: text,
-        profile: 'note',
+        profile: this.mathProfile(),
         textColor: TEXT_2,
         formulaColor: TEXT_2,
         formulaBackground: 'rgba(255,255,255,0.04)',
         formulaBorder: 'rgba(255,255,255,0.10)',
-        fontSize: F_BASE,
-        lineHeight: 26,
-        formulaFontSize: F_BASE,
-        formulaLineHeight: 26,
+        fontSize: this.bodyFontSize(),
+        lineHeight: this.bodyLineHeight(),
+        formulaFontSize: this.bodyFontSize(),
+        formulaLineHeight: this.bodyLineHeight(),
+        maxHeight: this.profile === 'chat' ? 4000 : 1800,
       })
     } else {
       Text() {
         ForEach(cachedParseMarkdownInline(text),
           (segment: MarkdownInlineSegment, index: number): void => {
             Span(segment.text)
-              .fontSize(F_BASE)
+              .fontSize(this.bodyFontSize())
               .fontColor(segment.kind === 'code' ? TEXT : TEXT_2)
               .fontWeight(segment.kind === 'bold' ? W_BOLD : W_MEDIUM)
               .fontFamily(segment.kind === 'code' ? 'monospace' : '')
@@ -136,12 +140,12 @@ export struct MarkdownRenderer {
           (_segment: MarkdownInlineSegment, index: number): string => index.toString()
         )
       }
-      .fontSize(F_BASE)
+      .fontSize(this.bodyFontSize())
       .fontColor(TEXT_2)
-      .lineHeight(26)
+      .lineHeight(this.bodyLineHeight())
       .width('100%')
       .textAlign(TextAlign.Start)
-      .margin({ bottom: S_2 })
+      .margin({ bottom: this.paragraphBottomMargin() })
     }
   }
 
@@ -152,10 +156,10 @@ export struct MarkdownRenderer {
         (item: string, index: number): void => {
           Row() {
             Text(block.ordered ? (index + 1).toString() + '.' : '•')
-              .fontSize(F_BASE)
+              .fontSize(this.bodyFontSize())
               .fontColor(MINT)
               .fontWeight(W_SEMIBOLD)
-              .width(24)
+              .width(this.profile === 'chat' ? 20 : 24)
               .textAlign(TextAlign.Start)
 
             Column() {
@@ -170,7 +174,7 @@ export struct MarkdownRenderer {
       )
     }
     .width('100%')
-    .margin({ top: S_1, bottom: S_1 })
+    .margin({ top: this.profile === 'chat' ? 0 : S_1, bottom: S_1 })
   }
 
   @Builder
@@ -227,16 +231,17 @@ export struct MarkdownRenderer {
   FormulaBlock(block: MarkdownBlock) {
     MathTextRenderer({
       text: block.text,
-      profile: 'note',
+      profile: this.mathProfile(),
       forceDisplay: true,
       textColor: TEXT_2,
       formulaColor: TEXT_2,
       formulaBackground: 'rgba(255,255,255,0.04)',
       formulaBorder: 'rgba(255,255,255,0.10)',
-      fontSize: F_BASE,
-      lineHeight: 26,
-      formulaFontSize: F_BASE,
-      formulaLineHeight: 26,
+      fontSize: this.bodyFontSize(),
+      lineHeight: this.bodyLineHeight(),
+      formulaFontSize: this.bodyFontSize(),
+      formulaLineHeight: this.bodyLineHeight(),
+      maxHeight: this.profile === 'chat' ? 4000 : 1800,
     })
   }
 
@@ -250,30 +255,56 @@ export struct MarkdownRenderer {
   }
 
   private headingSize = (level: number): number => {
+    if (this.profile === 'chat') {
+      if (level === 1) { return F_MD }
+      if (level === 2) { return F_BASE }
+      return F_SM
+    }
     if (level === 1) { return F_LG }
     if (level === 2) { return F_MD }
     return F_SM
   }
 
   private headingLineHeight = (level: number): number => {
+    if (this.profile === 'chat') {
+      if (level === 1) { return 24 }
+      if (level === 2) { return 22 }
+      return 20
+    }
     if (level === 1) { return 28 }
     if (level === 2) { return 24 }
     return 20
   }
 
+  private bodyFontSize = (): number => {
+    return this.profile === 'chat' ? F_SM : F_BASE
+  }
+
+  private bodyLineHeight = (): number => {
+    return this.profile === 'chat' ? 20 : 26
+  }
+
+  private paragraphBottomMargin = (): number => {
+    return this.profile === 'chat' ? S_1 : S_2
+  }
+
+  private headingTopMargin = (level: number): number => {
+    if (this.profile === 'chat') {
+      return level === 1 ? S_2 : S_1
+    }
+    return level === 1 ? S_3 : S_2
+  }
+
+  private headingBottomMargin = (): number => {
+    return this.profile === 'chat' ? S_1 : S_2
+  }
+
+  private mathProfile = (): 'note' | 'chat' => {
+    return this.profile === 'chat' ? 'chat' : 'note'
+  }
+
   private containsFormulaSyntax = (text: string): boolean => {
-    return text.indexOf('$$') >= 0
-      || text.indexOf('$') >= 0
-      || text.indexOf('\\[') >= 0
-      || text.indexOf('\\(') >= 0
-      || text.indexOf('\\') >= 0
-      || text.indexOf('\\frac') >= 0
-      || text.indexOf('\\sqrt') >= 0
-      || text.indexOf('\\sum') >= 0
-      || text.indexOf('\\int') >= 0
-      || text.indexOf('\\lim') >= 0
-      || text.indexOf('\\begin') >= 0
-      || (text.indexOf('=') >= 0 && (text.indexOf('^') >= 0 || text.indexOf('_') >= 0 || text.indexOf('\\') >= 0))
+    return this.contentProtocol.hasFormulaSyntax(text)
   }
 
   private resetVisibleBlocks = (): void => {
@@ -287,7 +318,7 @@ export struct MarkdownRenderer {
     this.parsedBlocks = []
     this.parseReady = false
     this.visibleBlockCount = 0
-    if (this.text.trim().length <= MARKDOWN_IMMEDIATE_PARSE_LIMIT) {
+    if (!this.progressive || this.text.trim().length <= MARKDOWN_IMMEDIATE_PARSE_LIMIT) {
       this.applyParsedBlocks(cachedParseMarkdown(this.text), seq)
       return
     }
@@ -368,7 +399,8 @@ export struct MarkdownRenderer {
       index += 1
     }
     const positive: number = hash < 0 ? -hash : hash
-    return this.text.length.toString() + ':' + positive.toString() + ':' + (this.progressive ? '1' : '0')
+    return this.text.length.toString() + ':' + positive.toString() + ':'
+      + (this.progressive ? '1' : '0') + ':' + this.profile
   }
 
   private blockKey = (block: MarkdownBlock, index: number): string => {

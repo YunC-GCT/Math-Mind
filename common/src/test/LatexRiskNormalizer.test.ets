@@ -21,8 +21,34 @@ export default function latexRiskNormalizerTest(): void {
 
     it('keeps_code_block_intact', 0, () => {
       const normalizer: LatexRiskNormalizer = new LatexRiskNormalizer();
-      const result = normalizer.normalize('```tex\n\\int x dx\n```');
-      expect(result.normalizedText).assertContain('\\int x dx');
+      const source: string = '```tex\n\\frac{1}{2\n```';
+      const result = normalizer.normalize(source);
+      expect(result.normalizedText).assertEqual(source);
+      expect(result.renderMode).assertEqual('native');
+    });
+
+    it('does_not_nest_display_fences', 0, () => {
+      const normalizer: LatexRiskNormalizer = new LatexRiskNormalizer();
+      const source: string = '$$\n\\int x\\,dx = \\frac{1}{2}\n$$';
+      const result = normalizer.normalize(source);
+      expect(result.normalizedText).assertEqual(source);
+      expect(result.riskLevel).assertEqual('none');
+    });
+
+    it('does_not_wrap_symbols_inside_inline_math', 0, () => {
+      const normalizer: LatexRiskNormalizer = new LatexRiskNormalizer();
+      const source: string = '约 68% 在 $[\\mu-\\sigma,\\mu+\\sigma]$ 内';
+      const result = normalizer.normalize(source);
+      expect(result.normalizedText).assertEqual(source);
+      expect(result.renderMode).assertEqual('katex');
+      expect(result.riskLevel).assertEqual('none');
+    });
+
+    it('wraps_legacy_bare_symbol_outside_math', 0, () => {
+      const normalizer: LatexRiskNormalizer = new LatexRiskNormalizer();
+      const result = normalizer.normalize('均值是 \\mu');
+      expect(result.normalizedText).assertContain('$\\mu$');
+      expect(result.riskLevel).assertEqual('fixable');
     });
   });
 }

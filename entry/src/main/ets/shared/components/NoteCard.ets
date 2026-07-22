@@ -3,12 +3,12 @@
 //  ----------------------------------------------------------------------------
 //  布局: [渐变 icon 36×36] [meta: 类型(粗) · 日期  ··· 置信度]
 //                          [标题 (15px semibold)]
-//                          [正文预览 (2 行截断)]
+//                          [正文预览 (1 行协议安全截断)]
 //  ============================================================================
 
 import {
   S_1, S_3, BORDER, GLASS_8, TEXT, TEXT_3, TEXT_4,
-  R_MD, F_XS, F_SM, F_MD,
+  R_MD, F_XS, F_MD,
   W_SEMIBOLD, W_BOLD,
   NOTE_ICON_SIZE, NoteItem, recentDate, typeChar, typeColor, typeGlassColor,
   borderToneColor, glassHighlightColor, glassShadowColor,
@@ -64,15 +64,16 @@ export struct NoteCard {
           .margin({ top: S_1 }).maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
 
-        // 正文预览 (v2-ui .note-body: 12.5px 2行截断)
+        // 正文预览: 一行扫描信息；短公式完整渲染，长公式留在详情页。
         MathPreviewText({
           text: this.note.body,
           textColor: TEXT_3,
-          fontSize: F_SM,
-          lineHeightValue: 18,
-          maxLines: 2,
-          minHeight: 34,
-          maxHeight: 42,
+          fontSize: F_XS,
+          lineHeightValue: 17,
+          maxLines: 1,
+          minHeight: 18,
+          maxHeight: 23,
+          maxChars: 46,
         })
           .margin({ top: 2 })
           .width('100%')
