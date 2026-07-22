@@ -13,7 +13,7 @@ export struct ReviewTabSwitch {
   build() {
     Row() {
       this.TabItem("复习计划", 0)
-      this.TabItem("知识图谱", 1)
+      this.TabItem("知识星系", 1)
     }
     .height(40)
     .padding({ left: 4, right: 4 })

@@ -13,7 +13,7 @@ const REVIEW_TAB_GRAPH: number = 1
 @Component
 export struct ReviewPage {
   @StorageProp("statusBarHeight") sbh: number = 0
-  @State activeTab: number = REVIEW_TAB_PLAN
+  @State activeTab: number = REVIEW_TAB_GRAPH
   @State vm: StudyPlanViewModel = new StudyPlanViewModel()
   @State liveIds: string[] = []
   @State planOrderIds: string[] = []
@@ -26,6 +26,7 @@ export struct ReviewPage {
   ]
   private loadedPlanVersion: number = -1
   private loadingPlanVersion: number = -1
+  onGoAI: () => void = (): void => {}
 
   aboutToAppear(): void {
     this.reloadPlans()
@@ -239,15 +240,17 @@ export struct ReviewPage {
         })
           .layoutWeight(1)
 
-        Button() {
-          AppIcon({ name: this.showAddPlan ? "close" : "plus", iconSize: F_BASE + 6, color: MINT, strokeWidth: 1.8 })
+        if (this.activeTab === REVIEW_TAB_PLAN) {
+          Button() {
+            AppIcon({ name: this.showAddPlan ? "close" : "plus", iconSize: F_BASE + 6, color: MINT, strokeWidth: 1.8 })
+          }
+          .width(40)
+          .height(40)
+          .borderRadius(R_LG)
+          .backgroundColor(GLASS_8)
+          .border({ width: 0.5, color: BORDER })
+          .onClick(this.addReviewPlan)
         }
-        .width(40)
-        .height(40)
-        .borderRadius(R_LG)
-        .backgroundColor(GLASS_8)
-        .border({ width: 0.5, color: BORDER })
-        .onClick(this.addReviewPlan)
       }
       .width("100%")
       .padding({ left: S_5, right: S_5, top: S_3, bottom: S_2 })
@@ -272,7 +275,7 @@ export struct ReviewPage {
           onCancelAdd: this.cancelAddPlan,
         })
       } else {
-        ReviewGraphView()
+        ReviewGraphView({ onGoAI: this.onGoAI })
       }
     }
     .width("100%")
