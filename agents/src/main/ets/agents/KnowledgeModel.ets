@@ -100,6 +100,7 @@ export class KnowledgeModel {
     type?: string,
     subject?: string,
     chapter: string = '',
+    source: string = 'camera_capture',
   ): Promise<KnowledgeUnit> {
     const startTime: number = Date.now();
     const classificationHint: ClassificationResult = await this.resolveClassificationHint(
@@ -138,6 +139,7 @@ export class KnowledgeModel {
         classificationHint.type,
         classificationHint.subject,
         chapterHint,
+        source,
       );
     }
     const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.subject, aiRaw.title, ocrText);
@@ -145,7 +147,8 @@ export class KnowledgeModel {
     ext.tags = this.buildTags(aiRaw);
     ext.difficulty = aiRaw.difficulty;
     ext.importance = aiRaw.importance;
-    ext.source = chapterHint.length > 0 ? chapterHint : 'camera_capture';
+    ext.source = source;
+    ext.chapter = aiRaw.chapter.length > 0 ? aiRaw.chapter : chapterHint;
 
     const truthResult: MvpTruthCheckResult = this.truthCheck(ocrText);
     ext.truthFlag = truthResult.truthFlag;
@@ -174,12 +177,14 @@ export class KnowledgeModel {
   async structureWithClassification(
     ocrText: string,
     classification: ClassificationResult,
+    source: string = 'camera_capture',
   ): Promise<KnowledgeUnit> {
     return await this.structure(
       ocrText,
       classification.type,
       classification.subject,
       classification.chapter ?? '',
+      source,
     );
   }
 
@@ -194,6 +199,7 @@ export class KnowledgeModel {
       tags: ext.tags,
       subject: ext.subject,
       category: ext.type,
+      chapter: ext.chapter,
       difficulty: this.toDifficultyLevel(ext.difficulty),
       source: ext.source.length > 0 ? ext.source : 'camera_capture',
       createdAt: now,
@@ -215,7 +221,7 @@ export class KnowledgeModel {
   // TODO: 后续删除该 fallback，改成显式失败，不再自动创建笔记。
   // 不调 AI，直接返回 KnowledgeUnit（标题来自 OCR 首行，标签来自分类结果）
   private buildFallbackFromClassify(
-    ocrText: string, type?: string, subject?: string, chapter: string = '',
+    ocrText: string, type?: string, subject?: string, chapter: string = '', source: string = 'camera_capture',
   ): KnowledgeUnit {
     const now: number = Date.now();
     const fallbackCategory: KnowledgeCategory = this.normalizeCategory(type ?? '', undefined);
@@ -239,8 +245,9 @@ export class KnowledgeModel {
       tags: tags,
       subject: fallbackSubject,
       category: fallbackCategory,
+      chapter: chapter,
       difficulty: DifficultyLevel.MEDIUM,
-      source: chapter.length > 0 ? chapter : 'camera_capture',
+      source: source,
       createdAt: now,
       updatedAt: now,
       reviewStatus: ReviewStatus.NEW,
@@ -333,6 +340,7 @@ export class KnowledgeModel {
     const aiRaw: AiRawResponse = {
       category: this.normalizeCategory(String(parsed['category'] ?? ''), typeHint),
       subject: this.normalizeSubject(String(parsed['subject'] ?? ''), subjectHint),
+      chapter: this.normalizeChapter(String(parsed['chapter'] ?? '')),
       title: this.normalizeTitle(String(parsed['title'] ?? ''), userText),
       tags: this.normalizeStringArray(parsed['tags']),
       difficulty: this.normalizeScore(Number(parsed['difficulty'] ?? 3)),
@@ -437,6 +445,7 @@ export class KnowledgeModel {
 字段:
 - category: 必须从 ${categories} 这五类中选择，不要返回 concept/theorem/formula/proof/computation
 - subject: 学科名称由你自主判断（如"高等数学"/"线性代数"/"初中数学"），无法判断时返回"其它"
+- chapter: 章节/知识点短语（如"微分中值定理"/"行列式"），无法判断时返回空字符串
 - title: 严谨名称或题目摘要
 - tags: 返回 2-4 个中文关键词（具体概念/方法/技巧），学科名请填在 subject 字段。示例: ["二次函数", "配方法", "顶点", "对称轴"]
 - difficulty: 1-5，1=简单，5=困难
@@ -542,6 +551,14 @@ export class KnowledgeModel {
       }
     }
     return KNOWLEDGE_FALLBACK_SUBJECT;
+  }
+
+  private normalizeChapter(value: string): string {
+    const chapter: string = value.trim();
+    if (chapter.length > 0 && chapter !== '未知' && chapter !== 'null' && chapter !== 'undefined') {
+      return chapter;
+    }
+    return '';
   }
 
   private normalizeTitle(value: string, fallbackText: string): string {

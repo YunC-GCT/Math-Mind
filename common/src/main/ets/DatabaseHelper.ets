@@ -11,7 +11,7 @@ const STORE_CONFIG: relationalStore.StoreConfig = {
   securityLevel: relationalStore.SecurityLevel.S1,
 };
 
-const DB_SCHEMA_VERSION: number = 3;
+const DB_SCHEMA_VERSION: number = 4;
 
 const SQL_CREATE_KNOWLEDGE: string = `
 CREATE TABLE IF NOT EXISTS knowledge_unit (
@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS knowledge_unit (
   tags TEXT NOT NULL DEFAULT "[]",
   subject TEXT NOT NULL DEFAULT "",
   category TEXT NOT NULL DEFAULT "",
+  chapter TEXT NOT NULL DEFAULT "",
   difficulty INTEGER NOT NULL DEFAULT 1,
   source TEXT NOT NULL DEFAULT "",
   created_at INTEGER NOT NULL,
@@ -87,6 +88,8 @@ const SQL_MIGRATE_KNOWLEDGE_SUBJECT: string =
   "ALTER TABLE knowledge_unit ADD COLUMN subject TEXT NOT NULL DEFAULT \"\"";
 const SQL_MIGRATE_KNOWLEDGE_CATEGORY: string =
   "ALTER TABLE knowledge_unit ADD COLUMN category TEXT NOT NULL DEFAULT \"\"";
+const SQL_MIGRATE_KNOWLEDGE_CHAPTER: string =
+  "ALTER TABLE knowledge_unit ADD COLUMN chapter TEXT NOT NULL DEFAULT \"\"";
 
 export class DatabaseHelper {
   private static store: relationalStore.RdbStore | null = null;
@@ -140,6 +143,10 @@ export class DatabaseHelper {
     const hasCategory: boolean = await DatabaseHelper.hasColumn(store, "knowledge_unit", "category");
     if (!hasCategory) {
       await DatabaseHelper.executeAddColumn(store, SQL_MIGRATE_KNOWLEDGE_CATEGORY);
+    }
+    const hasChapter: boolean = await DatabaseHelper.hasColumn(store, "knowledge_unit", "chapter");
+    if (!hasChapter) {
+      await DatabaseHelper.executeAddColumn(store, SQL_MIGRATE_KNOWLEDGE_CHAPTER);
     }
 
     if (store.version < DB_SCHEMA_VERSION) {

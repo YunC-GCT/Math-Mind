@@ -437,10 +437,7 @@ function lookupTitle(id: string, units: KnowledgeUnit[]): string {
 }
 
 function resolveSource(note: NoteItem, unit: KnowledgeUnit | null): string {
-  const raw: string = unit !== null ? unit.source.trim() : note.chapter.trim()
-  if (raw.length === 0 || raw === SOURCE_CAMERA) {
-    return ''
-  }
+  const raw: string = unit !== null ? unit.chapter.trim() : note.chapter.trim()
   return raw
 }
 

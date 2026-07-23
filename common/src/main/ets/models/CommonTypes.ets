@@ -62,8 +62,9 @@ export interface KnowledgeUnit {
   tags: string[]; // 标签
   subject: string; // 学科（独立于 tags，如"高等数学"/"线性代数"）
   category: string; // 题型分类（五选一："概念"/"定理"/"公式"/"证明题"/"计算题"）
+  chapter: string; // 章节/知识点短语（独立于 source，如"微分中值定理"）
   difficulty: DifficultyLevel; // 难度
-  source: string; // 来源(教材/网页/笔记路径)
+  source: string; // 来源标记(camera_capture/manual/file_import)
   createdAt: number; // 创建时间戳
   updatedAt: number; // 更新时间戳
 

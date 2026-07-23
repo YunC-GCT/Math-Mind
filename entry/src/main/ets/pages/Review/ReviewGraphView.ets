@@ -11,6 +11,7 @@ import { AppIcon } from "../../shared/components/AppIcon"
 import { NoteDetailOverlay } from "../../overlays/NoteDetailOverlay/NoteDetailOverlay"
 import {
   ChapterOrbit,
+  GalaxyLink,
   KnowledgeGalaxyViewModel,
   PlanetNode,
   SubjectSystem,
@@ -21,6 +22,17 @@ const GALAXY_SIZE: number = 360
 const GALAXY_CENTER: number = GALAXY_SIZE / 2
 const UNIVERSE_WIDTH: number = 360
 const UNIVERSE_HEIGHT: number = 520
+const UNIVERSE_MIN_WORLD_WIDTH: number = UNIVERSE_WIDTH * 2
+const UNIVERSE_MIN_WORLD_HEIGHT: number = UNIVERSE_HEIGHT * 2
+const UNIVERSE_SUBJECT_HIT_SIZE: number = 44
+const UNIVERSE_WRAP_OFFSETS: number[] = [-1, 0, 1]
+const UNIVERSE_STAR_INDEXES: number[] = [
+  0, 1, 2, 3, 4, 5, 6, 7,
+  8, 9, 10, 11, 12, 13, 14, 15,
+  16, 17, 18, 19, 20, 21, 22, 23,
+  24, 25, 26, 27, 28, 29, 30, 31,
+  32, 33, 34, 35, 36, 37, 38, 39,
+]
 const MIN_ZOOM: number = 0.75
 const MAX_ZOOM: number = 3
 const ZOOM_STEP: number = 0.25
@@ -31,6 +43,39 @@ function pctText(value: number): string {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
+}
+
+function wrapCoordinate(value: number, size: number): number {
+  if (size <= 0) {
+    return 0
+  }
+  let next: number = value % size
+  if (next < 0) {
+    next += size
+  }
+  return next
+}
+
+function universeColumns(count: number): number {
+  if (count <= 1) {
+    return 1
+  }
+  return Math.max(2, Math.ceil(Math.sqrt(count * 1.25)))
+}
+
+function universeRows(count: number): number {
+  if (count <= 1) {
+    return 1
+  }
+  return Math.ceil(count / universeColumns(count))
+}
+
+function universeWorldWidth(count: number): number {
+  return Math.max(UNIVERSE_MIN_WORLD_WIDTH, universeColumns(count) * 280)
+}
+
+function universeWorldHeight(count: number): number {
+  return Math.max(UNIVERSE_MIN_WORLD_HEIGHT, universeRows(count) * 260 + 220)
 }
 
 function stableHash(value: string): number {
@@ -79,9 +124,15 @@ export struct ReviewGraphView {
   @State vm: KnowledgeGalaxyViewModel = new KnowledgeGalaxyViewModel()
   @State selectedSubject: string = ""
   @State zoom: number = 1
+  @State universeZoom: number = 1
+  @State universeCameraX: number = UNIVERSE_MIN_WORLD_WIDTH / 2
+  @State universeCameraY: number = UNIVERSE_MIN_WORLD_HEIGHT / 2
   @State orbitOffset: number = 0
   @State selectedNote: NoteItem | null = null
   @State selectedUnit: KnowledgeUnit | null = null
+  @State focusedPlanetId: string = ""
+  @State galaxyCameraOffsetX: number = 0
+  @State galaxyCameraOffsetY: number = 0
   private timerId: number = -1
   onGoAI: () => void = (): void => {}
 
@@ -107,6 +158,9 @@ export struct ReviewGraphView {
       if (!keepSelection || !this.hasSubject(this.selectedSubject)) {
         this.selectedSubject = ""
         this.zoom = 1
+        this.resetUniverseViewport()
+      } else {
+        this.setUniverseCamera(this.universeCameraX, this.universeCameraY)
       }
       if (this.selectedSubject.length > 0 && this.selectedNote === null) {
         this.startRotation()
@@ -132,6 +186,8 @@ export struct ReviewGraphView {
     animateTo({ duration: 240, curve: Curve.FastOutSlowIn }, (): void => {
       this.selectedSubject = subject
       this.zoom = 1
+      this.galaxyCameraOffsetX = 0
+      this.galaxyCameraOffsetY = 0
       this.orbitOffset = 0
       this.startRotation()
     })
@@ -142,9 +198,12 @@ export struct ReviewGraphView {
     animateTo({ duration: 220, curve: Curve.FastOutSlowIn }, (): void => {
       this.selectedSubject = ""
       this.zoom = 1
+      this.galaxyCameraOffsetX = 0
+      this.galaxyCameraOffsetY = 0
       this.orbitOffset = 0
       this.selectedNote = null
       this.selectedUnit = null
+      this.focusedPlanetId = ""
     })
   }
 
@@ -166,24 +225,53 @@ export struct ReviewGraphView {
 
   private openPlanet = (planet: PlanetNode): void => {
     this.stopRotation()
+    this.focusedPlanetId = planet.id
     this.selectedNote = planet.note
     this.selectedUnit = planet.unit
     this.vm.loadNote(getContext(this), planet.id).then((unit: KnowledgeUnit | null): void => {
       if (this.selectedNote !== null && this.selectedNote.rawId === planet.id) {
-        this.selectedUnit = unit
+        if (unit !== null) {
+          this.selectedUnit = unit
+        }
       }
     })
+  }
+
+  private hoverPlanet = (planetId: string): void => {
+    if (this.selectedNote !== null) {
+      return
+    }
+    this.focusPlanet(planetId)
+  }
+
+  private selectGalaxyPlanet = (planet: PlanetNode): void => {
+    if (this.focusedPlanetId !== planet.id) {
+      this.focusPlanet(planet.id)
+      return
+    }
+    this.openPlanet(planet)
+  }
+
+  private focusPlanet(planetId: string): void {
+    this.focusedPlanetId = planetId
+    if (planetId.length > 0) {
+      this.stopRotation()
+    } else {
+      this.startRotation()
+    }
   }
 
   private closeDetail = (): void => {
     this.selectedNote = null
     this.selectedUnit = null
+    this.focusedPlanetId = ""
     this.startRotation()
   }
 
   private handleSaved = (unit: KnowledgeUnit): void => {
     this.selectedNote = unitToNoteItem(unit)
     this.selectedUnit = unit
+    this.focusedPlanetId = unit.id
     this.reloadGalaxy(true)
   }
 
@@ -192,6 +280,10 @@ export struct ReviewGraphView {
     if (ok) {
       this.selectedNote = null
       this.selectedUnit = null
+      this.focusedPlanetId = ""
+      if (this.hasSubject(this.selectedSubject)) {
+        this.startRotation()
+      }
       const v: number = AppStorage.get<number>("notesVersion") ?? 0
       AppStorage.setOrCreate("notesVersion", v + 1)
       try { promptAction.showToast({ message: "已删除笔记", duration: 1200 }) } catch (_e) {}
@@ -211,20 +303,69 @@ export struct ReviewGraphView {
 
   private zoomIn(): void {
     animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
-      this.zoom = clamp(Math.round((this.zoom + ZOOM_STEP) * 100) / 100, MIN_ZOOM, MAX_ZOOM)
+      const nextZoom: number = clamp(Math.round((this.zoom + ZOOM_STEP) * 100) / 100, MIN_ZOOM, MAX_ZOOM)
+      this.zoom = nextZoom
+      this.setGalaxyCameraOffset(this.galaxyCameraOffsetX, this.galaxyCameraOffsetY, nextZoom)
     })
   }
 
   private zoomOut(): void {
     animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
-      this.zoom = clamp(Math.round((this.zoom - ZOOM_STEP) * 100) / 100, MIN_ZOOM, MAX_ZOOM)
+      const nextZoom: number = clamp(Math.round((this.zoom - ZOOM_STEP) * 100) / 100, MIN_ZOOM, MAX_ZOOM)
+      this.zoom = nextZoom
+      this.setGalaxyCameraOffset(this.galaxyCameraOffsetX, this.galaxyCameraOffsetY, nextZoom)
     })
   }
 
   private resetZoom(): void {
     animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
       this.zoom = 1
+      this.galaxyCameraOffsetX = 0
+      this.galaxyCameraOffsetY = 0
     })
+  }
+
+  private setGalaxyCameraOffset = (x: number, y: number, zoomValue: number = this.zoom): void => {
+    const maxPan: number = this.galaxyMaxPan(zoomValue)
+    this.galaxyCameraOffsetX = clamp(x, -maxPan, maxPan)
+    this.galaxyCameraOffsetY = clamp(y, -maxPan, maxPan)
+  }
+
+  private galaxyMaxPan(zoomValue: number): number {
+    return GALAXY_SIZE * Math.max(0, zoomValue - 1) * 0.5
+  }
+
+  private universeWidth(): number {
+    return universeWorldWidth(this.vm.systems.length)
+  }
+
+  private universeHeight(): number {
+    return universeWorldHeight(this.vm.systems.length)
+  }
+
+  private zoomUniverseIn(): void {
+    animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
+      this.universeZoom = clamp(Math.round((this.universeZoom + ZOOM_STEP) * 100) / 100, 1, MAX_ZOOM)
+    })
+  }
+
+  private zoomUniverseOut(): void {
+    animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
+      this.universeZoom = clamp(Math.round((this.universeZoom - ZOOM_STEP) * 100) / 100, 1, MAX_ZOOM)
+    })
+  }
+
+  private resetUniverseViewport(): void {
+    animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
+      this.universeZoom = 1
+      this.universeCameraX = this.universeWidth() / 2
+      this.universeCameraY = this.universeHeight() / 2
+    })
+  }
+
+  private setUniverseCamera = (x: number, y: number): void => {
+    this.universeCameraX = wrapCoordinate(x, this.universeWidth())
+    this.universeCameraY = wrapCoordinate(y, this.universeHeight())
   }
 
   build() {
@@ -237,12 +378,15 @@ export struct ReviewGraphView {
             systems: this.vm.systems,
             totalCount: this.vm.totalCount,
             avgMastery: this.vm.avgMastery,
-            zoom: this.zoom,
+            zoom: this.universeZoom,
+            cameraX: this.universeCameraX,
+            cameraY: this.universeCameraY,
             onSelectSubject: (subject: string): void => this.enterSubject(subject),
             onSelectPlanet: this.openPlanet,
-            onZoomIn: (): void => this.zoomIn(),
-            onZoomOut: (): void => this.zoomOut(),
-            onResetZoom: (): void => this.resetZoom(),
+            onCameraChange: this.setUniverseCamera,
+            onZoomIn: (): void => this.zoomUniverseIn(),
+            onZoomOut: (): void => this.zoomUniverseOut(),
+            onResetZoom: (): void => this.resetUniverseViewport(),
           })
         } else {
           this.SubjectHeader()
@@ -250,7 +394,12 @@ export struct ReviewGraphView {
             system: this.activeSystem(),
             zoom: this.zoom,
             orbitOffset: this.orbitOffset,
-            onSelectPlanet: this.openPlanet,
+            focusedPlanetId: this.focusedPlanetId,
+            cameraOffsetX: this.galaxyCameraOffsetX,
+            cameraOffsetY: this.galaxyCameraOffsetY,
+            onSelectPlanet: this.selectGalaxyPlanet,
+            onHoverPlanet: this.hoverPlanet,
+            onCameraChange: this.setGalaxyCameraOffset,
             onZoomIn: (): void => this.zoomIn(),
             onZoomOut: (): void => this.zoomOut(),
             onResetZoom: (): void => this.resetZoom(),
@@ -369,8 +518,13 @@ struct SubjectUniverseView {
   @Prop totalCount: number = 0
   @Prop avgMastery: number = 0
   @Prop zoom: number = 1
+  @Prop cameraX: number = UNIVERSE_MIN_WORLD_WIDTH / 2
+  @Prop cameraY: number = UNIVERSE_MIN_WORLD_HEIGHT / 2
+  @State dragStartCameraX: number = 0
+  @State dragStartCameraY: number = 0
   onSelectSubject: (subject: string) => void = (_subject: string): void => {}
   onSelectPlanet: (planet: PlanetNode) => void = (_planet: PlanetNode): void => {}
+  onCameraChange: (x: number, y: number) => void = (_x: number, _y: number): void => {}
   onZoomIn: () => void = (): void => {}
   onZoomOut: () => void = (): void => {}
   onResetZoom: () => void = (): void => {}
@@ -378,30 +532,7 @@ struct SubjectUniverseView {
   build() {
     Scroll() {
       Column() {
-        Stack() {
-          Image($r("app.media.galaxy_overview_bg"))
-            .width("100%")
-            .height("100%")
-            .objectFit(ImageFit.Cover)
-            .scale({ x: this.backgroundScale(), y: this.backgroundScale() })
-          Row()
-            .width("100%")
-            .height("100%")
-            .backgroundColor("#A004070D")
-          this.NebulaTrails()
-          this.StarDust()
-          ForEach(this.systems,
-            (system: SubjectSystem): void => {
-              this.SubjectSystemNode(system)
-            },
-            (system: SubjectSystem): string => system.subject
-          )
-        }
-        .width(UNIVERSE_WIDTH)
-        .height(UNIVERSE_HEIGHT)
-        .clip(true)
-        .alignSelf(ItemAlign.Center)
-        .margin({ top: S_2 })
+        this.UniverseViewport()
 
         this.ZoomControls()
 
@@ -431,6 +562,75 @@ struct SubjectUniverseView {
   }
 
   @Builder
+  UniverseViewport() {
+    Stack() {
+      ForEach(UNIVERSE_WRAP_OFFSETS,
+        (copyX: number): void => {
+          ForEach(UNIVERSE_WRAP_OFFSETS,
+            (copyY: number): void => {
+              this.WorldTile(copyX, copyY)
+            },
+            (copyY: number): string => "overview_tile_y_" + copyY.toString()
+          )
+        },
+        (copyX: number): string => "overview_tile_x_" + copyX.toString()
+      )
+    }
+    .width(UNIVERSE_WIDTH)
+    .height(UNIVERSE_HEIGHT)
+    .clip(true)
+    .alignSelf(ItemAlign.Center)
+    .backgroundColor("#01000000")
+    .margin({ top: S_2 })
+    .priorityGesture(
+      PanGesture({ direction: PanDirection.All })
+        .onActionStart((_event: GestureEvent): void => {
+          this.dragStartCameraX = this.cameraX
+          this.dragStartCameraY = this.cameraY
+        })
+        .onActionUpdate((event: GestureEvent): void => {
+          this.onCameraChange(
+            this.dragStartCameraX - event.offsetX / this.zoom,
+            this.dragStartCameraY - event.offsetY / this.zoom,
+          )
+        })
+        .onActionEnd((): void => {
+          this.dragStartCameraX = this.cameraX
+          this.dragStartCameraY = this.cameraY
+        })
+    )
+  }
+
+  @Builder
+  WorldTile(copyX: number, copyY: number) {
+    Stack() {
+      Image($r("app.media.galaxy_overview_bg"))
+        .width("100%")
+        .height("100%")
+        .objectFit(ImageFit.Cover)
+      Row()
+        .width("100%")
+        .height("100%")
+        .backgroundColor("#A004070D")
+      this.NebulaTrails()
+      this.StarDust()
+      ForEach(this.systems,
+        (system: SubjectSystem): void => {
+          this.SubjectSystemNode(system)
+        },
+        (system: SubjectSystem): string => system.subject
+      )
+    }
+    .width(this.worldWidth())
+    .height(this.worldHeight())
+    .scale({ x: this.zoom, y: this.zoom })
+    .position({
+      x: this.worldTileScreenX(copyX),
+      y: this.worldTileScreenY(copyY),
+    })
+  }
+
+  @Builder
   SubjectSystemNode(system: SubjectSystem) {
     Stack() {
       if (this.showOrbitHints()) {
@@ -443,63 +643,63 @@ struct SubjectUniverseView {
       }
 
       Ellipse()
-        .width(system.size * this.nodeScale() * 2.9)
-        .height(system.size * this.nodeScale() * 0.86)
+        .width(this.subjectVisualSize(system) * 2.9)
+        .height(this.subjectVisualSize(system) * 0.86)
         .stroke(system.color)
         .strokeWidth(0.45)
         .opacity(0.20)
         .rotate({ angle: -18 })
 
       Ellipse()
-        .width(system.size * this.nodeScale() * 3.55)
-        .height(system.size * this.nodeScale() * 1.04)
+        .width(this.subjectVisualSize(system) * 3.55)
+        .height(this.subjectVisualSize(system) * 1.04)
         .stroke(system.color)
         .strokeWidth(0.45)
         .opacity(0.08 + system.mastery * 0.07)
         .rotate({ angle: 8 })
 
       Ellipse()
-        .width(system.size * this.nodeScale() * 2.08)
-        .height(system.size * this.nodeScale() * 0.58)
+        .width(this.subjectVisualSize(system) * 2.08)
+        .height(this.subjectVisualSize(system) * 0.58)
         .stroke(MINT)
         .strokeWidth(0.35)
         .opacity(0.11)
         .rotate({ angle: 22 })
 
-      Circle({ width: system.size * this.nodeScale() + 62, height: system.size * this.nodeScale() + 62 })
+      Circle({ width: this.subjectVisualSize(system) + 30, height: this.subjectVisualSize(system) + 30 })
         .fill(system.color)
         .opacity(0.035)
 
-      Circle({ width: system.size * this.nodeScale() + 38, height: system.size * this.nodeScale() + 38 })
+      Circle({ width: this.subjectVisualSize(system) + 18, height: this.subjectVisualSize(system) + 18 })
         .fill(system.color)
         .opacity(0.055)
 
-      Circle({ width: system.size * this.nodeScale(), height: system.size * this.nodeScale() })
+      Circle({ width: this.subjectVisualSize(system), height: this.subjectVisualSize(system) })
         .fill(system.color)
         .opacity(0.18)
 
-      Circle({ width: system.size * this.nodeScale() * 0.54, height: system.size * this.nodeScale() * 0.54 })
+      Circle({ width: this.subjectVisualSize(system) * 0.54, height: this.subjectVisualSize(system) * 0.54 })
         .fill("#D8FFF3")
         .opacity(0.42)
         .stroke(system.color)
         .strokeWidth(0.7)
 
-      this.SolarStar(system.color, system.size * this.nodeScale() * 0.62, 0.76)
+      this.SolarStar(system.color, this.subjectVisualSize(system) * 0.62, 0.76)
 
-      this.SatelliteDot(system.color, system.size * 1.42, system.size * 0.46, 5, 0.68)
-      this.SatelliteDot(MINT, system.size * 0.55, system.size * 1.18, 4, 0.54)
-      this.SatelliteDot(TEXT_2, system.size * 1.24, system.size * 1.34, 3, 0.46)
+      this.SatelliteDot(system.color, this.subjectVisualSize(system) * 1.42, this.subjectVisualSize(system) * 0.46, 5, 0.68)
+      this.SatelliteDot(MINT, this.subjectVisualSize(system) * 0.55, this.subjectVisualSize(system) * 1.18, 4, 0.54)
+      this.SatelliteDot(TEXT_2, this.subjectVisualSize(system) * 1.24, this.subjectVisualSize(system) * 1.34, 3, 0.46)
 
       if (system.count >= 4) {
-        this.SatelliteDot(system.color, system.size * 0.78, system.size * 0.34, 3, 0.46)
+        this.SatelliteDot(system.color, this.subjectVisualSize(system) * 0.78, this.subjectVisualSize(system) * 0.34, 3, 0.46)
       }
 
       if (system.count >= 10) {
-        this.SatelliteDot(MINT, system.size * 1.68, system.size * 1.02, 4, 0.50)
+        this.SatelliteDot(MINT, this.subjectVisualSize(system) * 1.68, this.subjectVisualSize(system) * 1.02, 4, 0.50)
       }
 
       if (system.count >= 18) {
-        this.SatelliteDot(TEXT_2, system.size * 0.22, system.size * 0.70, 3, 0.42)
+        this.SatelliteDot(TEXT_2, this.subjectVisualSize(system) * 0.22, this.subjectVisualSize(system) * 0.70, 3, 0.42)
       }
 
       if (this.showPlanets()) {
@@ -516,84 +716,109 @@ struct SubjectUniverseView {
         )
       }
 
-      Column() {
-        Text(system.subject)
-          .fontSize(F_XS)
-          .fontWeight(W_SEMIBOLD)
-          .fontColor(TEXT)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width(118)
-          .textAlign(TextAlign.Center)
-        Text(system.count.toString() + " 条 · " + pctText(system.mastery))
-          .fontSize(F_XS)
-          .fontColor(TEXT_3)
-          .maxLines(1)
-      }
-      .alignItems(HorizontalAlign.Center)
-      .translate({ y: system.size * 0.74 })
+      this.SubjectLabelNode(system)
     }
-    .width(system.size + 122)
-    .height(system.size + 118)
+    .width(this.subjectNodeWidth(system))
+    .height(this.subjectNodeHeight(system))
     .alignContent(Alignment.Center)
-    .position({ x: system.x, y: system.y })
+    .position({
+      x: this.subjectWorldCenterX(system) - this.subjectNodeWidth(system) / 2,
+      y: this.subjectWorldCenterY(system) - this.subjectNodeHeight(system) / 2,
+    })
+    .backgroundColor("#01000000")
     .onClick((): void => this.onSelectSubject(system.subject))
   }
 
   @Builder
+  SubjectLabelNode(system: SubjectSystem) {
+    Column() {
+      Text(system.subject)
+        .fontSize(F_XS)
+        .fontWeight(W_SEMIBOLD)
+        .fontColor(TEXT)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width(118)
+        .textAlign(TextAlign.Center)
+      Text(system.count.toString() + " 条 · " + pctText(system.mastery))
+        .fontSize(F_XS)
+        .fontColor(TEXT_3)
+        .maxLines(1)
+    }
+    .width(126)
+    .height(34)
+    .alignItems(HorizontalAlign.Center)
+    .scale({ x: this.inverseZoom(), y: this.inverseZoom() })
+    .translate({ y: this.subjectVisualSize(system) * 0.74 })
+  }
+
+  @Builder
   StarDust() {
-    Circle({ width: 2, height: 2 }).fill(TEXT_2).opacity(0.28).position({ x: 24, y: 32 })
-    Circle({ width: 1, height: 1 }).fill(TEXT_2).opacity(0.22).position({ x: 78, y: 84 })
-    Circle({ width: 2, height: 2 }).fill(MINT).opacity(0.30).position({ x: 304, y: 58 })
-    Circle({ width: 1, height: 1 }).fill(TEXT_2).opacity(0.18).position({ x: 328, y: 146 })
-    Circle({ width: 2, height: 2 }).fill(TEXT_2).opacity(0.22).position({ x: 42, y: 254 })
-    Circle({ width: 1, height: 1 }).fill(MINT).opacity(0.26).position({ x: 188, y: 310 })
-    Circle({ width: 2, height: 2 }).fill(TEXT_2).opacity(0.20).position({ x: 278, y: 382 })
-    Circle({ width: 1, height: 1 }).fill(TEXT_2).opacity(0.20).position({ x: 96, y: 452 })
-    Circle({ width: 2, height: 2 }).fill("#DAB7FF").opacity(0.22).position({ x: 318, y: 474 })
-    Circle({ width: 1, height: 1 }).fill(MINT).opacity(0.24).position({ x: 158, y: 492 })
+    ForEach(UNIVERSE_STAR_INDEXES,
+      (index: number): void => {
+        this.StarPixel(index)
+      },
+      (index: number): string => "overview_star_" + index.toString()
+    )
+  }
+
+  @Builder
+  StarPixel(index: number) {
+    Circle({ width: this.starSize(index), height: this.starSize(index) })
+      .fill(this.starColor(index))
+      .opacity(this.starOpacity(index))
+      .scale({ x: this.inverseZoom(), y: this.inverseZoom() })
+      .position({
+        x: this.starWorldX(index) - this.starSize(index) / 2,
+        y: this.starWorldY(index) - this.starSize(index) / 2,
+      })
   }
 
   @Builder
   NebulaTrails() {
     Ellipse()
-      .width(this.sceneSize(420))
-      .height(this.sceneSize(138))
+      .width(this.nebulaSize(420))
+      .height(this.nebulaSize(138))
       .stroke(MINT)
       .strokeWidth(0.35)
       .opacity(0.16)
       .rotate({ angle: -22 })
-      .position({ x: this.sceneX(-32, 420), y: this.sceneY(90, 138) })
+      .scale({ x: this.inverseZoom(), y: this.inverseZoom() })
+      .position({ x: this.nebulaWorldX(0.18, 420), y: this.nebulaWorldY(0.20, 138) })
     Ellipse()
-      .width(this.sceneSize(520))
-      .height(this.sceneSize(178))
+      .width(this.nebulaSize(520))
+      .height(this.nebulaSize(178))
       .stroke("#9BE7FF")
       .strokeWidth(0.3)
       .opacity(0.09)
       .rotate({ angle: -27 })
-      .position({ x: this.sceneX(-92, 520), y: this.sceneY(162, 178) })
+      .scale({ x: this.inverseZoom(), y: this.inverseZoom() })
+      .position({ x: this.nebulaWorldX(0.56, 520), y: this.nebulaWorldY(0.38, 178) })
     Ellipse()
-      .width(this.sceneSize(300))
-      .height(this.sceneSize(86))
+      .width(this.nebulaSize(300))
+      .height(this.nebulaSize(86))
       .stroke("#C8B6FF")
       .strokeWidth(0.35)
       .opacity(0.08)
       .rotate({ angle: 18 })
-      .position({ x: this.sceneX(118, 300), y: this.sceneY(330, 86) })
+      .scale({ x: this.inverseZoom(), y: this.inverseZoom() })
+      .position({ x: this.nebulaWorldX(0.82, 300), y: this.nebulaWorldY(0.70, 86) })
     Row()
-      .width(this.sceneSize(162))
+      .width(this.nebulaSize(162))
       .height(1)
       .backgroundColor(MINT)
       .opacity(0.10)
       .rotate({ angle: -31 })
-      .position({ x: this.sceneX(18, 162), y: this.sceneY(424, 1) })
+      .scale({ x: this.inverseZoom(), y: this.inverseZoom() })
+      .position({ x: this.nebulaWorldX(0.30, 162), y: this.nebulaWorldY(0.82, 1) })
     Row()
-      .width(this.sceneSize(96))
+      .width(this.nebulaSize(96))
       .height(1)
       .backgroundColor("#DAB7FF")
       .opacity(0.10)
       .rotate({ angle: 24 })
-      .position({ x: this.sceneX(234, 96), y: this.sceneY(82, 1) })
+      .scale({ x: this.inverseZoom(), y: this.inverseZoom() })
+      .position({ x: this.nebulaWorldX(0.72, 96), y: this.nebulaWorldY(0.16, 1) })
   }
 
   @Builder
@@ -611,7 +836,7 @@ struct SubjectUniverseView {
   OverviewPlanet(system: SubjectSystem, orbitIndex: number, planet: PlanetNode, planetIndex: number) {
     Column() {
       Stack() {
-        Circle({ width: this.overviewPlanetSize(planet) + 10, height: this.overviewPlanetSize(planet) + 10 })
+        Circle({ width: this.overviewPlanetSize(planet) + 5, height: this.overviewPlanetSize(planet) + 5 })
           .fill(planetBaseColor(planet.id))
           .opacity(0.08)
         this.SolarPlanet(planet, this.overviewPlanetSize(planet), 0.74)
@@ -619,7 +844,6 @@ struct SubjectUniverseView {
       .width(this.overviewPlanetSize(planet) * 1.72)
       .height(this.overviewPlanetSize(planet) * 1.34)
       .alignContent(Alignment.Center)
-      .scale({ x: this.overviewPlanetVisualScale(), y: this.overviewPlanetVisualScale() })
 
       if (this.showOverviewPlanetLabels()) {
         Text(planetLabel(planet))
@@ -630,6 +854,7 @@ struct SubjectUniverseView {
           .width(this.overviewPlanetFrameWidth(planet))
           .height(16)
           .textAlign(TextAlign.Center)
+          .scale({ x: this.inverseZoom(), y: this.inverseZoom() })
       }
     }
     .width(this.overviewPlanetFrameWidth(planet))
@@ -756,6 +981,103 @@ struct SubjectUniverseView {
     .border({ width: 0.5, color: BORDER })
   }
 
+  private worldWidth(): number {
+    return universeWorldWidth(this.systems.length)
+  }
+
+  private worldHeight(): number {
+    return universeWorldHeight(this.systems.length)
+  }
+
+  private worldTileScreenX(copyX: number): number {
+    return UNIVERSE_WIDTH / 2 - this.cameraX * this.zoom + copyX * this.worldWidth() * this.zoom -
+      this.worldWidth() * (1 - this.zoom) / 2
+  }
+
+  private worldTileScreenY(copyY: number): number {
+    return UNIVERSE_HEIGHT / 2 - this.cameraY * this.zoom + copyY * this.worldHeight() * this.zoom -
+      this.worldHeight() * (1 - this.zoom) / 2
+  }
+
+  private inverseZoom(): number {
+    return 1 / Math.max(1, this.zoom)
+  }
+
+  private subjectIndex(subject: string): number {
+    let index: number = 0
+    while (index < this.systems.length) {
+      if (this.systems[index].subject === subject) {
+        return index
+      }
+      index++
+    }
+    return 0
+  }
+
+  private subjectWorldCenterX(system: SubjectSystem): number {
+    if (this.systems.length <= 1) {
+      return this.worldWidth() / 2
+    }
+    const index: number = this.subjectIndex(system.subject)
+    const cols: number = universeColumns(this.systems.length)
+    const col: number = index % cols
+    const cellWidth: number = this.worldWidth() / cols
+    const jitter: number = ((stableHash(system.subject) % 101) - 50) / 50 * Math.min(68, cellWidth * 0.22)
+    return wrapCoordinate(cellWidth * (col + 0.5) + jitter, this.worldWidth())
+  }
+
+  private subjectWorldCenterY(system: SubjectSystem): number {
+    if (this.systems.length <= 1) {
+      return this.worldHeight() / 2
+    }
+    const index: number = this.subjectIndex(system.subject)
+    const cols: number = universeColumns(this.systems.length)
+    const rows: number = universeRows(this.systems.length)
+    const row: number = Math.floor(index / cols)
+    const cellHeight: number = this.worldHeight() / rows
+    const jitter: number = ((stableHash(system.subject + "_y") % 97) - 48) / 48 * Math.min(62, cellHeight * 0.18)
+    return wrapCoordinate(cellHeight * (row + 0.5) + jitter, this.worldHeight())
+  }
+
+  private subjectVisualSize(system: SubjectSystem): number {
+    const normalized: number = clamp((system.size - 48) / 52, 0, 1)
+    return clamp(18 + normalized * 18, 18, 36)
+  }
+
+  private subjectNodeWidth(system: SubjectSystem): number {
+    return Math.max(UNIVERSE_SUBJECT_HIT_SIZE, 126, this.subjectVisualSize(system) + 90)
+  }
+
+  private subjectNodeHeight(system: SubjectSystem): number {
+    return Math.max(UNIVERSE_SUBJECT_HIT_SIZE, 104, this.subjectVisualSize(system) + 82)
+  }
+
+  private starWorldX(index: number): number {
+    return wrapCoordinate(42 + index * 137 + (index % 5) * 31, this.worldWidth())
+  }
+
+  private starWorldY(index: number): number {
+    return wrapCoordinate(36 + index * 89 + (index % 7) * 43, this.worldHeight())
+  }
+
+  private starSize(index: number): number {
+    return 3 + index % 5
+  }
+
+  private starOpacity(index: number): number {
+    return 0.15 + (index % 6) * 0.035
+  }
+
+  private starColor(index: number): string {
+    if (index % 13 === 0) {
+      return "#DAB7FF"
+    }
+    if (index % 7 === 0) {
+      return MINT
+    }
+    return TEXT_2
+  }
+
   private showOrbitHints(): boolean {
     return this.zoom >= 1.1
   }
@@ -768,30 +1090,16 @@ struct SubjectUniverseView {
     return this.zoom >= 1.9
   }
 
-  private nodeScale(): number {
-    return clamp(0.52 + this.zoom * 0.34, 0.70, 1.62)
+  private nebulaSize(value: number): number {
+    return value
   }
 
-  private backgroundScale(): number {
-    return clamp(1 + Math.max(0, this.zoom - 1) * 0.38, 1, 1.76)
+  private nebulaWorldX(centerRatio: number, widthValue: number): number {
+    return wrapCoordinate(this.worldWidth() * centerRatio, this.worldWidth()) - this.nebulaSize(widthValue) / 2
   }
 
-  private sceneSize(value: number): number {
-    return value * this.backgroundScale()
-  }
-
-  private sceneX(x: number, widthValue: number): number {
-    const scaledWidth: number = this.sceneSize(widthValue)
-    const center: number = x + widthValue / 2
-    const scaledCenter: number = UNIVERSE_WIDTH / 2 + (center - UNIVERSE_WIDTH / 2) * this.backgroundScale()
-    return scaledCenter - scaledWidth / 2
-  }
-
-  private sceneY(y: number, heightValue: number): number {
-    const scaledHeight: number = this.sceneSize(heightValue)
-    const center: number = y + heightValue / 2
-    const scaledCenter: number = UNIVERSE_HEIGHT / 2 + (center - UNIVERSE_HEIGHT / 2) * this.backgroundScale()
-    return scaledCenter - scaledHeight / 2
+  private nebulaWorldY(centerRatio: number, heightValue: number): number {
+    return wrapCoordinate(this.worldHeight() * centerRatio, this.worldHeight()) - this.nebulaSize(heightValue) / 2
   }
 
   private orbitOpacity(): number {
@@ -822,32 +1130,28 @@ struct SubjectUniverseView {
   }
 
   private overviewOrbitWidth(system: SubjectSystem, orbitIndex: number): number {
-    return (system.size * 1.65 + orbitIndex * 14) * this.nodeScale()
+    return this.subjectVisualSize(system) * 1.65 + orbitIndex * 14
   }
 
   private overviewOrbitHeight(system: SubjectSystem, orbitIndex: number): number {
-    return (system.size * 0.54 + orbitIndex * 5) * this.nodeScale()
+    return this.subjectVisualSize(system) * 0.54 + orbitIndex * 5
   }
 
   private overviewPlanetSize(planet: PlanetNode): number {
-    return clamp(planet.size * 0.42, 7, 22)
-  }
-
-  private overviewPlanetVisualScale(): number {
-    return clamp(this.zoom, 0.75, 3)
+    return clamp(planet.size * 0.24, 4, 11)
   }
 
   private overviewPlanetFrameWidth(planet: PlanetNode): number {
-    const visualWidth: number = this.overviewPlanetSize(planet) * this.overviewPlanetVisualScale() * 1.9
+    const visualWidth: number = this.overviewPlanetSize(planet) * 1.9
     return this.showOverviewPlanetLabels() ? Math.max(58, visualWidth) : visualWidth
   }
 
   private overviewPlanetFrameHeight(planet: PlanetNode): number {
-    return this.overviewPlanetSize(planet) * this.overviewPlanetVisualScale() * 1.34 + (this.showOverviewPlanetLabels() ? 16 : 0)
+    return this.overviewPlanetSize(planet) * 1.34 + (this.showOverviewPlanetLabels() ? 16 : 0)
   }
 
   private overviewPlanetX(system: SubjectSystem, orbitIndex: number, planetIndex: number): number {
-    const frame: number = system.size + 122
+    const frame: number = this.subjectNodeWidth(system)
     const angle: number = (planetIndex * 62 + orbitIndex * 37 + 18) * Math.PI / 180
     const radiusX: number = this.overviewOrbitWidth(system, orbitIndex) / 2
     const planet: PlanetNode = system.orbits[orbitIndex].planets[planetIndex]
@@ -855,7 +1159,7 @@ struct SubjectUniverseView {
   }
 
   private overviewPlanetY(system: SubjectSystem, orbitIndex: number, planetIndex: number): number {
-    const frame: number = system.size + 118
+    const frame: number = this.subjectNodeHeight(system)
     const angle: number = (planetIndex * 62 + orbitIndex * 37 + 18) * Math.PI / 180
     const radiusY: number = this.overviewOrbitHeight(system, orbitIndex) / 2
     const planet: PlanetNode = system.orbits[orbitIndex].planets[planetIndex]
@@ -869,7 +1173,14 @@ struct SubjectGalaxyView {
   @Prop system: SubjectSystem | null = null
   @Prop zoom: number = 1
   @Prop orbitOffset: number = 0
+  @Prop focusedPlanetId: string = ""
+  @Prop cameraOffsetX: number = 0
+  @Prop cameraOffsetY: number = 0
+  @State dragStartCameraOffsetX: number = 0
+  @State dragStartCameraOffsetY: number = 0
   onSelectPlanet: (planet: PlanetNode) => void = (_planet: PlanetNode): void => {}
+  onHoverPlanet: (planetId: string) => void = (_planetId: string): void => {}
+  onCameraChange: (x: number, y: number) => void = (_x: number, _y: number): void => {}
   onZoomIn: () => void = (): void => {}
   onZoomOut: () => void = (): void => {}
   onResetZoom: () => void = (): void => {}
@@ -880,44 +1191,63 @@ struct SubjectGalaxyView {
         if (this.system !== null) {
           Stack() {
             Image($r("app.media.galaxy_detail_bg"))
-              .width("100%")
-              .height("100%")
+              .width(this.detailBackgroundFrameSize())
+              .height(this.detailBackgroundFrameSize())
               .objectFit(ImageFit.Cover)
               .opacity(0.72)
               .scale({ x: this.detailBackgroundScale(), y: this.detailBackgroundScale() })
-            Row()
-              .width("100%")
-              .height("100%")
-              .backgroundColor("#9A03070E")
-            this.DetailNebulaTrails(this.system!)
-            this.StarDust()
+              .position({
+                x: this.detailBackgroundX(),
+                y: this.detailBackgroundY(),
+              })
+            Stack() {
+              this.DetailNebulaTrails(this.system!)
+              this.StarDust()
 
-            ForEach(this.system!.orbits,
-              (orbit: ChapterOrbit): void => {
-                this.ChapterOrbitRing(orbit)
-              },
-              (orbit: ChapterOrbit): string => orbit.chapter
-            )
+              ForEach(this.system!.orbits,
+                (orbit: ChapterOrbit): void => {
+                  this.ChapterOrbitRing(orbit)
+                },
+                (orbit: ChapterOrbit): string => orbit.chapter
+              )
 
-            this.CenterStar(this.system!)
+              ForEach(this.focusedLinks(),
+                (link: GalaxyLink): void => {
+                  this.RelationLine(link)
+                },
+                (link: GalaxyLink): string => this.linkKey(link)
+              )
 
-            ForEach(this.system!.orbits,
-              (orbit: ChapterOrbit): void => {
-                ForEach(orbit.planets,
-                  (planet: PlanetNode): void => {
-                    this.Planet(orbit, planet)
-                  },
-                  (planet: PlanetNode): string => orbit.chapter + "_" + planet.id
-                )
-              },
-              (orbit: ChapterOrbit): string => orbit.chapter + "_planets"
-            )
+              this.PlanetLayer(true)
+              this.CenterStar(this.system!)
+              this.PlanetLayer(false)
+            }
+            .width(GALAXY_SIZE)
+            .height(GALAXY_SIZE)
+            .translate({ x: this.cameraOffsetX, y: this.cameraOffsetY })
           }
           .width(GALAXY_SIZE)
           .height(GALAXY_SIZE)
           .alignSelf(ItemAlign.Center)
           .margin({ top: S_2 })
           .clip(true)
+          .priorityGesture(
+            PanGesture({ direction: PanDirection.All })
+              .onActionStart((_event: GestureEvent): void => {
+                this.dragStartCameraOffsetX = this.cameraOffsetX
+                this.dragStartCameraOffsetY = this.cameraOffsetY
+              })
+              .onActionUpdate((event: GestureEvent): void => {
+                this.onCameraChange(
+                  this.dragStartCameraOffsetX + event.offsetX,
+                  this.dragStartCameraOffsetY + event.offsetY,
+                )
+              })
+              .onActionEnd((): void => {
+                this.dragStartCameraOffsetX = this.cameraOffsetX
+                this.dragStartCameraOffsetY = this.cameraOffsetY
+              })
+          )
 
           this.ZoomControls()
           this.SubjectSummary(this.system!)
@@ -938,58 +1268,102 @@ struct SubjectGalaxyView {
       .width(orbit.radiusX * 2 * this.zoom)
       .height(orbit.radiusY * 2 * this.zoom)
       .stroke(this.orbitStrokeColor(orbit))
-      .strokeWidth(0.8)
-      .opacity(0.20 + Math.min(0.18, orbit.mastery * 0.16))
+      .strokeWidth(this.orbitStrokeWidth(orbit))
+      .opacity(this.orbitOpacity(orbit))
       .rotate({ angle: orbit.tilt })
 
     Ellipse()
       .width(orbit.radiusX * 2 * this.zoom + 18)
       .height(orbit.radiusY * 2 * this.zoom + 8)
       .stroke(this.orbitStrokeColor(orbit))
-      .strokeWidth(0.35)
-      .opacity(0.08)
+      .strokeWidth(this.isOrbitFocused(orbit) ? 0.7 : 0.35)
+      .opacity(this.isOrbitFocused(orbit) ? 0.20 : 0.08)
       .rotate({ angle: orbit.tilt + 2 })
 
     Text(orbit.chapter)
       .fontSize(F_XS)
       .fontWeight(W_SEMIBOLD)
-      .fontColor("#CCECF7FF")
+      .fontColor(this.isOrbitFocused(orbit) ? "#E7FFF8" : "#CCECF7FF")
       .maxLines(1)
       .textOverflow({ overflow: TextOverflow.Ellipsis })
       .width(96)
       .height(22)
       .textAlign(TextAlign.Center)
       .borderRadius(R_FULL)
-      .backgroundColor("#3008121C")
-      .border({ width: 0.5, color: "#3A9BE7FF" })
+      .backgroundColor(this.isOrbitFocused(orbit) ? "#361CECD4" : "#3008121C")
+      .border({ width: this.isOrbitFocused(orbit) ? 0.8 : 0.5, color: this.isOrbitFocused(orbit) ? MINT : "#3A9BE7FF" })
       .position({ x: this.orbitLabelX(orbit), y: this.orbitLabelY(orbit) })
   }
 
   @Builder
+  RelationLine(link: GalaxyLink) {
+    if (this.hasPlanet(link.fromId) && this.hasPlanet(link.toId)) {
+      Row()
+        .width(this.linkDistance(link))
+        .height(this.linkStrokeWidth(link))
+        .borderRadius(R_FULL)
+        .backgroundColor(this.linkColor(link))
+        .opacity(this.linkOpacity(link))
+        .rotate({ angle: this.linkAngle(link) })
+        .position({ x: this.linkLeftX(link), y: this.linkTopY(link) })
+
+      Text(this.linkLabel(link))
+        .fontSize(9)
+        .fontWeight(W_SEMIBOLD)
+        .fontColor(this.linkLabelColor(link))
+        .width(42)
+        .height(18)
+        .textAlign(TextAlign.Center)
+        .borderRadius(R_FULL)
+        .backgroundColor(this.linkLabelBackground(link))
+        .border({ width: 0.4, color: this.linkColor(link) })
+        .opacity(this.linkLabelOpacity(link))
+        .position({ x: this.linkLabelX(link), y: this.linkLabelY(link) })
+    }
+  }
+
+  @Builder
   CenterStar(system: SubjectSystem) {
-    Circle({ width: this.centerStarGlowSize(96), height: this.centerStarGlowSize(96) })
-      .fill(system.color)
-      .opacity(this.centerStarGlowOpacity(0.045))
+    Stack() {
+      Circle({ width: 72, height: 72 })
+        .fill(system.color)
+        .opacity(this.centerStarGlowOpacity(0.045))
 
-    Circle({ width: this.centerStarGlowSize(68), height: this.centerStarGlowSize(68) })
-      .fill(system.color)
-      .opacity(this.centerStarGlowOpacity(0.10))
+      Circle({ width: 50, height: 50 })
+        .fill(system.color)
+        .opacity(this.centerStarGlowOpacity(0.10))
 
-    Circle({ width: this.centerStarGlowSize(38), height: this.centerStarGlowSize(38) })
-      .fill("#E7FFF8")
-      .opacity(this.centerStarGlowOpacity(0.18))
+      Circle({ width: 28, height: 28 })
+        .fill("#E7FFF8")
+        .opacity(this.centerStarGlowOpacity(0.18))
 
-    this.SolarStar(system.color, 46 * this.centerStarScale(), 0.96)
+      this.SolarStar(system.color, 34, 0.96)
+    }
+    .width(this.centerStarFrameSize())
+    .height(this.centerStarFrameSize())
+    .alignContent(Alignment.Center)
+    .scale({ x: this.centerStarScale(), y: this.centerStarScale() })
+    .position({
+      x: GALAXY_CENTER - this.centerStarFrameSize() / 2,
+      y: GALAXY_CENTER - this.centerStarFrameSize() / 2,
+    })
   }
 
   @Builder
   Planet(orbit: ChapterOrbit, planet: PlanetNode) {
     Column() {
       Stack() {
-        Circle({ width: this.planetSize(planet) + 20, height: this.planetSize(planet) + 20 })
+        if (this.isOrbitFocused(orbit)) {
+          Circle({ width: this.planetSize(planet) + this.planetHighlightPadding(planet), height: this.planetSize(planet) + this.planetHighlightPadding(planet) })
+            .fill("#00FFFFFF")
+            .stroke(planet.id === this.focusedPlanetId ? MINT : planetAccentColor(planet.id))
+            .strokeWidth(planet.id === this.focusedPlanetId ? 1.2 : 0.75)
+            .opacity(planet.id === this.focusedPlanetId ? 0.78 : 0.42)
+        }
+        Circle({ width: this.planetSize(planet) + 10, height: this.planetSize(planet) + 10 })
           .fill(planetBaseColor(planet.id))
           .opacity(0.045)
-        Circle({ width: this.planetSize(planet) + 10, height: this.planetSize(planet) + 10 })
+        Circle({ width: this.planetSize(planet) + 5, height: this.planetSize(planet) + 5 })
           .fill(planetAccentColor(planet.id))
           .opacity(0.08)
         this.SolarPlanet(planet, this.planetSize(planet), planet.alpha)
@@ -1012,7 +1386,29 @@ struct SubjectGalaxyView {
     .height(this.planetFrameHeight(planet))
     .alignItems(HorizontalAlign.Center)
     .position({ x: this.planetX(orbit, planet), y: this.planetY(orbit, planet) })
+    .onHover((isHover: boolean): void => {
+      this.onHoverPlanet(isHover ? planet.id : "")
+    })
     .onClick((): void => this.onSelectPlanet(planet))
+  }
+
+  @Builder
+  PlanetLayer(isBackLayer: boolean) {
+    if (this.system !== null) {
+      ForEach(this.system.orbits,
+        (orbit: ChapterOrbit): void => {
+          ForEach(orbit.planets,
+            (planet: PlanetNode): void => {
+              if (this.isPlanetBehindStar(planet) === isBackLayer) {
+                this.Planet(orbit, planet)
+              }
+            },
+            (planet: PlanetNode): string => orbit.chapter + "_" + planet.id + (isBackLayer ? "_back" : "_front")
+          )
+        },
+        (orbit: ChapterOrbit): string => orbit.chapter + (isBackLayer ? "_back_planets" : "_front_planets")
+      )
+    }
   }
 
   @Builder
@@ -1206,12 +1602,36 @@ struct SubjectGalaxyView {
     return clamp(1 + Math.max(0, this.zoom - 1) * 0.28, 1, 1.56)
   }
 
+  private detailBackgroundPanPadding(): number {
+    return 160
+  }
+
+  private detailBackgroundFrameSize(): number {
+    return GALAXY_SIZE + this.detailBackgroundPanPadding() * 2
+  }
+
+  private detailBackgroundOffsetX(): number {
+    return clamp(-this.cameraOffsetX * 0.35, -this.detailBackgroundPanPadding(), this.detailBackgroundPanPadding())
+  }
+
+  private detailBackgroundOffsetY(): number {
+    return clamp(-this.cameraOffsetY * 0.35, -this.detailBackgroundPanPadding(), this.detailBackgroundPanPadding())
+  }
+
+  private detailBackgroundX(): number {
+    return -this.detailBackgroundPanPadding() + this.detailBackgroundOffsetX()
+  }
+
+  private detailBackgroundY(): number {
+    return -this.detailBackgroundPanPadding() + this.detailBackgroundOffsetY()
+  }
+
   private centerStarScale(): number {
     return clamp(0.62 + this.zoom * 0.58, 0.95, 2.45)
   }
 
-  private centerStarGlowSize(sizeValue: number): number {
-    return sizeValue * this.centerStarScale()
+  private centerStarFrameSize(): number {
+    return 86
   }
 
   private centerStarGlowOpacity(baseOpacity: number): number {
@@ -1219,6 +1639,9 @@ struct SubjectGalaxyView {
   }
 
   private orbitStrokeColor(orbit: ChapterOrbit): string {
+    if (this.isOrbitFocused(orbit)) {
+      return MINT
+    }
     if (orbit.mastery >= 0.72) {
       return MINT
     }
@@ -1226,6 +1649,15 @@ struct SubjectGalaxyView {
       return "#9BE7FF"
     }
     return "#C8B6FF"
+  }
+
+  private orbitStrokeWidth(orbit: ChapterOrbit): number {
+    return this.isOrbitFocused(orbit) ? 1.35 : 0.8
+  }
+
+  private orbitOpacity(orbit: ChapterOrbit): number {
+    const baseOpacity: number = 0.20 + Math.min(0.18, orbit.mastery * 0.16)
+    return this.isOrbitFocused(orbit) ? Math.min(0.58, baseOpacity + 0.24) : baseOpacity
   }
 
   private orbitLabelX(orbit: ChapterOrbit): number {
@@ -1236,8 +1668,158 @@ struct SubjectGalaxyView {
     return clamp(GALAXY_CENTER + (orbit.labelY - GALAXY_CENTER) * this.zoom - 12, 4, GALAXY_SIZE - 28)
   }
 
+  private focusedLinks(): GalaxyLink[] {
+    const links: GalaxyLink[] = []
+    if (this.system === null || this.focusedPlanetId.length === 0) {
+      return links
+    }
+    for (const link of this.system.links) {
+      if (link.fromId === this.focusedPlanetId || link.toId === this.focusedPlanetId) {
+        links.push(link)
+      }
+    }
+    return links
+  }
+
+  private linkKey(link: GalaxyLink): string {
+    return link.type + "_" + link.fromId + "_" + link.toId
+  }
+
+  private hasPlanet(id: string): boolean {
+    return this.findPlanet(id) !== null && this.findOrbit(id) !== null
+  }
+
+  private findPlanet(id: string): PlanetNode | null {
+    if (this.system === null || id.length === 0) {
+      return null
+    }
+    for (const orbit of this.system.orbits) {
+      for (const planet of orbit.planets) {
+        if (planet.id === id) {
+          return planet
+        }
+      }
+    }
+    return null
+  }
+
+  private findOrbit(id: string): ChapterOrbit | null {
+    if (this.system === null || id.length === 0) {
+      return null
+    }
+    for (const orbit of this.system.orbits) {
+      for (const planet of orbit.planets) {
+        if (planet.id === id) {
+          return orbit
+        }
+      }
+    }
+    return null
+  }
+
+  private linkEndpointX(id: string): number {
+    const orbit: ChapterOrbit | null = this.findOrbit(id)
+    const planet: PlanetNode | null = this.findPlanet(id)
+    if (orbit === null || planet === null) {
+      return GALAXY_CENTER
+    }
+    return this.planetCenterX(orbit, planet)
+  }
+
+  private linkEndpointY(id: string): number {
+    const orbit: ChapterOrbit | null = this.findOrbit(id)
+    const planet: PlanetNode | null = this.findPlanet(id)
+    if (orbit === null || planet === null) {
+      return GALAXY_CENTER
+    }
+    return this.planetCenterY(orbit, planet)
+  }
+
+  private linkDistance(link: GalaxyLink): number {
+    const dx: number = this.linkEndpointX(link.toId) - this.linkEndpointX(link.fromId)
+    const dy: number = this.linkEndpointY(link.toId) - this.linkEndpointY(link.fromId)
+    return Math.sqrt(dx * dx + dy * dy)
+  }
+
+  private linkAngle(link: GalaxyLink): number {
+    const dx: number = this.linkEndpointX(link.toId) - this.linkEndpointX(link.fromId)
+    const dy: number = this.linkEndpointY(link.toId) - this.linkEndpointY(link.fromId)
+    return Math.atan2(dy, dx) * 180 / Math.PI
+  }
+
+  private linkLeftX(link: GalaxyLink): number {
+    return (this.linkEndpointX(link.fromId) + this.linkEndpointX(link.toId)) / 2 - this.linkDistance(link) / 2
+  }
+
+  private linkTopY(link: GalaxyLink): number {
+    return (this.linkEndpointY(link.fromId) + this.linkEndpointY(link.toId)) / 2 - this.linkStrokeWidth(link) / 2
+  }
+
+  private linkMidX(link: GalaxyLink): number {
+    return (this.linkEndpointX(link.fromId) + this.linkEndpointX(link.toId)) / 2
+  }
+
+  private linkMidY(link: GalaxyLink): number {
+    return (this.linkEndpointY(link.fromId) + this.linkEndpointY(link.toId)) / 2
+  }
+
+  private linkLabelX(link: GalaxyLink): number {
+    return this.linkMidX(link) - 21
+  }
+
+  private linkLabelY(link: GalaxyLink): number {
+    return this.linkMidY(link) - 9
+  }
+
+  private linkStrokeWidth(link: GalaxyLink): number {
+    return link.type === "prerequisite" ? 1.4 : 1
+  }
+
+  private linkColor(link: GalaxyLink): string {
+    if (link.type === "prerequisite") {
+      return stableHash(link.fromId + link.toId) % 2 === 0 ? MINT : "#8DEBFF"
+    }
+    return stableHash(link.fromId + link.toId) % 2 === 0 ? "#DAB7FF" : "#8DEBFF"
+  }
+
+  private linkOpacity(link: GalaxyLink): number {
+    return link.type === "prerequisite" ? 0.70 : 0.42
+  }
+
+  private linkLabel(link: GalaxyLink): string {
+    return link.type === "prerequisite" ? "前置" : "关联"
+  }
+
+  private linkLabelColor(link: GalaxyLink): string {
+    return link.type === "prerequisite" ? "#D8FFF3" : "#F1E3FF"
+  }
+
+  private linkLabelBackground(link: GalaxyLink): string {
+    return link.type === "prerequisite" ? "#331CECD4" : "#2ADAB7FF"
+  }
+
+  private linkLabelOpacity(link: GalaxyLink): number {
+    return link.type === "prerequisite" ? 0.90 : 0.76
+  }
+
   private planetAngle(planet: PlanetNode): number {
     return (planet.angle + this.orbitOffset * planet.speed) % 360
+  }
+
+  private isOrbitFocused(orbit: ChapterOrbit): boolean {
+    if (this.focusedPlanetId.length === 0) {
+      return false
+    }
+    for (const planet of orbit.planets) {
+      if (planet.id === this.focusedPlanetId) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private planetHighlightPadding(planet: PlanetNode): number {
+    return planet.id === this.focusedPlanetId ? 14 : 9
   }
 
   private planetScale(planet: PlanetNode): number {
@@ -1245,8 +1827,13 @@ struct SubjectGalaxyView {
     return 0.86 + (Math.sin(radians) + 1) * 0.09
   }
 
+  private isPlanetBehindStar(planet: PlanetNode): boolean {
+    const radians: number = this.planetAngle(planet) * Math.PI / 180
+    return Math.sin(radians) < 0
+  }
+
   private planetSize(planet: PlanetNode): number {
-    return clamp(planet.size * this.planetScale(planet) * 0.78, 12, 42)
+    return clamp(planet.size * this.planetScale(planet) * 0.39, 6, 21)
   }
 
   private planetVisualScale(): number {

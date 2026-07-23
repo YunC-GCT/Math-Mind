@@ -1,26 +1,26 @@
 /**
- * NoteItemMapper.ets — KnowledgeUnit → NoteItem 视图层转换
+ * NoteItemMapper.ets �?KnowledgeUnit �?NoteItem 视图层转�?
  *
  * 路径: entry/src/main/ets/utils/NoteItemMapper.ets
- * 职责: 把 common 模块的 KnowledgeUnit (持久化/业务模型) 转换成 UI 用的
- *       NoteItem 视图模型，供 NotesPage / NotesList 渲染。
+ * 职责: �?common 模块�?KnowledgeUnit (持久�?业务模型) 转换�?UI 用的
+ *       NoteItem 视图模型，供 NotesPage / NotesList 渲染�?
  * 依赖: common (KnowledgeUnit / NoteItem / ReviewStatus 类型)
  *
- * 数据流:
+ * 数据�?
  *   KnowledgeUnit (DB/AI 产出)
- *     → unitToNoteItem(unit)
- *       → stableNumericId(unit.id)         // 字符串 ID → 32 位整数 (UI 列表 key 用)
- *       → confidence(unit.reviewStatus)     // ReviewStatus → 0-1 掌握度
- *       → dateText(unit.createdAt)         // 时间戳 → yyyy-MM-dd
- *     → NoteItem (UI 直接渲染)
+ *     �?unitToNoteItem(unit)
+ *       �?stableNumericId(unit.id)         // 字符�?ID �?32 位整�?(UI 列表 key �?
+ *       �?confidence(unit.reviewStatus)     // ReviewStatus �?0-1 掌握�?
+ *       �?dateText(unit.createdAt)         // 时间�?�?yyyy-MM-dd
+ *     �?NoteItem (UI 直接渲染)
  *
- * ReviewStatus → 掌握度映射:
+ * ReviewStatus �?掌握度映�?
  *   GRADUATED 0.95 | REVIEW 0.86 | LEARNING 0.72 | LAPSED 0.45 | 默认 0.64
  *
  * ArkTS 1.1 strict 适配:
- *   - stableNumericId 用 for...of 替代 while + 手动 idx 递增
- *   - JSON.parse 强转 as string[] 后逐项 typeof 检查兜底
- *   - 无 any / unknown，错误统一 (e as Error).message
+ *   - stableNumericId �?for...of 替代 while + 手动 idx 递增
+ *   - JSON.parse 强转 as string[] 后逐项 typeof 检查兜�?
+ *   - �?any / unknown，错误统一 (e as Error).message
  */
 import {
   ContentExcerptBuilder,
@@ -34,6 +34,12 @@ import {
 const CAMERA_SOURCE: string = "camera_capture"
 const NOTE_CARD_PREVIEW_LIMIT: number = 46
 const CONTENT_EXCERPT_BUILDER: ContentExcerptBuilder = new ContentExcerptBuilder()
+const MANUAL_SOURCE: string = "manual"
+const FILE_IMPORT_SOURCE: string = "file_import"
+
+function isSourceTag(tag: string): boolean {
+  return tag === CAMERA_SOURCE || tag === MANUAL_SOURCE || tag === FILE_IMPORT_SOURCE
+}
 
 function resolveType(tags: string[]): string {
   for (const tag of tags) {
@@ -56,7 +62,7 @@ function resolveSubject(tags: string[]): string {
 }
 
 function isReturnedSubjectFeature(tag: string): boolean {
-  if (tag.length === 0 || isKnownNoteType(tag) || tag === CAMERA_SOURCE) {
+  if (tag.length === 0 || isKnownNoteType(tag) || isSourceTag(tag)) {
     return false
   }
   return true
@@ -65,7 +71,7 @@ function isReturnedSubjectFeature(tag: string): boolean {
 function firstReturnedFeature(tags: string[]): string {
   for (const tag of tags) {
     const t: string = tag.trim()
-    if (t.length > 0 && t !== CAMERA_SOURCE) {
+    if (t.length > 0 && !isSourceTag(t)) {
       return normalizeNoteType(t)
     }
   }
@@ -101,7 +107,7 @@ export function unitToNoteItem(unit: KnowledgeUnit): NoteItem {
   const rawId: string = unit.id.length > 0 ? unit.id : unit.title + unit.createdAt.toString()
   const subject: string = unit.subject.trim().length > 0 ? unit.subject.trim() : resolveSubject(unit.tags)
   const type: string = unit.category.length > 0 ? unit.category : resolveType(unit.tags)
-  const chapter: string = unit.source.length > 0 && unit.source !== CAMERA_SOURCE ? unit.source : subject
+  const chapter: string = unit.chapter.length > 0 ? unit.chapter : subject
   const previewSource: string = unit.summary.trim().length > 0 ? unit.summary : unit.content
   const body: string = CONTENT_EXCERPT_BUILDER.buildListPreview(previewSource, NOTE_CARD_PREVIEW_LIMIT)
 

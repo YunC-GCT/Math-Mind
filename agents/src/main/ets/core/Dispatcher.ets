@@ -46,12 +46,19 @@ import {
   DispatchAnalysisResult,
   ClassificationResult,
 } from 'common';
+import type { DispatchPayload } from 'common';
 
 const log = new Logger('Dispatcher');
 
 // ==================== 主类 ====================
 
 export class Dispatcher {
+  private static sourceFromPayload(payload: DispatchPayload): string {
+    if (payload.kind === 'image') { return 'camera_capture'; }
+    if (payload.kind === 'text') { return 'manual'; }
+    return 'file_import';
+  }
+
   // 只做 OCR + 分类，不调用 KnowledgeModel，不生成笔记
   async analyze(req: DispatchRequest, context?: Context): Promise<DispatchAnalysisResult> {
     const t0: number = Date.now();
@@ -120,7 +127,8 @@ export class Dispatcher {
 
       // Step 3: 建模 + 真值检验(由 KnowledgeModel 内部完成)
       const model = new KnowledgeModel();
-      const unit: KnowledgeUnit = await model.structure(ocrText);
+      const source: string = Dispatcher.sourceFromPayload(req.payload);
+      const unit: KnowledgeUnit = await model.structure(ocrText, undefined, undefined, '', source);
       log.info('structure done, note.id=' + unit.id);
 
       // Step 4: 返回成功

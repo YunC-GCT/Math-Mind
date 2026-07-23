@@ -13,7 +13,7 @@ const REVIEW_TAB_GRAPH: number = 1
 @Component
 export struct ReviewPage {
   @StorageProp("statusBarHeight") sbh: number = 0
-  @State activeTab: number = REVIEW_TAB_GRAPH
+  @State activeTab: number = REVIEW_TAB_PLAN
   @State vm: StudyPlanViewModel = new StudyPlanViewModel()
   @State liveIds: string[] = []
   @State planOrderIds: string[] = []

@@ -56,7 +56,9 @@ struct Index {
             Column().width("100%").height("100%").backgroundColor(BG_DARK)
           }
           TabContent() {
-            ReviewPage()
+            ReviewPage({
+              onGoAI: (): void => { overlays.open('float') },
+            })
           }
           TabContent() { ProfilePage() }
         }

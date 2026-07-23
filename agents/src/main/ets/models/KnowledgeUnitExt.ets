@@ -32,6 +32,7 @@ export interface StructuredField {
 export interface AiRawResponse {
   readonly category: KnowledgeCategory;
   readonly subject: string;
+  readonly chapter: string;
   readonly title: string;
   readonly tags: string[];
   readonly difficulty: number;
@@ -59,6 +60,8 @@ export interface KnowledgeUnitExt {
   tags: string[];
   /** 学科 */
   subject: string;
+  /** 章节/知识点短语（独立于 source） */
+  chapter: string;
 
   // ── 结构化字段（该最小类特有的表内容） ──
   /** 该类特有的键值对数组，UI 统一渲染 */
@@ -117,6 +120,7 @@ export function createUnitExt(
     content: content,
     tags: [],
     subject: subject,
+    chapter: '',
     fields: [],
     truthFlag: true,
     truthDetails: [],

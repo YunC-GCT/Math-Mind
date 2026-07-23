@@ -2,15 +2,78 @@
 //  viewmodels/KnowledgeGalaxyViewModel.ets - review knowledge galaxy data logic
 // ============================================================================
 
-import { DatabaseHelper, KnowledgeUnit, NoteItem, subjectColor, typeColor } from "common"
+import { DatabaseHelper, DifficultyLevel, KnowledgeUnit, NoteItem, ReviewStatus, subjectColor, typeColor } from "common"
 import { NoteDao } from "../database/NoteDao"
 import { unitToNoteItem } from "../utils/NoteItemMapper"
 
 const UNCLASSIFIED_SUBJECT: string = "未分类"
 const UNCLASSIFIED_CHAPTER: string = "未分章节"
-const CAMERA_SOURCE: string = "camera_capture"
-const MANUAL_SOURCE: string = "manual"
 const WRONG_NOTE_TYPE: string = "错题"
+const ENABLE_GALAXY_PREVIEW_UNITS: boolean = true
+const PREVIEW_UNIT_PREFIX: string = "galaxy_preview_"
+
+function previewUnit(
+  id: string,
+  title: string,
+  subject: string,
+  category: string,
+  chapter: string,
+  summary: string,
+  prerequisites: string[],
+  related: string[],
+  repetitions: number,
+  reviewStatus: ReviewStatus,
+): KnowledgeUnit {
+  const now: number = Date.now()
+  return {
+    id: PREVIEW_UNIT_PREFIX + id,
+    title: title,
+    content: summary,
+    summary: summary,
+    tags: [subject, category, chapter],
+    subject: subject,
+    category: category,
+    chapter: chapter,
+    difficulty: DifficultyLevel.MEDIUM,
+    source: "manual",
+    createdAt: now - repetitions * 86400000,
+    updatedAt: now - repetitions * 3600000,
+    reviewStatus: reviewStatus,
+    nextReviewAt: now,
+    intervalDays: Math.max(1, repetitions),
+    easeFactor: 2.5,
+    repetitions: repetitions,
+    prerequisites: prerequisites,
+    related: related,
+    embedding: [],
+    userId: "preview",
+    version: 1,
+  }
+}
+
+export type GalaxyLinkType = "prerequisite" | "related"
+
+export class GalaxyLink {
+  fromId: string = ""
+  toId: string = ""
+  type: GalaxyLinkType = "related"
+  fromChapter: string = ""
+  toChapter: string = ""
+
+  constructor(
+    fromId: string,
+    toId: string,
+    type: GalaxyLinkType,
+    fromChapter: string,
+    toChapter: string,
+  ) {
+    this.fromId = fromId
+    this.toId = toId
+    this.type = type
+    this.fromChapter = fromChapter
+    this.toChapter = toChapter
+  }
+}
 
 export class PlanetNode {
   id: string = ""
@@ -99,6 +162,7 @@ export class SubjectSystem {
   size: number = 0
   planets: PlanetNode[] = []
   orbits: ChapterOrbit[] = []
+  links: GalaxyLink[] = []
 
   constructor(
     subject: string,
@@ -110,6 +174,7 @@ export class SubjectSystem {
     size: number,
     planets: PlanetNode[],
     orbits: ChapterOrbit[],
+    links: GalaxyLink[],
   ) {
     this.subject = subject
     this.color = color
@@ -120,6 +185,7 @@ export class SubjectSystem {
     this.size = size
     this.planets = planets
     this.orbits = orbits
+    this.links = links
   }
 }
 
@@ -147,8 +213,7 @@ export class KnowledgeGalaxyViewModel {
 
   async load(context: Context): Promise<boolean> {
     try {
-      const store = await DatabaseHelper.init(context)
-      const units: KnowledgeUnit[] = await new NoteDao(store).queryAll()
+      const units: KnowledgeUnit[] = this.withPreviewUnits(await this.loadPersistedUnits(context))
       this.units = units
       this.notes = this.unitsToNotes(units)
       this.systems = this.buildSystems(units, this.notes)
@@ -166,9 +231,23 @@ export class KnowledgeGalaxyViewModel {
     }
   }
 
+  private async loadPersistedUnits(context: Context): Promise<KnowledgeUnit[]> {
+    try {
+      const store = await DatabaseHelper.init(context)
+      return await new NoteDao(store).queryAll()
+    } catch (e) {
+      console.warn("[KnowledgeGalaxyViewModel] persisted load failed: " + ((e as Error).message ?? String(e)))
+      return []
+    }
+  }
+
   async loadNote(context: Context, id: string): Promise<KnowledgeUnit | null> {
     if (id.length === 0) {
       return null
+    }
+    const previewUnit: KnowledgeUnit | null = this.findLoadedPreviewUnit(id)
+    if (previewUnit !== null) {
+      return previewUnit
     }
     try {
       const store = await DatabaseHelper.init(context)
@@ -181,6 +260,9 @@ export class KnowledgeGalaxyViewModel {
 
   async deleteNote(context: Context, id: string): Promise<boolean> {
     if (id.length === 0) {
+      return false
+    }
+    if (this.isPreviewUnitId(id)) {
       return false
     }
     try {
@@ -199,6 +281,187 @@ export class KnowledgeGalaxyViewModel {
       notes.push(unitToNoteItem(unit))
     }
     return notes
+  }
+
+  private withPreviewUnits(units: KnowledgeUnit[]): KnowledgeUnit[] {
+    if (!ENABLE_GALAXY_PREVIEW_UNITS) {
+      return units
+    }
+    const result: KnowledgeUnit[] = units.slice(0)
+    for (const unit of this.previewUnits()) {
+      if (!this.hasUnitId(result, unit.id)) {
+        result.push(unit)
+      }
+    }
+    return result
+  }
+
+  private hasUnitId(units: KnowledgeUnit[], id: string): boolean {
+    for (const unit of units) {
+      if (unit.id === id) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private findLoadedPreviewUnit(id: string): KnowledgeUnit | null {
+    if (!this.isPreviewUnitId(id)) {
+      return null
+    }
+    for (const unit of this.units) {
+      if (unit.id === id) {
+        return unit
+      }
+    }
+    return null
+  }
+
+  private isPreviewUnitId(id: string): boolean {
+    return id.indexOf(PREVIEW_UNIT_PREFIX) === 0
+  }
+
+  private previewUnits(): KnowledgeUnit[] {
+    const units: KnowledgeUnit[] = []
+    units.push(previewUnit(
+      "limit_definition",
+      "数列与函数极限定义",
+      "示例：数学分析",
+      "概念",
+      "极限",
+      "用 epsilon-delta 语言描述函数趋近，作为连续、导数和级数判别的基础。",
+      [],
+      [PREVIEW_UNIT_PREFIX + "limit_laws", PREVIEW_UNIT_PREFIX + "continuity"],
+      2,
+      ReviewStatus.LEARNING,
+    ))
+    units.push(previewUnit(
+      "limit_laws",
+      "极限四则运算法则",
+      "示例：数学分析",
+      "定理",
+      "极限",
+      "在极限存在的条件下，和、差、积、商的极限可分别运算。",
+      [PREVIEW_UNIT_PREFIX + "limit_definition"],
+      [PREVIEW_UNIT_PREFIX + "continuity", PREVIEW_UNIT_PREFIX + "limit_definition"],
+      5,
+      ReviewStatus.REVIEW,
+    ))
+    units.push(previewUnit(
+      "continuity",
+      "连续性的局部性质",
+      "示例：数学分析",
+      "概念",
+      "连续函数",
+      "连续函数在一点附近保持有界、保号，并可与极限运算法则配合使用。",
+      [PREVIEW_UNIT_PREFIX + "limit_definition"],
+      [PREVIEW_UNIT_PREFIX + "limit_laws", PREVIEW_UNIT_PREFIX + "limit_definition"],
+      4,
+      ReviewStatus.REVIEW,
+    ))
+    units.push(previewUnit(
+      "derivative_definition",
+      "导数定义与几何意义",
+      "示例：数学分析",
+      "概念",
+      "导数与微分",
+      "导数是差商极限，表示曲线切线斜率和瞬时变化率。",
+      [PREVIEW_UNIT_PREFIX + "limit_definition", PREVIEW_UNIT_PREFIX + "continuity"],
+      [PREVIEW_UNIT_PREFIX + "lagrange_mvt", PREVIEW_UNIT_PREFIX + "taylor_formula"],
+      7,
+      ReviewStatus.GRADUATED,
+    ))
+    units.push(previewUnit(
+      "lagrange_mvt",
+      "拉格朗日中值定理",
+      "示例：数学分析",
+      "定理",
+      "微分中值定理",
+      "若函数闭区间连续、开区间可导，则存在一点使导数等于割线斜率。",
+      [PREVIEW_UNIT_PREFIX + "derivative_definition", PREVIEW_UNIT_PREFIX + "continuity"],
+      [PREVIEW_UNIT_PREFIX + "taylor_formula", PREVIEW_UNIT_PREFIX + "derivative_definition"],
+      8,
+      ReviewStatus.GRADUATED,
+    ))
+    units.push(previewUnit(
+      "taylor_formula",
+      "泰勒公式余项估计",
+      "示例：数学分析",
+      "公式",
+      "泰勒公式",
+      "用多项式近似函数，并通过余项控制误差，是极限与近似计算的核心工具。",
+      [PREVIEW_UNIT_PREFIX + "lagrange_mvt", PREVIEW_UNIT_PREFIX + "derivative_definition"],
+      [
+        PREVIEW_UNIT_PREFIX + "lagrange_mvt",
+        PREVIEW_UNIT_PREFIX + "derivative_definition",
+        PREVIEW_UNIT_PREFIX + "missing_note",
+        PREVIEW_UNIT_PREFIX + "sign_error_wrong",
+        PREVIEW_UNIT_PREFIX + "matrix_inverse",
+      ],
+      6,
+      ReviewStatus.REVIEW,
+    ))
+    units.push(previewUnit(
+      "sign_error_wrong",
+      "泰勒展开符号错题",
+      "示例：数学分析",
+      WRONG_NOTE_TYPE,
+      "泰勒公式",
+      "错题示例：这条不应进入知识星系，也不应参与关系线。",
+      [PREVIEW_UNIT_PREFIX + "taylor_formula"],
+      [],
+      1,
+      ReviewStatus.LAPSED,
+    ))
+    units.push(previewUnit(
+      "vector_linear_dependence",
+      "向量组线性相关",
+      "示例：线性代数",
+      "概念",
+      "向量空间",
+      "存在不全为零的系数组合为零向量时，向量组线性相关。",
+      [],
+      [PREVIEW_UNIT_PREFIX + "matrix_rank"],
+      3,
+      ReviewStatus.LEARNING,
+    ))
+    units.push(previewUnit(
+      "matrix_rank",
+      "矩阵秩与初等变换",
+      "示例：线性代数",
+      "计算题",
+      "矩阵",
+      "矩阵秩可通过初等行变换化阶梯形后读取非零行数。",
+      [PREVIEW_UNIT_PREFIX + "vector_linear_dependence"],
+      [PREVIEW_UNIT_PREFIX + "determinant"],
+      5,
+      ReviewStatus.REVIEW,
+    ))
+    units.push(previewUnit(
+      "determinant",
+      "行列式按行展开",
+      "示例：线性代数",
+      "公式",
+      "行列式",
+      "按某一行或列展开可将高阶行列式化为代数余子式的组合。",
+      [],
+      [PREVIEW_UNIT_PREFIX + "matrix_inverse", PREVIEW_UNIT_PREFIX + "matrix_rank"],
+      4,
+      ReviewStatus.REVIEW,
+    ))
+    units.push(previewUnit(
+      "matrix_inverse",
+      "可逆矩阵判定",
+      "示例：线性代数",
+      "定理",
+      "矩阵",
+      "方阵可逆等价于行列式非零，也等价于满秩。",
+      [PREVIEW_UNIT_PREFIX + "determinant", PREVIEW_UNIT_PREFIX + "matrix_rank"],
+      [PREVIEW_UNIT_PREFIX + "determinant"],
+      9,
+      ReviewStatus.GRADUATED,
+    ))
+    return units
   }
 
   private buildSystems(units: KnowledgeUnit[], notes: NoteItem[]): SubjectSystem[] {
@@ -231,6 +494,7 @@ export class KnowledgeGalaxyViewModel {
     while (index < subjectNames.length) {
       const orbits: ChapterOrbit[] = this.buildChapterOrbits(subjectBundles[index])
       const planets: PlanetNode[] = this.flattenPlanets(orbits)
+      const links: GalaxyLink[] = this.buildLinks(subjectBundles[index])
       const mastery: number = this.calcPlanetMastery(planets)
       const count: number = planets.length
       const size: number = this.clamp(38 + Math.sqrt(count) * 5 + mastery * 8, 46, 76)
@@ -244,13 +508,27 @@ export class KnowledgeGalaxyViewModel {
         size,
         planets,
         orbits,
+        links,
       ))
       index++
     }
 
-    systems.sort((a: SubjectSystem, b: SubjectSystem): number => b.count - a.count)
+    systems.sort((a: SubjectSystem, b: SubjectSystem): number => {
+      const previewDelta: number = this.previewSubjectRank(a.subject) - this.previewSubjectRank(b.subject)
+      if (previewDelta !== 0) {
+        return previewDelta
+      }
+      return b.count - a.count
+    })
     this.applyUniverseLayout(systems)
     return systems
+  }
+
+  private previewSubjectRank(subject: string): number {
+    if (!ENABLE_GALAXY_PREVIEW_UNITS) {
+      return 1
+    }
+    return subject.indexOf("示例：") === 0 ? 0 : 1
   }
 
   private buildChapterOrbits(bundles: UnitBundle[]): ChapterOrbit[] {
@@ -339,6 +617,70 @@ export class KnowledgeGalaxyViewModel {
     return planets
   }
 
+  private buildLinks(bundles: UnitBundle[]): GalaxyLink[] {
+    const links: GalaxyLink[] = []
+    const prerequisiteKeys: string[] = []
+    const relatedKeys: string[] = []
+
+    for (const bundle of bundles) {
+      for (const prerequisiteId of bundle.unit.prerequisites) {
+        const fromBundle: UnitBundle | null = this.findBundleById(bundles, prerequisiteId)
+        if (fromBundle !== null && fromBundle.unit.id !== bundle.unit.id) {
+          const key: string = fromBundle.unit.id + "->" + bundle.unit.id
+          if (prerequisiteKeys.indexOf(key) < 0) {
+            prerequisiteKeys.push(key)
+            links.push(new GalaxyLink(
+              fromBundle.unit.id,
+              bundle.unit.id,
+              "prerequisite",
+              fromBundle.chapter,
+              bundle.chapter,
+            ))
+          }
+        }
+      }
+
+      for (const relatedId of bundle.unit.related) {
+        const relatedBundle: UnitBundle | null = this.findBundleById(bundles, relatedId)
+        if (relatedBundle !== null && relatedBundle.unit.id !== bundle.unit.id) {
+          const key: string = this.relatedKey(bundle.unit.id, relatedBundle.unit.id)
+          if (relatedKeys.indexOf(key) < 0) {
+            relatedKeys.push(key)
+            links.push(new GalaxyLink(
+              bundle.unit.id,
+              relatedBundle.unit.id,
+              "related",
+              bundle.chapter,
+              relatedBundle.chapter,
+            ))
+          }
+        }
+      }
+    }
+
+    return links
+  }
+
+  private findBundleById(bundles: UnitBundle[], id: string): UnitBundle | null {
+    const normalizedId: string = id.trim()
+    if (normalizedId.length === 0) {
+      return null
+    }
+    for (const bundle of bundles) {
+      if (bundle.unit.id === normalizedId) {
+        return bundle
+      }
+    }
+    return null
+  }
+
+  private relatedKey(leftId: string, rightId: string): string {
+    if (leftId < rightId) {
+      return leftId + "->" + rightId
+    }
+    return rightId + "->" + leftId
+  }
+
   private flattenPlanets(orbits: ChapterOrbit[]): PlanetNode[] {
     const planets: PlanetNode[] = []
     for (const orbit of orbits) {
@@ -405,11 +747,8 @@ export class KnowledgeGalaxyViewModel {
   }
 
   private resolveChapter(unit: KnowledgeUnit): string {
-    const chapter: string = unit.source.trim()
-    if (chapter.length === 0 || chapter === CAMERA_SOURCE || chapter === MANUAL_SOURCE) {
-      return UNCLASSIFIED_CHAPTER
-    }
-    return chapter
+    const chapter: string = unit.chapter.trim()
+    return chapter.length > 0 ? chapter : UNCLASSIFIED_CHAPTER
   }
 
   private isWrongNote(note: NoteItem): boolean {
