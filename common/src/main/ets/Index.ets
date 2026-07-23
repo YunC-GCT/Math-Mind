@@ -1,7 +1,7 @@
-// common HSP - public API 鍏ュ彛
-// W1 锟?3: 鏆撮湶锟?Agent 涓氬姟鎵€闇€鐨勬渶灏忛泦(Dispatcher 锟?
+// common HSP - public API 入口
+// W1 块 3: 暴露 Agent 业务所需的最小子集(Dispatcher 侧)
 
-// ========== 璁捐 Token (棰滆壊 / 灏哄 / 瀛楀彿) ==========
+// ========== 设计 Token (颜色 / 尺寸 / 字号) ==========
 export {
   MINT, MINT_DARK, MINT_LIGHT, MINT_GLOW, MINT_BORDER,
   PURPLE, PURPLE_DARK, PURPLE_LIGHT, PINK, PINK_LIGHT, AMBER,
@@ -24,7 +24,7 @@ export {
   DUR_INSTANT, DUR_FAST, DUR_BASE, DUR_SLOW, DUR_SLOWER, DUR_SLOWEST, DUR_BREATH,
 } from './constants/ColorTokens';
 
-// ========== Mock 绗旇鏁版嵁 (UI 寮€鍙戞湡) ==========
+// ========== Mock 笔记数据 (UI 开发期) ==========
 export {
   NoteItem, NOTES, stripMD, recentDate,
 } from './data/MockNotes';
@@ -40,7 +40,7 @@ export {
   normalizeNoteType, isKnownNoteType,
 } from './data/NoteTaxonomy';
 
-// ========== 锟?Agent 鍏变韩绫诲瀷 (Dispatcher 锟? ==========
+// ========== Agent 共享类型 (Dispatcher 侧) ==========
 export {
   KnowledgeUnit,
   ReviewRecord,
@@ -57,7 +57,7 @@ export {
   ApiError,
 } from './models/CommonTypes';
 
-// ========== D1 鎷嶇収閾剧被锟?(锟?Agent 涓氬姟) ==========
+// ========== D1 拍照链类型 (Agent 业务) ==========
 export {
   ClassificationInput,
   ClassificationResult,
@@ -72,7 +72,7 @@ export {
 } from './models/CaptureChain';
 export type { ApiCode, DispatchPayload, ImagePayload, TextPayload, FilePayload, NoteCategory } from './models/CaptureChain';
 
-// ========== 缁熶竴鏃ュ織 (Dispatcher 锟? ==========
+// ========== 统一日志 ==========
 export {
   LogLevel,
   Logger,
@@ -80,10 +80,10 @@ export {
   getLogger,
 } from './utils/logger';
 
-// ========== LLM 鍏变韩鍩虹璁炬柦 (Z 2026-07-14) ==========
-//   LlmConfig:  鍗曚緥,preferences 鎸佷箙锟?API key,UI 杈撳叆/璇诲彇鍏ュ彛
-//   LlmClient:  OpenAI 鍏煎 HTTP 瀹㈡埛锟?鎵€锟?agent 缁熶竴璋冪敤
-//   LlmError:   缁熶竴閿欒绫诲瀷,锟?kind 鍒嗙被(NO_API_KEY / NETWORK_ERROR / API_ERROR / ...)
+// ========== LLM 共享基础设施 (Z 2026-07-14) ==========
+//   LlmConfig:  单例, preferences 持久化 API key, UI 输入/读取入口
+//   LlmClient:  OpenAI 兼容 HTTP 客户端, 所有 agent 统一调用
+//   LlmError:   统一错误类型, 按 kind 分类(NO_API_KEY / NETWORK_ERROR / API_ERROR / ...)
 //   LlmTypes:   ChatMessage / LlmCallOptions / LlmErrorKind
 export { LlmConfig } from './llm/LlmConfig';
 export { LlmClient } from './llm/LlmClient';
@@ -101,13 +101,14 @@ export type { LlmCaller } from './llm/LlmGuard';
 // ========== OCR 端点配置 (2026-07-17 P0 修复) ==========
 //   OcrConfig:  单例, preferences 持久化 endpoint + enabled, 真机部署改 IP
 export { OcrConfig } from './ocr/OcrConfig';
-// ========== 锟斤拷锟捷匡拷 (锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷) ==========
+
+// ========== 数据库 (持久化存储) ==========
 export { DatabaseHelper } from './DatabaseHelper';
 
 // ========== 学习计划模型 ==========
 export { StudyPlanItem } from './models/StudyPlan';
 
-// ========== 文件 URI / MIME 共享工具 (消除 ImageUriResolver/OcrTool 重复) ==========
+// ========== 文件 URI / MIME 共享工具 ==========
 export { mimeFromExtension, extFromUri, fileNameFromUri } from './utils/FileUriUtils';
 export { uuid, shortId } from './utils/uuid';
 export { LatexRiskNormalizer } from './utils/LatexRiskNormalizer';

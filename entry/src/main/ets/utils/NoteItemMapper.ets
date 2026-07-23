@@ -1,26 +1,26 @@
 /**
- * NoteItemMapper.ets 鈥?KnowledgeUnit 鈫?NoteItem 瑙嗗浘灞傝浆鎹?
+ * NoteItemMapper.ets — KnowledgeUnit → NoteItem 视图层转换
  *
- * 璺�緞: entry/src/main/ets/utils/NoteItemMapper.ets
- * 鑱岃矗: 鎶?common 妯″潡鐨?KnowledgeUnit (鎸佷箙鍖?涓氬姟妯″瀷) 杞�崲鎴?UI 鐢ㄧ殑
- *       NoteItem 瑙嗗浘妯″瀷锛屼緵 NotesPage / NotesList 娓叉煋銆?
- * 渚濊禆: common (KnowledgeUnit / NoteItem / ReviewStatus 绫诲瀷)
+ * 路径: entry/src/main/ets/utils/NoteItemMapper.ets
+ * 职责: 把 common 模块的 KnowledgeUnit (持久化业务模型) 转换成
+ *       UI 用的 NoteItem 视图模型，供 NotesPage / NotesList 渲染。
+ * 依赖: common (KnowledgeUnit / NoteItem / ReviewStatus 类型)
  *
- * 鏁版嵁娴?
- *   KnowledgeUnit (DB/AI 浜у嚭)
- *     鈫?unitToNoteItem(unit)
- *       鈫?stableNumericId(unit.id)         // 瀛楃�涓?ID 鈫?32 浣嶆暣鏁?(UI 鍒楄〃 key 鐢?
- *       鈫?confidence(unit.reviewStatus)     // ReviewStatus 鈫?0-1 鎺屾彙搴?
- *       鈫?dateText(unit.createdAt)         // 鏃堕棿鎴?鈫?yyyy-MM-dd
- *     鈫?NoteItem (UI 鐩存帴娓叉煋)
+ * 数据流:
+ *   KnowledgeUnit (DB/AI 产出)
+ *     → unitToNoteItem(unit)
+ *       → stableNumericId(unit.id)         // 字符串 ID → 32 位整数 (UI 列表 key 用)
+ *       → confidence(unit.reviewStatus)     // ReviewStatus → 0-1 掌握度
+ *       → dateText(unit.createdAt)         // 时间戳 → yyyy-MM-dd
+ *     → NoteItem (UI 直接渲染)
  *
- * ReviewStatus 鈫?鎺屾彙搴︽槧灏?
- *   GRADUATED 0.95 | REVIEW 0.86 | LEARNING 0.72 | LAPSED 0.45 | 榛樿� 0.64
+ * ReviewStatus → 掌握度映射:
+ *   GRADUATED 0.95 | REVIEW 0.86 | LEARNING 0.72 | LAPSED 0.45 | 默认 0.64
  *
- * ArkTS 1.1 strict 閫傞厤:
- *   - stableNumericId 鐢?for...of 鏇夸唬 while + 鎵嬪姩 idx 閫掑�
- *   - JSON.parse 寮鸿浆 as string[] 鍚庨€愰」 typeof 妫€鏌ュ厹搴?
- *   - 鏃?any / unknown锛岄敊璇�粺涓€ (e as Error).message
+ * ArkTS 1.1 strict 适配:
+ *   - stableNumericId 用 for...of 替代 while + 手动 idx 递增
+ *   - JSON.parse 强转 as string[] 后逐项 typeof 检查兜底
+ *   - 无 any / unknown，错误统一 (e as Error).message
  */
 import {
   ContentExcerptBuilder,
