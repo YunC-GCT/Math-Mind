@@ -1,26 +1,26 @@
 /**
  * NoteItemMapper.ets �?KnowledgeUnit �?NoteItem 视图层转�?
  *
- * 路径: entry/src/main/ets/utils/NoteItemMapper.ets
- * 职责: �?common 模块�?KnowledgeUnit (持久�?业务模型) 转换�?UI 用的
+ * 跄1�7��: entry/src/main/ets/utils/NoteItemMapper.ets
+ * 职责: �?common 模块�?KnowledgeUnit (持久�?业务模型) 轄1�7���?UI 用的
  *       NoteItem 视图模型，供 NotesPage / NotesList 渲染�?
  * 依赖: common (KnowledgeUnit / NoteItem / ReviewStatus 类型)
  *
  * 数据�?
  *   KnowledgeUnit (DB/AI 产出)
  *     �?unitToNoteItem(unit)
- *       �?stableNumericId(unit.id)         // 字符�?ID �?32 位整�?(UI 列表 key �?
+ *       �?stableNumericId(unit.id)         // 字�1�7�?ID �?32 位整�?(UI 列表 key �?
  *       �?confidence(unit.reviewStatus)     // ReviewStatus �?0-1 掌握�?
  *       �?dateText(unit.createdAt)         // 时间�?�?yyyy-MM-dd
  *     �?NoteItem (UI 直接渲染)
  *
  * ReviewStatus �?掌握度映�?
- *   GRADUATED 0.95 | REVIEW 0.86 | LEARNING 0.72 | LAPSED 0.45 | 默认 0.64
+ *   GRADUATED 0.95 | REVIEW 0.86 | LEARNING 0.72 | LAPSED 0.45 | 默�1�7 0.64
  *
  * ArkTS 1.1 strict 适配:
- *   - stableNumericId �?for...of 替代 while + 手动 idx 递增
- *   - JSON.parse 强转 as string[] 后逐项 typeof 检查兜�?
- *   - �?any / unknown，错误统一 (e as Error).message
+ *   - stableNumericId �?for...of 替代 while + 手动 idx 递�1�7
+ *   - JSON.parse 强转 as string[] 后��项 typeof 棢�查兜�?
+ *   - �?any / unknown，错评1�7��丢� (e as Error).message
  */
 import {
   ContentExcerptBuilder,
@@ -75,7 +75,7 @@ function firstReturnedFeature(tags: string[]): string {
       return normalizeNoteType(t)
     }
   }
-  return "笔记"
+  return "�ʼ�"
 }
 
 function stableNumericId(id: string): number {

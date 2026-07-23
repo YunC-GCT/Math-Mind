@@ -2,13 +2,29 @@
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z
-> 最近更新: 2026-07-22 · W3.5 渲染协议与缓存分层已落地
+> 最近更新: 2026-07-24 · W4 多 WebView 分块渲染 + renderFormula bridge + 超长文本段落拆分 已落地
 
 ---
 
-## 当前阶段总览 (2026-07-22)
+## 当前阶段总览 (2026-07-24)
 
-W3.5 完成 **MM-MD-v1 渲染协议 + 双层缓存 + 五类详情渲染** 整链,核心交付:
+W4 完成 **多 WebView 分块渲染方案**,解决 ArkUI WebView 1800vp 高度上限导致的长内容空白问题,核心交付:
+
+**分块渲染层 (entry):**
+- `FormulaSplitRenderer`:按 `$$` 拆分 markdown 为 FormulaBlock[],合并相邻文本块减少 ~40% WebView 数量,公式块 `forceDisplay=true` 无高度上限,文本块 ≤1800vp
+- `FormulaBlockDataSource` 实现 `IDataSource`,配合 `LazyForEach` 实现按需创建/销毁 WebView (仅可见 block 持有实例)
+- `splitLongTextBlocks()`:超 1500 字符的文本块按 `\n\n` 段落边界二次拆分,防止极端超长纯文本 >1800vp 被截断
+- block 硬上限 30,超出截断防 OOM
+
+**公式渲染优化:**
+- `render.html` 新增 `renderFormula` / `renderFormulaForCache` bridge:公式块跳过 `marked.parse` + `renderMathInElement` 全 DOM 扫描,直接 `katex.renderToString(innerTex, {displayMode:true})` — 快 ~30-50%
+- `MathTextRenderer.clampHeight` 改为 `forceDisplay` 感知: `true` 时 `Math.max(minHeight,height)` 无上限,`false` 时保持 1800vp 上限
+- `MathTextRenderer.renderContent()` 按 `forceDisplay` 自动路由公式/文本两套 bridge
+
+**乱码修复:**
+- `NotesPage.ets` / `SubjectDetailPage.ets` / `NoteItemMapper.ets` 共 4 处 UTF-8→Latin-1 编码乱码修正 ("笔记加载失败"、"学科"、"笔记")
+
+完整方案、调研资料、风险矩阵见 [`docs/2026-07-24/formula-split-render-plan-20260724.md`](./docs/2026-07-24/formula-split-render-plan-20260724.md)。
 
 **渲染协议层 (common):**
 - `LlmGuard` + `LlmOutputRules`:LLM 输出多通道守卫(类型/字段/风险/HTML 转义),失败时 `validate()` 返回结构化 `LlmGuardReport`
@@ -37,7 +53,7 @@ W3.5 完成 **MM-MD-v1 渲染协议 + 双层缓存 + 五类详情渲染** 整链
 - 删除 9 个 `*MVP.ets` + 旧 `AiTestPage`(`KnowledgeModelMVP` / `DispatcherMVP` / `DatabaseHelperMVP` / `NoteDaoMVP` / `AgentFloatWindowMVP` / `AiServiceMVP` / `IndexMVP` / `AiTestPage` / `AiTestPageMVP`),合并内容已合入正式版
 - `AgentFloatWindow` 状态气泡重做,失败/解析/兜底三态显式区分
 
-完整方案、缓存参数、KaTeX 资料、风险模式清单见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/render-protocol-optimization-route-20260722.md)。
+完整方案、缓存参数、KaTeX 资料、风险模式清单见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/2026-07-22/render-protocol-optimization-route-20260722.md)。
 
 ### 当前 W3.5 已验证
 
@@ -45,6 +61,53 @@ W3.5 完成 **MM-MD-v1 渲染协议 + 双层缓存 + 五类详情渲染** 整链
 - 真实数据库 AI 回放结果为 `renderMode=katex`,3 条历史笔记预览全部通过协议检查
 - `git diff --check` 无 whitespace error,ArkTS 1.1 禁用写法扫描无命中
 - 按项目约束不跑 `hvigorw`,DevEco Studio GUI Build / 真机滚动 / Profiler 内存峰值需手动确认
+
+---
+
+---
+
+## 2026-07-24 多 WebView 分块渲染 · 解决 ArkUI WebView 1800vp 上限
+
+### 问题
+
+ArkUI Web 组件在此设备上有 **1800vp 高度上限**,超过后 WebView 完全空白(非截断)。此前 `clampHeight` 强行限制为 1800vp + WebView 内部 `overflow-y:auto`,导致 **List + WebView 双重滚动**,UX 不理想。
+
+### 解决方案: 多 WebView 分块架构
+
+```
+改前: ChatBubble → MathTextRenderer ×1 (单 WebView, ≤1800vp, 内部滚动)
+改后: ChatBubble → FormulaSplitRenderer
+        └─ splitByFormulas → 合并相邻文本 → LazyForEach
+             ├─ 公式块 → MathTextRenderer(forceDisplay=true,  无上限, renderFormula bridge)
+             └─ 文本块 → MathTextRenderer(forceDisplay=false, ≤1800vp)
+```
+
+**核心改动 (6 文件):**
+
+| 文件 | 操作 | 要点 |
+|------|------|------|
+| `FormulaSplitRenderer.ets` | 新建 245 行 | `splitByFormulas` 合并相邻文本 + `FormulaBlockDataSource(IDataSource)` + `LazyForEach` + `splitLongTextBlocks` 超长段落拆分 |
+| `MathTextRenderer.ets` | 改 3 处 | `clampHeight` 按 `forceDisplay` 区分; `renderContent` 公式块走 `renderFormulaForCache` bridge |
+| `ChatBubble.ets` | 改 3 处 | 两处 `MathTextRenderer` → `FormulaSplitRenderer(profile: chat/chatUser)` |
+| `render.html` | +2 函数 | `renderFormula` / `renderFormulaForCache` — 跳过 `marked.parse` + 树遍历,直接 `katex.renderToString` |
+| `NotesPage.ets` | 修 2 处 | 乱码修正 ("笔记加载失败"、"学科") |
+| `SubjectDetailPage.ets` / `NoteItemMapper.ets` | 各修 1 处 | 乱码修正 ("笔记加载失败"、"笔记") |
+
+**关键防护:**
+- 合并相邻文本:公式之间的连续段落合并 → ~40% WebView 减少
+- `LazyForEach` + `IDataSource`:仅可见 block 持有 WebView,滚出视口自动销毁回收
+- block 硬上限 30, `TEXT_BLOCK_CHAR_LIMIT=1500` 防止 >1800vp 截断
+- 公式块 `renderFormula` bridge 无上限且快 ~30-50%
+
+**调研支撑:**
+- [`docs/2026-07-24/research-multi-webview-performance-20260724.md`](./docs/2026-07-24/research-multi-webview-performance-20260724.md) — 多 WebView 架构(MDN/Flutter/RN/HarmonyOS)
+- [`docs/2026-07-24/research-formula-render-strategies-20260724.md`](./docs/2026-07-24/research-formula-render-strategies-20260724.md) — 公式渲染策略(KaTeX/MathJax/ChatGPT/Claude/DeepSeek/SSR)
+- 完整方案见 [`docs/2026-07-24/formula-split-render-plan-20260724.md`](./docs/2026-07-24/formula-split-render-plan-20260724.md)
+
+### 验证
+
+- 已做文件级静态审查:ArkTS 1.1 strict / UTF-8 noBOM
+- DevEco Studio GUI 编译 + 真机验收 (含公式/多公式/流式输出/纯文本回归/超长文本) 已通过
 
 ---
 
@@ -56,7 +119,7 @@ W3.5 完成 **MM-MD-v1 渲染协议 + 双层缓存 + 五类详情渲染** 整链
 - 结构化正文不再重复挂载 `原文/OCR 原文`；原始材料默认折叠，用户展开后才创建 Markdown/KaTeX 渲染树。
 - Markdown 与长步骤首次只挂载 3 个节点，不再通过定时器自动扩展到全文；“继续阅读”每次追加 3 个节点。
 - 超长段落在公式边界之外安全切块，避免单个长段落生成巨型 ArkWeb，同时保证 `$...$`、`$$...$$`、`\(...\)` 和 `\[...\]` 不被截断。
-- 完整设计、主流长文本处理模式、缓存参数、二阶段 `List + LazyForEach` 虚拟化路线和 DevEco 验收步骤见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/render-protocol-optimization-route-20260722.md#21-长正文缓存预加载与渐进渲染优化)。
+- 完整设计、主流长文本处理模式、缓存参数、二阶段 `List + LazyForEach` 虚拟化路线和 DevEco 验收步骤见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/2026-07-22/render-protocol-optimization-route-20260722.md#21-长正文缓存预加载与渐进渲染优化)。
 
 ### 验证
 
@@ -99,7 +162,7 @@ AI / OCR / 历史数据
 - 现有 3 条笔记预览全部通过协议检查，保留的 3 个短公式均通过本地 KaTeX 0.16.9 编译。
 - 已增加 `ContentProtocol`、`LatexRiskNormalizer`、`ContentExcerptBuilder` 和 Markdown-only 回归测试。
 - `git diff --check`、TypeScript strict 诊断和 `render.html` JavaScript 语法检查通过。
-- 完整方案、各模型输出约束和 KaTeX 资料见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/render-protocol-optimization-route-20260722.md)。
+- 完整方案、各模型输出约束和 KaTeX 资料见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/2026-07-22/render-protocol-optimization-route-20260722.md)。
 - DevEco Studio GUI 编译与真机视觉 smoke test 仍需手动执行。
 
 ---
@@ -183,7 +246,7 @@ AI / OCR / 历史数据
 - 新增 `common/src/main/ets/data/NoteTaxonomy.ets`，集中管理笔记五类、旧类型别名、类型字符、类型取色和学科顺序取色；Notes 页面不再在组件里散落本地 `TYPE_KEYS` / `typeKey()` / 类型别名判断。
 - Notes 一级页改为“概览统计 + 学科入口”结构，去掉最近笔记重复展示；新增 `NotesSummaryPanel.ets` 和 `SubjectViewToggle.ets`，支持学科入口列/块切换。
 - 学科块图标按学科动态取首字，笔记图标按真实笔记类型/特征取首字；颜色以薄荷主色为基准，低曝光混色，避免按学科名硬编码。
-- 新增 Notes 页结构视觉稿 [`docs/notes-page-structure-proposal-20260719.html`](./docs/notes-page-structure-proposal-20260719.html)，记录一级页、二级页、验收标准和实施路线。
+- 新增 Notes 页结构视觉稿 [`docs/notes-page-structure-proposal-20260719.html`](./docs/2026-07-19/notes-page-structure-proposal-20260719.html)，记录一级页、二级页、验收标准和实施路线。
 - `KnowledgeModel` 提示词中的 5 类返回值已切到中文类别：`概念` / `定理` / `公式` / `证明题` / `计算题`。
 
 ### 验证
@@ -257,7 +320,7 @@ AI / OCR / 历史数据
 
 ## 2026-07-19 本地同步与首页布局修正
 
-> 主 Agent 显式生成笔记 + Memory 专项改动详见 [`docs/agent-memory-flow-20260719.md`](./docs/agent-memory-flow-20260719.md)。回复风格验收测试集详见 [`docs/agent-reply-style-testset-20260719.md`](./docs/agent-reply-style-testset-20260719.md)。
+> 主 Agent 显式生成笔记 + Memory 专项改动详见 [`docs/agent-memory-flow-20260719.md`](./docs/2026-07-19/agent-memory-flow-20260719.md)。回复风格验收测试集详见 [`docs/agent-reply-style-testset-20260719.md`](./docs/2026-07-19/agent-reply-style-testset-20260719.md)。
 
 ### 做了什么
 

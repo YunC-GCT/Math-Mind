@@ -44,11 +44,15 @@ class MathRenderInput {
 const MATH_RENDER_CACHE: MathRenderCacheEntry[] = []
 const MATH_RENDER_CACHE_LIMIT: number = 64
 const MATH_RENDER_CACHE_MAX_CHARS: number = 600000
+const MATH_RENDER_CACHE_KEY_VERSION: string = 'v2'
 const MATH_RENDER_CACHE_TTL_MS: number = 10 * 60 * 1000
 const MATH_RENDER_CACHE_PASSIVE_TRIM_TICKS: number = 12
 const NOTE_MATH_RENDER_DEFER_BASE_MS: number = 24
 const NOTE_MATH_RENDER_DEFER_STEP_MS: number = 22
 const NOTE_MATH_RENDER_DEFER_SLOTS: number = 8
+const TEXT_HEIGHT_BUFFER_RATIO: number = 1.2
+const DISPLAY_FORMULA_HEIGHT_CHAT: number = 58
+const DISPLAY_FORMULA_HEIGHT_NOTE: number = 66
 let mathRenderCacheClock: number = 0
 let noteMathRenderDeferClock: number = 0
 
@@ -188,7 +192,6 @@ export struct MathTextRenderer {
   @Prop profile: 'chat' | 'chatUser' | 'note' | 'preview' = 'chat'
   @Prop forceDisplay: boolean = false
   @Prop minHeight: number = 42
-  @Prop maxHeight: number = 1800
 
   private controller: webview.WebviewController = new webview.WebviewController()
   private lastAppliedKey: string = ''
@@ -282,7 +285,8 @@ export struct MathTextRenderer {
       this.applyCachedRender(cacheKey, cached)
       return
     }
-    const script: string = 'renderForCache(' + JSON.stringify(markdown) + ',' + JSON.stringify(this.profile) + ')'
+    const renderFn: string = this.forceDisplay ? 'renderFormulaForCache' : 'renderForCache'
+    const script: string = renderFn + '(' + JSON.stringify(markdown) + ',' + JSON.stringify(this.profile) + ')'
     this.webHeight = this.estimateHeight(markdown)
     this.controller.runJavaScript(script)
       .then((heightText: string): void => {
@@ -300,11 +304,32 @@ export struct MathTextRenderer {
           }
         }
       })
-      .catch((_err: Error): void => {
-        if (cacheKey === this.currentCacheKey()) {
-          this.webFailed = true
-          this.lastAppliedKey = ''
+      .catch((): void => {
+        // renderForCache 因 bridge 返回值超限被 reject (公式多时 encodeURIComponent(innerHTML) 过大)
+        // → 降级为 render() 只返高度数字, 自适应设备实际 bridge 上限, 无需硬编码阈值
+        if (cacheKey !== this.currentCacheKey()) {
+          return
         }
+        const fallbackFn: string = this.forceDisplay ? 'renderFormula' : 'render'
+        const fallbackScript: string = fallbackFn + '(' + JSON.stringify(markdown) + ',' + JSON.stringify(this.profile) + ')'
+        this.controller.runJavaScript(fallbackScript)
+          .then((heightText: string): void => {
+            if (cacheKey !== this.currentCacheKey()) {
+              return
+            }
+            this.webFailed = false
+            const height: number = this.clampHeight(this.parseRenderedHeight(heightText) + 2)
+            if (!Number.isNaN(height) && height > 0) {
+              this.webHeight = height
+              this.lastAppliedKey = cacheKey
+            }
+          })
+          .catch((): void => {
+            if (cacheKey === this.currentCacheKey()) {
+              this.webFailed = true
+              this.lastAppliedKey = ''
+            }
+          })
       })
   }
 
@@ -312,9 +337,7 @@ export struct MathTextRenderer {
     const script: string = 'applyCached(' + JSON.stringify(cached.encodedHtml) + ',' + JSON.stringify(this.profile) + ')'
     this.controller.runJavaScript(script)
       .then((heightText: string): void => {
-        if (cacheKey !== this.currentCacheKey()) {
-          return
-        }
+        if (cacheKey !== this.currentCacheKey()) { return }
         this.webFailed = false
         const parsed: number = this.parseRenderedHeight(heightText)
         if (!Number.isNaN(parsed) && parsed > 0) {
@@ -324,11 +347,26 @@ export struct MathTextRenderer {
         }
         this.lastAppliedKey = cacheKey
       })
-      .catch((_err: Error): void => {
-        if (cacheKey === this.currentCacheKey()) {
-          this.webFailed = true
-          this.lastAppliedKey = ''
-        }
+      .catch((): void => {
+        // 缓存 HTML 作为 bridge 输入也可能超限 → 降级为 renderForCache 重新渲染
+        if (cacheKey !== this.currentCacheKey()) { return }
+        const retryScript: string = 'renderForCache(' + JSON.stringify(this.text) + ',' + JSON.stringify(this.profile) + ')'
+        this.controller.runJavaScript(retryScript)
+          .then((heightText: string): void => {
+            if (cacheKey !== this.currentCacheKey()) { return }
+            this.webFailed = false
+            const payload: MathRenderPayload = this.parseRenderPayload(heightText)
+            if (payload.height > 0) {
+              this.webHeight = this.clampHeight(payload.height + 2)
+              this.lastAppliedKey = cacheKey
+            }
+          })
+          .catch((): void => {
+            if (cacheKey === this.currentCacheKey()) {
+              this.webFailed = true
+              this.lastAppliedKey = ''
+            }
+          })
       })
   }
 
@@ -365,7 +403,7 @@ export struct MathTextRenderer {
   }
 
   private cacheKey = (markdown: string): string => {
-    return this.profile + '|' + (this.forceDisplay ? '1' : '0') + '|' + contentHash(markdown)
+    return this.profile + '|' + MATH_RENDER_CACHE_KEY_VERSION + '|' + (this.forceDisplay ? '1' : '0') + '|' + contentHash(markdown)
   }
 
   private currentCacheKey = (): string => {
@@ -377,7 +415,12 @@ export struct MathTextRenderer {
   }
 
   private clampHeight = (height: number): number => {
-    return Math.max(this.minHeight, Math.min(this.maxHeight, height))
+    if (this.forceDisplay) {
+      // 公式块: 仅保下限, 不设上限 (单个 display 公式不会超过 1800vp)
+      return Math.max(this.minHeight, height)
+    }
+    // 文本块: 上限 1800vp, 超过时通过 overflow-y:auto 内部滚动
+    return Math.min(1800, Math.max(this.minHeight, height))
   }
 
   private normalizeForRender = (raw: string): MathRenderInput => {
@@ -450,8 +493,12 @@ export struct MathTextRenderer {
     }
     const displayFormulaCount: number = Math.floor((normalized.split('$$').length - 1) / 2)
       + Math.floor((normalized.split('\\[').length - 1))
-    const formulaExtra: number = displayFormulaCount * (this.profile === 'note' ? 42 : 34)
-    const estimated: number = lineCount * baseLineHeight + formulaExtra + 18
+    const formulaExtra: number = displayFormulaCount * (this.profile === 'note' ? DISPLAY_FORMULA_HEIGHT_NOTE : DISPLAY_FORMULA_HEIGHT_CHAT)
+    // 文本部分 ×1.2 缓冲 (markdown 块级边距/padding),
+    // 公式部分用精确值估算 (chat 58vp, note 66vp, 对应 KaTeX display 实际 50-80vp 中位),
+    // 分离后文本不会过度估算,公式不会低估,整体跳变幅度更小
+    const textEstimated: number = (lineCount * baseLineHeight + 18) * TEXT_HEIGHT_BUFFER_RATIO
+    const estimated: number = textEstimated + formulaExtra
     return this.clampHeight(estimated)
   }
 
@@ -476,7 +523,7 @@ export struct MathTextRenderer {
         .domStorageAccess(false)
         .fileAccess(false)
         .horizontalScrollBarAccess(true)
-        .verticalScrollBarAccess(false)
+        .verticalScrollBarAccess(true)
         .backgroundColor('rgba(0,0,0,0)')
         .width('100%')
         .height(this.webHeight)

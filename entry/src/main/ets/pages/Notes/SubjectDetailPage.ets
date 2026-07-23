@@ -57,7 +57,7 @@ struct SubjectDetailPage {
     this.loadingReloadKey = reloadKey
     this.vm.loadNotes(getContext(this)).then((ok: boolean): void => {
       if (!ok) {
-        try { promptAction.showToast({ message: "绗旇鍔犺浇澶辫触", duration: 1500 }) } catch (_e) {}
+        try { promptAction.showToast({ message: "笔记加载失败", duration: 1500 }) } catch (_e) {}
         return
       }
       this.ensureSubject()

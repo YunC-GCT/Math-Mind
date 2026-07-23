@@ -13,7 +13,7 @@
     body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
+      overflow-y: auto;
       background: transparent;
       color: #bec8d3;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
@@ -272,6 +272,39 @@
         contentEl.innerHTML = '';
       }
       return measuredHeight(contentEl);
+    }
+
+    /**
+     * renderFormula — 专用于公式块渲染, 跳过 marked.parse(), 直接用 katex.renderToString.
+     * texSource 格式: "$$\n<LaTeX>\n$$" 或 "\begin{...}...\end{...}"
+     */
+    function renderFormula(texSource, profile) {
+      var contentEl = setContentMode(profile);
+      // 提取 $$...$$ 内的纯 TeX
+      var innerTex = (texSource || '').trim();
+      innerTex = innerTex.replace(/^\$\$/, '').replace(/\$\$$/, '').trim();
+      try {
+        contentEl.innerHTML = katex.renderToString(innerTex, {
+          displayMode: true,
+          throwOnError: false,
+          strict: 'warn',
+          trust: false,
+          errorColor: '#ff6b6b'
+        });
+      } catch (err) {
+        contentEl.innerHTML = '<pre class="render-error"></pre>';
+        contentEl.querySelector('.render-error').textContent = texSource || '';
+      }
+      return measuredHeight(contentEl);
+    }
+
+    /**
+     * renderFormulaForCache — 同 renderFormula 但额外返回 encodeURIComponent(innerHTML) 供缓存
+     */
+    function renderFormulaForCache(texSource, profile) {
+      var height = renderFormula(texSource, profile);
+      var contentEl = document.getElementById('content');
+      return height + '\n' + encodeURIComponent(contentEl.innerHTML);
     }
   </script>
 </body>

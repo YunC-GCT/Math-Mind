@@ -4,12 +4,12 @@
 
 import {
   MINT, PURPLE_LIGHT,
-  TEXT, TEXT_2, TEXT_3, TEXT_4,
+  TEXT, TEXT_3, TEXT_4,
   S_1, S_2, S_3, R_MD, F_SM, W_SEMIBOLD,
   ContentProtocol,
 } from 'common'
 import { ChatMsg, ChatStatusMeta } from './ChatModels'
-import { MathTextRenderer } from '../../../shared/components/MathTextRenderer'
+import { FormulaSplitRenderer } from '../../../shared/components/FormulaSplitRenderer'
 import { MarkdownRenderer } from '../../../shared/components/MarkdownRenderer'
 
 @Component
@@ -30,18 +30,9 @@ export struct ChatBubble {
           Column() {
             Column() {
               if (this.containsFormulaSyntax(this.msg.content)) {
-                MathTextRenderer({
+                FormulaSplitRenderer({
                   text: this.msg.content,
                   profile: 'chatUser',
-                  textColor: TEXT,
-                  formulaColor: TEXT,
-                  formulaBackground: 'rgba(10,12,16,0.18)',
-                  formulaBorder: 'rgba(255,255,255,0.18)',
-                  fontSize: F_SM,
-                  lineHeight: 20,
-                  formulaFontSize: F_SM,
-                  formulaLineHeight: 20,
-                  maxHeight: 4000,
                 })
                 .width('100%')
               } else {
@@ -76,18 +67,9 @@ export struct ChatBubble {
             Column() {
               if (this.msg.content.trim().length > 0) {
                 if (this.containsFormulaSyntax(this.msg.content)) {
-                  MathTextRenderer({
+                  FormulaSplitRenderer({
                     text: this.msg.content,
                     profile: 'chat',
-                    textColor: TEXT_2,
-                    formulaColor: TEXT_2,
-                    formulaBackground: 'rgba(255,255,255,0.06)',
-                    formulaBorder: 'rgba(255,255,255,0.12)',
-                    fontSize: F_SM,
-                    lineHeight: 20,
-                    formulaFontSize: F_SM,
-                    formulaLineHeight: 20,
-                    maxHeight: 4000,
                   })
                   .width('100%')
                 } else {

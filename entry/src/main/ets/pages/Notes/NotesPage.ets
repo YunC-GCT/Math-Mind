@@ -45,7 +45,7 @@ export struct NotesPage {
       if (ok) {
         this.loadedNotesVersion = version
       } else {
-        try { promptAction.showToast({ message: "绗旇鍔犺浇澶辫触", duration: 1500 }) } catch (_e) {}
+        try { promptAction.showToast({ message: "笔记加载失败", duration: 1500 }) } catch (_e) {}
       }
     }).finally((): void => {
       if (this.loadingNotesVersion === version) {
@@ -91,7 +91,7 @@ export struct NotesPage {
             .margin({ left: S_5, right: S_5, top: 0, bottom: S_4 })
 
           Row() {
-            Text("瀛︾")
+            Text("学科")
               .fontSize(F_BASE)
               .fontWeight(W_SEMIBOLD)
               .fontColor(TEXT)
