@@ -13,7 +13,7 @@ import { relationalStore } from '@kit.ArkData';
 import { KnowledgeUnit, DifficultyLevel, ReviewStatus } from 'common';
 
 const NOTE_METADATA_COLUMNS: string[] = [
-  'id', 'title', 'summary', 'tags', 'subject', 'category', 'difficulty', 'source',
+  'id', 'title', 'summary', 'tags', 'subject', 'category', 'chapter', 'difficulty', 'source',
   'created_at', 'updated_at', 'review_status', 'next_review_at', 'interval_days',
   'ease_factor', 'repetitions', 'user_id', 'version',
 ];
@@ -203,6 +203,7 @@ export class NoteDao {
       tags: NoteDao.parseArray(NoteDao.readString(rs, 'tags', '[]')),
       subject: NoteDao.readString(rs, 'subject', ''),
       category: NoteDao.readString(rs, 'category', ''),
+      chapter: NoteDao.readString(rs, 'chapter', ''),
       difficulty: NoteDao.parseDifficulty(NoteDao.readLong(rs, 'difficulty', DifficultyLevel.EASY)),
       source: NoteDao.readString(rs, 'source', ''),
       createdAt: NoteDao.readLong(rs, 'created_at', 0),

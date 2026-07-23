@@ -1,7 +1,7 @@
 {
   "name": "cardservice",
   "version": "1.0.0",
-  "description": "MathMind atomic service card",
+  "description": "MindTrace atomic service card",
   "author": "",
   "license": "",
   "dependencies": {

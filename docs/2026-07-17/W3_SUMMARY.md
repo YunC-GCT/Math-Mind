@@ -28,7 +28,7 @@ e4170b7 docs(entry): Notes 4 + Profile 5 个组件补全中文文件头注释
 | 阶段 | 内容 | 验证 |
 |------|------|------|
 | **W1 batch 1/2/3** | HomePage / 5 Tab / ColorTokens / NotesPage / ReviewPage / MePage / CameraOverlay / AiChatOverlay / NoteDetailOverlay | DevEco 真机 |
-| **W2 #1** | Hero 问候+日期左对齐 + MathMind 字体换 HarmonyOS Sans Condensed | `9727307` |
+| **W2 #1** | Hero 问候+日期左对齐 + MindTrace 字体换 HarmonyOS Sans Condensed | `9727307` |
 | **W2 #2** | 进度环点击跳复习 Tab | `1e76919` |
 | **W2 #3** | 进度环动态加载 + 整体光晕呼吸（三角波） | `a9c5a4d` |
 | **W2 #4** | 修今日新增 undefined + 进度环圆形光晕 | `3519bea` |

@@ -1,4 +1,4 @@
-﻿// MathMind - LLM 配置管理(单例 + preferences 持久化 + 运行时读写)
+﻿// MindTrace - LLM 配置管理(单例 + preferences 持久化 + 运行时读写)
 // 创建: 2026-07-14
 
 import { preferences } from '@kit.ArkData';

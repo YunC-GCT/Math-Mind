@@ -1,4 +1,4 @@
-// MathMind - common 共享类型定义
+// MindTrace - common 共享类型定义
 // 所有 module 跨边界传输的接口与枚举集中在此处
 // 创建: Z (W1 块 2 - 2026-07-04)
 

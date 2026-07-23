@@ -13,7 +13,6 @@ export struct MathPreviewText {
   @Prop lineHeightValue: number = 18
   @Prop maxLines: number = 2
   @Prop minHeight: number = 34
-  @Prop maxHeight: number = 44
   @Prop maxChars: number = 46
   private contentProtocol: ContentProtocol = new ContentProtocol()
   private contentExcerptBuilder: ContentExcerptBuilder = new ContentExcerptBuilder()
@@ -39,7 +38,6 @@ export struct MathPreviewText {
           formulaFontSize: this.fontSize,
           formulaLineHeight: this.lineHeightValue,
           minHeight: this.minHeight,
-          maxHeight: this.maxHeight,
         })
       } else {
         Text(this.previewText())

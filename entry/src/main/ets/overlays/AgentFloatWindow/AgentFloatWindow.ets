@@ -110,7 +110,7 @@ export struct AgentFloatWindow {
     this.service = new AgentChatService(cbs);
     const ss: ChatSession[] = await this.sm.init(getContext(this));
     if (ss.length > 0) { this.sessions = ss; this.activeSid = ss[0].id; this.messages = ss[0].messages; return; }
-    this.messages = [{ id: 1, role: 'ai', content: '👋 你好，我是 MathMind AI。可以帮你分析题目、讲解知识点、整理笔记。试试问我吧 👉', ts: Date.now() }];
+    this.messages = [{ id: 1, role: 'ai', content: '👋 你好，我是 MindTrace AI。可以帮你分析题目、讲解知识点、整理笔记。试试问我吧 👉', ts: Date.now() }];
   }
 
   private sync(): void {

@@ -291,7 +291,7 @@ export class OcrTool {
   }
 
   private async postBytes(endpoint: string, imageBytes: ArrayBuffer, fileName: string): Promise<string> {
-    const boundary: string = '----MathMindOcr' + Date.now().toString();
+    const boundary: string = '----MindTraceOcr' + Date.now().toString();
     const fileBytes: Uint8Array = new Uint8Array(imageBytes);
     const header: Uint8Array = this.strToUtf8(
       '--' + boundary + '\r\n' +

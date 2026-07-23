@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MathMind RDB ResultSet 越界崩溃分析</title>
+<title>MindTrace RDB ResultSet 越界崩溃分析</title>
 <style>
   :root {
     --bg: #f5f8fb;
@@ -199,7 +199,7 @@
   <section class="panel danger">
     <h2>一、结论</h2>
     <p><b>根因是旧数据库表结构没有迁移。</b></p>
-    <p>合入 <code>cmnon159</code> 后，代码认为 <code>knowledge_unit</code> 表一定有 <code>subject</code> 和 <code>category</code> 两列，但旧安装包产生的本地 <code>MathMind.db</code> 里没有这两列。应用查询旧表后，<code>rowToUnit()</code> 调用 <code>rs.getColumnIndex("subject")</code> 得到无效列索引，再传给 <code>getString()</code>，于是触发 <code>Resultset is empty or column index is out of bounds</code>。</p>
+    <p>合入 <code>cmnon159</code> 后，代码认为 <code>knowledge_unit</code> 表一定有 <code>subject</code> 和 <code>category</code> 两列，但旧安装包产生的本地 <code>MindTrace.db</code> 里没有这两列。应用查询旧表后，<code>rowToUnit()</code> 调用 <code>rs.getColumnIndex("subject")</code> 得到无效列索引，再传给 <code>getString()</code>，于是触发 <code>Resultset is empty or column index is out of bounds</code>。</p>
   </section>
 
   <section>

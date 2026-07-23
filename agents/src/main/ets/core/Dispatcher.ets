@@ -1,4 +1,4 @@
-// MathMind - Dispatcher (主 Agent 调度中枢) · 精简拍照链
+// MindTrace - Dispatcher (主 Agent 调度中枢) · 精简拍照链
 // 任务编号: D
 // 责任: Z + Mavis
 // 状态: 实现完成(2026-07-14) · 升级 DispatchPayload signature

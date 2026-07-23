@@ -1,5 +1,5 @@
 /**
- * MathMind 共享数据模型 — 对照 app.js NOTES + noteCardHTML()
+ * MindTrace 共享数据模型 — 对照 app.js NOTES + noteCardHTML()
  */
 
 // ========== 笔记数据模型 ==========

@@ -1,4 +1,4 @@
-﻿// MathMind - LLM HTTP 客户端(OpenAI 兼容协议)
+﻿// MindTrace - LLM HTTP 客户端(OpenAI 兼容协议)
 // 位置: common/src/main/ets/llm/LlmClient.ets
 // 责任: Z (Mavis)
 // 创建: 2026-07-14 — 主 Agent 业务 LLM 调用基础设施

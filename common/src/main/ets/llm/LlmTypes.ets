@@ -1,4 +1,4 @@
-// MathMind - LLM 共享类型定义
+// MindTrace - LLM 共享类型定义
 // 位置: common/src/main/ets/llm/LlmTypes.ets
 // 责任: Z (Mavis)
 // 创建: 2026-07-14 — 主 Agent 业务 LLM 调用基础设施

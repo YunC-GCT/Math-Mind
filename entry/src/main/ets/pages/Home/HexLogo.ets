@@ -1,5 +1,5 @@
 /**
- * HexLogo.ets — MathMind 6 边形 Logo
+ * HexLogo.ets — MindTrace 6 边形 Logo
  *
  * 路径: entry/src/main/ets/pages/Home/HexLogo.ets
  * 职责: 32×32 浮空旋转 4s 循环的 6 边形品牌标识，用于 HomeTopBar 左侧。

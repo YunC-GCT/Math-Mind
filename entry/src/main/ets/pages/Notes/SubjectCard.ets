@@ -104,7 +104,6 @@ export struct SubjectCard {
         lineHeightValue: 17,
         maxLines: 2,
         minHeight: 32,
-        maxHeight: 38,
       })
         .width("100%")
         .margin({ top: S_1 })
@@ -162,7 +161,6 @@ export struct SubjectCard {
           lineHeightValue: 17,
           maxLines: 1,
           minHeight: 18,
-          maxHeight: 22,
         })
           .width("100%")
           .margin({ top: S_1 })

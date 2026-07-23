@@ -1,11 +1,11 @@
 // ============================================================================
 //  pages/Home/HomeTopBar.ets — 首页顶栏
 //  ----------------------------------------------------------------------------
-//  职责: 状态栏避让占位 + 6 边形 Logo + MathMind 标题。
+//  职责: 状态栏避让占位 + 6 边形 Logo + MindTrace 标题。
 //
 //  布局:
 //    [状态栏占位 (statusBarH 高)]
-//    [HexLogo + "MathMind" 标题 (HEADER_H 高)]
+//    [HexLogo + "MindTrace" 标题 (HEADER_H 高)]
 //
 //  依赖:
 //    pages: HexLogo
@@ -34,7 +34,7 @@ export struct HomeTopBar {
       // Logo + 标题
       Row() {
         HexLogo()
-        Text("MathMind")
+        Text("MindTrace")
           .fontFamily("HarmonyOS Sans Condensed")
           .fontSize(F_MD + 2)
           .fontWeight(W_MEDIUM)

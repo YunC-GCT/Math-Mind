@@ -8,7 +8,7 @@
 
 ## 项目定位
 
-MathMind 是一个 HarmonyOS 数学学习助手,核心能力:
+MindTrace 是一个 HarmonyOS 数学学习助手,核心能力:
 
 1. **拍照/选图** → 相机/相册取图
 2. **OCR** → 本地 FastAPI HTTP 服务识别数学公式/题目
@@ -25,7 +25,7 @@ MathMind 是一个 HarmonyOS 数学学习助手,核心能力:
 
 **严禁用 hvigorw CLI** (NODE_HOME/PATH 中文路径乱码撞墙,已实测)
 - **唯一推荐**: DevEco Studio GUI
-  - Open: File → Open → 选 `D:\HMgent\MathMind` 根目录
+  - Open: File → Open → 选 `D:\HMgent\MindTrace` 根目录
   - Build: Build → Build Hap(s)/APP(s)
   - Run: Run → Run 'entry'
 - sync: File → Sync and Refresh Project
@@ -36,7 +36,7 @@ MathMind 是一个 HarmonyOS 数学学习助手,核心能力:
 ## Project layout (5 module)
 
 ```
-MathMind/
+MindTrace/
 ├── entry/                 # HAP - 主应用 (UI + 业务 + 拍照 + DB)
 │   └── src/main/ets/
 │       ├── pages/         # 5 Tab 页面 (Home/Notes/AI/Review/Profile)
@@ -64,7 +64,7 @@ MathMind/
 │   ├── agent_to_ui_*.md   # 主 agent → UI session
 │   └── *.html             # 视觉稿 (visual page, 不在 git 里)
 ├── archive/               # 历史版本备份 (不进 git)
-├── MathMind-MVP/          # MVP 早期版本
+├── MindTrace-MVP/          # MVP 早期版本
 └── .worktrees/            # git worktree 目录
 ```
 
@@ -170,7 +170,7 @@ MathMind/
 
 ## 必读 rules (项目级硬约束)
 
-下面这些是工程踩过的真实坑,新 session 接 MathMind **必须先看**:
+下面这些是工程踩过的真实坑,新 session 接 MindTrace **必须先看**:
 
 1. **HSP `oh-package.json5` 必备 `main` 字段**: 缺了 build 报 `Cannot find module 'xxx'`
    - 模板: `{"name": "xxx", "main": "./src/main/ets/Index.ets", ...}`

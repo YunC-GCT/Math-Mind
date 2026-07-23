@@ -1,4 +1,4 @@
-// MathMind - 数据库初始化工具
+// MindTrace - 数据库初始化工具
 // 责任: Z
 // 创建: 2026-07-14 — 精简拍照链 RDB 基础设施
 // 更新: 2026-07-15 — 新增 study_plan 表 (学习计划)
@@ -7,7 +7,7 @@ import { relationalStore } from "@kit.ArkData";
 import { BusinessError } from "@kit.BasicServicesKit";
 
 const STORE_CONFIG: relationalStore.StoreConfig = {
-  name: "MathMind.db",
+  name: "MindTrace.db",
   securityLevel: relationalStore.SecurityLevel.S1,
 };
 

@@ -1,4 +1,4 @@
-# MathMind 主 Agent 业务 API 契约 (W1 块 3)
+# MindTrace 主 Agent 业务 API 契约 (W1 块 3)
 
 > 主 Agent 业务 4 个核心类 + 共享类型的接口契约
 > 创建: Mavis (2026-07-14 00:57) — 给 D / L 真实现时参考
@@ -440,7 +440,7 @@ const parsed: ClassificationResult = JSON.parse(text) as ClassificationResult;
 
 ## 八、相关文档
 
-- `D:\HMgent\MathMind\docs\agent_to_ui_q1q4_reply.md` — 之前给 UI Mavis 的 Q1-Q4 回复(架构问答)
+- `D:\HMgent\MindTrace\docs\agent_to_ui_q1q4_reply.md` — 之前给 UI Mavis 的 Q1-Q4 回复(架构问答)
 - `C:\Users\YunCeH\Desktop\后端\Math_Mind\docs\AGENT_COMMUNICATION.md` — 通信模式(同进程 import)
 - `C:\Users\YunCeH\Desktop\后端\Math_Mind\docs\DISPATCHER_TONIGHT.md` — Dispatcher 精简版规范
 - `C:\Users\YunCeH\Desktop\后端\Math_Mind\docs\D1_CAPTURE_CHAIN_PLAN.md` — D1 链精简版设计

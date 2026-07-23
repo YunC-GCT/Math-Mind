@@ -1,4 +1,4 @@
-# MathMind 前端设计架构 · 2026-07-17
+# MindTrace 前端设计架构 · 2026-07-17
 
 > 当前状态：AgentFloatWindow 完整版已恢复 · NoteDetailOverlay 对齐 v2-ui · 动效令牌对齐
 

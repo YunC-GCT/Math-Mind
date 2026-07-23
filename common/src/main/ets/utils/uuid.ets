@@ -1,4 +1,4 @@
-// MathMind - UUID 生成
+// MindTrace - UUID 生成
 // 优先使用系统 util,失败时降级到时间戳 + 随机
 // 创建: Z (W1 块 2 - 2026-07-04)
 

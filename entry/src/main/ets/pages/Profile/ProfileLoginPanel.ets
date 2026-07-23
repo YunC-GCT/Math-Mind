@@ -40,7 +40,7 @@ export struct ProfileLoginPanel {
             .fontColor(TEXT)
             .fontWeight(W_SEMIBOLD)
             .width("100%")
-          Text("一键登录 MathMind")
+          Text("一键登录 MindTrace")
             .fontSize(F_XS)
             .fontColor(TEXT_3)
             .margin({ top: S_1 })

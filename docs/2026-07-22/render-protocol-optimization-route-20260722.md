@@ -1,4 +1,4 @@
-# MathMind AI / LaTeX / Markdown / ArkUI 渲染共同协议优化路线
+# MindTrace AI / LaTeX / Markdown / ArkUI 渲染共同协议优化路线
 
 > 日期: 2026-07-22
 > 分支: main
@@ -8,7 +8,7 @@
 
 ## 1. 背景与核心问题
 
-MathMind 当前链路大致是:
+MindTrace 当前链路大致是:
 
 ```text
 OCR / 手输文本
@@ -43,7 +43,7 @@ OCR / 手输文本
 整个工程只承认一种可存储的笔记正文协议:
 
 ```text
-MathMind Note Markdown v1
+MindTrace Note Markdown v1
 ```
 
 简称 `MM-MD-v1`。它不是完整 Markdown，而是项目内白名单子集。
@@ -859,7 +859,7 @@ render.fixes=wrap_display_delimiter,normalize_differential_dx
 
 CommonMark 的解析策略明确把 Markdown 看成块树，先识别段落、标题、列表、引用、代码块等块结构，再解析块内部的行内结构。官方 spec 的 Appendix 也按 `Phase 1: block structure` 描述这一点。
 
-对 MathMind 的结论:
+对 MindTrace 的结论:
 
 - `Raw -> Markdown block -> inline/math` 的顺序是合理的。
 - 不能先全局跑 KaTeX, 因为 KaTeX 不知道哪些内容属于代码块、标题或列表。
@@ -871,7 +871,7 @@ CommonMark 的解析策略明确把 Markdown 看成块树，先识别段落、�
 
 KaTeX auto-render 会在给定 DOM 元素内递归搜索文本节点，再按 delimiter 渲染数学表达式。官方文档里默认忽略 `script / noscript / style / textarea / pre / code / option` 等标签；如果启用 `$...$`, 也强调 `$` 规则要放在 `$$` 后面，否则会把 `$$` 误识别成空的行内公式。
 
-对 MathMind 的结论:
+对 MindTrace 的结论:
 
 - 不能把整篇 Markdown 无差别交给 KaTeX auto-render。
 - 即便在 WebView 内用 KaTeX, 也应该只把已确认的公式段落/公式块交进去。
@@ -884,10 +884,10 @@ KaTeX auto-render 会在给定 DOM 元素内递归搜索文本节点，再按 de
 
 MathJax 4 默认使用 `\(...\)` 作为行内数学，`\[...\]` 和 `$$...$$` 作为展示数学；官方说明默认不启用 `$...$`, 因为普通文本里的价格、金额等美元符容易被误当公式。MathJax 也提供 `\$` 或隔离 HTML span 的方式避免误匹配。
 
-对 MathMind 的结论:
+对 MindTrace 的结论:
 
 - 单美元 `$...$` 虽然简洁，但必须由协议层严格约束。
-- MathMind 是数学学习 App, 公式密度高，可以继续把 `$...$` 作为入库标准，但要增加校验:
+- MindTrace 是数学学习 App, 公式密度高，可以继续把 `$...$` 作为入库标准，但要增加校验:
   - `$` 必须成对。
   - 普通价格、美元符必须转义或走纯文本。
   - `$$...$$` 内部禁止 `$`。
@@ -899,10 +899,10 @@ MathJax 4 默认使用 `\(...\)` 作为行内数学，`\[...\]` 和 `$$...$$` �
 
 GitHub 官方文档说明其 Markdown 数学渲染使用 MathJax。行内公式可以用 `$...$`, 也可以用 `$` 加反引号的写法来避免与 Markdown 语法冲突；块级公式可以用 `$$`，也可以用 `math` 代码块。
 
-对 MathMind 的结论:
+对 MindTrace 的结论:
 
 - GitHub 的做法说明“Markdown + MathJax/LaTeX”可行，但它不是让所有 Markdown 自由混排，而是给了明确的 delimiter 和冲突逃逸规则。
-- MathMind 当前不建议引入 GitHub 的 `$` + 反引号语法，ArkUI parser 会更复杂。
+- MindTrace 当前不建议引入 GitHub 的 `$` + 反引号语法，ArkUI parser 会更复杂。
 - 可以在 P3 测试集里加入“公式内容与 Markdown 符号冲突”的用例，例如 `_`、`*`、反引号、美元符。
 - `math` 代码块可作为未来扩展，但当前协议仍以 `$$` 公式块为唯一标准。
 
@@ -914,7 +914,7 @@ OpenAI Model Spec 明确建议默认使用 Markdown with LaTeX extensions；数�
 
 OpenAI 结构化输出资料也说明，仅靠 prompting 和重试不足以保证系统可消费的格式；Structured Outputs 通过 JSON Schema 约束模型输出。但官方也提示，结构化输出不能防止 JSON 字段值内部的数学步骤出错，仍需要例子、拆分任务和校验。
 
-对 MathMind 的结论:
+对 MindTrace 的结论:
 
 - Prompt 里必须写“短公式/长公式/块公式/标题禁公式”的具体规则。
 - 不要让 AI 直接输出最终页面 Markdown。更稳的是让 AI 输出 JSON fields, 本地再拼 Markdown。
@@ -930,7 +930,7 @@ OpenAI 结构化输出资料也说明，仅靠 prompting 和重试不足以保�
 
 Anthropic 的 Claude prompting 文档说明，Claude 新模型默认会在数学表达式、方程和技术解释中使用 LaTeX；如果应用想要纯文本，需要在 prompt 中明确禁止 LaTeX、MathJax 或 markup。Anthropic 也强调用明确输出格式、示例和 XML tag 帮模型理解复杂格式要求。
 
-对 MathMind 的结论:
+对 MindTrace 的结论:
 
 - 对 Claude、DeepSeek、GPT、Gemini 等模型都不能只写“请输出 Markdown”。必须写协议级规则和反例。
 - 对 Claude 这类默认偏 LaTeX 的模型，要特别强调:
@@ -945,11 +945,11 @@ Anthropic 的 Claude prompting 文档说明，Claude 新模型默认会在数学
 
 Gemini API 官方文档支持按 JSON Schema 生成结构化输出，用于类型安全的数据抽取、分类和 agent workflow。Gemini Canvas 帮助文档也把 LaTeX 作为文档创建/导出能力处理，支持预览和导出 PDF；复制包含 LaTeX 的 Gemini 响应时，会保留未渲染的 LaTeX 代码。
 
-对 MathMind 的结论:
+对 MindTrace 的结论:
 
 - 结构化输出和可渲染文档应分层，不能把“AI 回复文本”直接等同于“可入库富文本”。
 - 保留原始 LaTeX 源码很重要。渲染失败时显示原始公式，而不是空白或丢弃。
-- MathMind 的 `rawText / normalizedText / fallbackText` 三份信息可以继续保留，后续最好落入明确类型。
+- MindTrace 的 `rawText / normalizedText / fallbackText` 三份信息可以继续保留，后续最好落入明确类型。
 
 参考:
 
@@ -960,20 +960,20 @@ Gemini API 官方文档支持按 JSON Schema 生成结构化输出，用于类�
 
 Microsoft Adaptive Cards 的设计目标是用 JSON 描述 UI 内容，由宿主应用渲染成原生 UI；官方原则里明确强调 declarative、no code、自动适配宿主样式，并提出“内容作者拥有内容，宿主应用拥有外观”。
 
-对 MathMind 的结论:
+对 MindTrace 的结论:
 
 - 这是 AI 应用里非常值得借鉴的模式: AI 只给语义内容，不给最终 UI。
 - `KnowledgeUnitExt.fields` 就应该类似 Adaptive Cards 的 content schema, ArkUI 才是 host renderer。
-- MathMind 不应允许 AI 输出 ArkUI 样式、HTML、CSS 或任意 Markdown 扩展。
+- MindTrace 不应允许 AI 输出 ArkUI 样式、HTML、CSS 或任意 Markdown 扩展。
 - 后续如果做更复杂卡片，不要把 Markdown 继续扩到无限大，而应新增 typed block, 例如 `FormulaBlock / StepBlock / ErrorPointBlock / TheoremBlock`。
 
 参考: [Microsoft Adaptive Cards Overview](https://learn.microsoft.com/en-us/adaptive-cards/)
 
 ---
 
-## 15. 对 MathMind 的最终取舍
+## 15. 对 MindTrace 的最终取舍
 
-结合上面的资料，MathMind 不建议复制某一个平台的语法，而应该固定自己的窄协议:
+结合上面的资料，MindTrace 不建议复制某一个平台的语法，而应该固定自己的窄协议:
 
 ```text
 AI JSON fields
@@ -987,7 +987,7 @@ AI JSON fields
 
 具体取舍:
 
-| 问题 | 外部资料倾向 | MathMind 取舍 |
+| 问题 | 外部资料倾向 | MindTrace 取舍 |
 |---|---|---|
 | 行内公式 delimiter | OpenAI/MathJax 偏 `\(...\)`, GitHub 支持 `$...$` | 保持 `$...$`, 但强校验；兼容输入 `\(...\)` |
 | 块级公式 delimiter | OpenAI/MathJax 偏 `\[...\]`, GitHub/KaTeX 支持 `$$` | 保持独立行 `$$`, 兼容输入 `\[...\]` |
@@ -1010,7 +1010,7 @@ AI 生成和入库正文只推荐两种定界符: $...$ 和 $$
 ```text
 入库标准只允许 $...$ 和独立行 $$...$$。
 输入兼容 \(...\) 和 \[...\]。
-AI prompt 可以明确要求 $...$ / $$...$$，因为当前 MathMind parser 已按这个方向实现。
+AI prompt 可以明确要求 $...$ / $$...$$，因为当前 MindTrace parser 已按这个方向实现。
 如果未来切到 MathJax 风格，则必须全链一次性迁移，不要两套标准长期并存。
 ```
 
@@ -1040,7 +1040,7 @@ AI prompt 可以明确要求 $...$ / $$...$$，因为当前 MathMind parser 已�
 这一节直接面向后续实现 plan。核心思想:
 
 ```text
-同一份 MathMind 内容协议
+同一份 MindTrace 内容协议
   + 每个模型一个 ProviderAdapter
   + 每个 Adapter 声明自己支持的结构化输出能力
   + 所有模型输出都进入同一套 ContentProtocol / LaTeX validator
@@ -1052,7 +1052,7 @@ AI prompt 可以明确要求 $...$ / $$...$$，因为当前 MathMind parser 已�
 
 模型输出控制能力建议分 4 档:
 
-| 档位 | 能力 | 可依赖程度 | MathMind 策略 |
+| 档位 | 能力 | 可依赖程度 | MindTrace 策略 |
 |---|---|---:|---|
 | A | JSON Schema / strict structured output | 高 | 首选，模型端约束字段结构 |
 | B | Tool strict / function schema | 高 | 适合把结构化结果当 tool args |
@@ -1109,11 +1109,11 @@ ArkTS strict 注意:
 - Function calling 里也可以通过 `strict: true` 约束 tool 参数。
 - OpenAI Model Spec 推荐 Markdown + LaTeX extension, 常用 `\(...\)` 和 `\[...\]`，并要求展示公式 delimiter 单独成行。
 
-MathMind 要注意:
+MindTrace 要注意:
 
 - 如果走 OpenAI 原生 API，优先用 `response_format: { type: "json_schema", ... strict: true }`。
 - 如果走 OpenAI-compatible 中转但不支持 `json_schema`, 降级到 `json_object`。
-- Prompt 必须明确覆盖模型默认习惯: MathMind 入库标准使用 `$...$` 和独立行 `$$...$$`。
+- Prompt 必须明确覆盖模型默认习惯: MindTrace 入库标准使用 `$...$` 和独立行 `$$...$$`。
 - `field.value` 仍要跑公式边界校验，Structured Outputs 不能保证数学公式可编译。
 
 技术栈:
@@ -1149,7 +1149,7 @@ OpenAIAdapter
 - Anthropic 文档说明 structured outputs 通过 constrained sampling / grammar compilation 工作，首次 schema 会有额外编译延迟，且 schema 有复杂度限制。
 - Claude prompt 对明确格式、示例、XML tag 边界比较敏感，复杂 prompt 可用 `<format_rules>`、`<examples>` 分隔。
 
-MathMind 要注意:
+MindTrace 要注意:
 
 - Claude 原生 API 不是 OpenAI Chat Completions 形状，不能强塞进 `OpenAiCompatibleAdapter`。
 - 如果通过聚合平台走 OpenAI-compatible, 要探测它是否真的支持 Claude 的 structured outputs；很多中转只支持 prompt-only 或 json_object。
@@ -1195,11 +1195,11 @@ ClaudeAdapter
 - REST/Interactions API 通过 `response_format` 指定 `mime_type: "application/json"` 和 `schema`。
 - Gemini structured output 支持 JSON Schema 子集。
 
-MathMind 要注意:
+MindTrace 要注意:
 
 - Gemini 的 API 形状和 OpenAI 不同，原生接入要单独 Adapter。
 - 如果使用 Gemini OpenAI compatibility, 仍要 feature probe, 不假设所有参数兼容。
-- Gemini 多模态能力强，未来可以参与 OCR/图片理解，但当前 MathMind 已有 OCR 服务，先不要把 OCR 和结构化笔记生成混成一步。
+- Gemini 多模态能力强，未来可以参与 OCR/图片理解，但当前 MindTrace 已有 OCR 服务，先不要把 OCR 和结构化笔记生成混成一步。
 - Gemini 输出字段顺序可能跟 schema 相关，适合固定 `fields` 顺序。
 
 技术栈:
@@ -1233,9 +1233,9 @@ GeminiAdapter
 - 官方提醒合理设置 `max_tokens`, 避免 JSON 中途截断。
 - 官方还提示 JSON Output 可能偶发返回空 content。
 
-MathMind 要注意:
+MindTrace 要注意:
 
-- DeepSeek 是当前 MathMind 常见 OpenAI-compatible 后端，适合保留为主路径。
+- DeepSeek 是当前 MindTrace 常见 OpenAI-compatible 后端，适合保留为主路径。
 - 它是 JSON object mode，不是 schema strict。字段缺失、字段类型错误、LaTeX 乱写仍可能出现。
 - `LlmGuard.callJsonWithRetry()` 对 DeepSeek 是必须项，不是可选项。
 - Prompt 必须包含英文或中文 `JSON` 关键词。
@@ -1276,12 +1276,12 @@ DeepSeekAdapter
 - 文档建议生产环境仍做 JSON 有效性校验，可用 jsonschema/Ajv/Everit 等工具。
 - Qwen Cloud API 也列出 `json_schema` 类型，但需要结合模型支持情况判断。
 
-MathMind 要注意:
+MindTrace 要注意:
 
 - Qwen 适合做中文数学笔记结构化，但 thinking mode 和 JSON 稳定性要分开评估。
 - 如果调用 Qwen thinking 模型，建议两阶段:
   1. thinking 模型产出高质量解释草稿。
-  2. 非 thinking / JSON 稳定模型把草稿转成 MathMind JSON。
+  2. 非 thinking / JSON 稳定模型把草稿转成 MindTrace JSON。
 - 如果服务端支持 `json_schema`, 优先试用；不支持则降级 JSON object。
 - 对 Qwen2.5 math / coder 等特殊模型不要默认启用 JSON mode, 以实际文档和模型能力 probe 为准。
 
@@ -1322,9 +1322,9 @@ QwenAdapter
 - 如果 `finish_reason` 为 `length`, JSON 可能被截断。
 - Kimi Partial Mode 不要和 `response_format=json_object` 混用。
 
-MathMind 要注意:
+MindTrace 要注意:
 
-- MathMind 的 AI 返回根对象，天然适合 Kimi JSON Object 限制。
+- MindTrace 的 AI 返回根对象，天然适合 Kimi JSON Object 限制。
 - `fields` 可以是根对象里的数组，但根必须是 object。
 - 不要用 assistant prefill / partial mode 去强行补 `{`, 容易和 JSON mode 冲突。
 - 长笔记场景要估算 token, 防止 `fields[].value` 被截断。
@@ -1360,7 +1360,7 @@ KimiAdapter
 - 文档示例仍强调本地 `json.loads` 后用 JSON Schema 校验。
 - GLM 文档中部分模型说明支持结构化输出。
 
-MathMind 要注意:
+MindTrace 要注意:
 
 - GLM 可按 JSON object 接入，不应假设 schema strict。
 - 中文输出能力强，但字段 label 可能更自由，要强制字段 key/label 白名单。
@@ -1395,7 +1395,7 @@ GlmAdapter
 - 文档给出 `response_format: { type: "json_schema", json_schema: ... }` 的结构化输出示例。
 - 腾讯 TokenHub 的 DeepSeek 调用指南中，JSON mode 示例使用 `response_format: {"type":"json_object"}`，并显式设置 `thinking: {"type":"disabled"}`。
 
-MathMind 要注意:
+MindTrace 要注意:
 
 - Hunyuan 自身适合走 `json_schema`。
 - TokenHub 代理其他模型时，capability 要按模型而不是按平台判断。
@@ -1433,7 +1433,7 @@ HunyuanAdapter
 - `json_schema` 只支持部分模型。
 - `json_object` 只保证 JSON 对象语法，不能保证符合业务 schema。
 
-MathMind 要注意:
+MindTrace 要注意:
 
 - 接入千帆时应先读取模型列表/能力元数据，判断是否支持 `json_schema`。
 - 千帆承载很多开源模型，不能按平台统一判断模型行为。
@@ -1466,9 +1466,9 @@ QianfanAdapter
 - xAI 文档支持 `response_format` 的 `json_schema`、`json_object` 和 `text`。
 - SDK 可把 Pydantic model 转成 JSON Schema。
 
-MathMind 要注意:
+MindTrace 要注意:
 
-- 当前不是 MathMind 主路径，但如果后续走 OpenAI-compatible, 可按 A 档 schema strict 接。
+- 当前不是 MindTrace 主路径，但如果后续走 OpenAI-compatible, 可按 A 档 schema strict 接。
 - Grok 风格可能更发散，依旧要用 MM-MD-v1 prompt 和本地公式校验。
 
 技术栈:
@@ -1606,7 +1606,7 @@ hunyuan_json_schema_good.json
 
 ---
 
-## 18. KaTeX GitHub 资源包对 MathMind 的帮助
+## 18. KaTeX GitHub 资源包对 MindTrace 的帮助
 
 用户给出的仓库:
 
@@ -1720,7 +1720,7 @@ task: chore(render): upgrade bundled KaTeX from 0.16.9 to 0.18.1
 
 ### 18.4 KaTeX 支持范围要写进 AI 规则
 
-根据 KaTeX supported functions, MathMind prompt 应避免让 AI 输出:
+根据 KaTeX supported functions, MindTrace prompt 应避免让 AI 输出:
 
 - 自定义宏 `\newcommand`
 - 高风险 HTML 扩展 `\htmlId`, `\htmlClass`, `\htmlStyle`, `\includegraphics`
@@ -1928,7 +1928,7 @@ KnowledgeUnit.summary/content
 - MDN `content-visibility`: <https://developer.mozilla.org/en-US/docs/Web/CSS/content-visibility>
 - PDF.js examples（逐页获取并渲染）: <https://mozilla.github.io/pdf.js/examples/>
 - HarmonyOS `LazyForEach`: <https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-rendering-control-lazyforeach>
-- HarmonyOS `List` 的 `cachedCount` 应用于视口邻近项缓存；MathMind API 9 目标下不使用 API 10 的 `onVisibleAreaChange` 或 API 11 的 `onReachEnd`。
+- HarmonyOS `List` 的 `cachedCount` 应用于视口邻近项缓存；MindTrace API 9 目标下不使用 API 10 的 `onVisibleAreaChange` 或 API 11 的 `onReachEnd`。
 
 ### 21.3 本轮已落地方案
 

@@ -157,4 +157,4 @@ git checkout HEAD -- \
   entry/src/main/ets/viewmodels/KnowledgeGalaxyViewModel.ets
 ```
 
-注意: 回滚后 DB schema version 不一致, 需在 DevEco 中卸载 App 重新安装, 或手动删 `MathMind.db`。
+注意: 回滚后 DB schema version 不一致, 需在 DevEco 中卸载 App 重新安装, 或手动删 `MindTrace.db`。

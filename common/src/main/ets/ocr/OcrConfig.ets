@@ -1,4 +1,4 @@
-// MathMind - OCR 服务端点配置(单例 + preferences 持久化)
+// MindTrace - OCR 服务端点配置(单例 + preferences 持久化)
 // 创建: 2026-07-17 (P0 修复: OcrTool 端点从硬编码 localhost 改为可配置)
 //
 // 设计: 跟 LlmConfig 一致的单例 + preferences 模式

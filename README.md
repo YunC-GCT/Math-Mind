@@ -1,4 +1,4 @@
-# MathMind · 数学学习助手
+# MindTrace · 数学学习助手
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z
@@ -133,7 +133,7 @@ ArkUI Web 组件在此设备上有 **1800vp 高度上限**,超过后 WebView 完
 
 ### 渲染顺序
 
-MathMind 统一采用以下内容链路：
+MindTrace 统一采用以下内容链路：
 
 ```text
 AI / OCR / 历史数据
@@ -203,7 +203,7 @@ AI / OCR / 历史数据
 
 ## 2026-07-20 旧数据兼容说明：不是两套数据库
 
-当前不存在“新旧两套数据库”。应用仍使用同一个 `MathMind.db`，主表仍是 `knowledge_unit`。
+当前不存在“新旧两套数据库”。应用仍使用同一个 `MindTrace.db`，主表仍是 `knowledge_unit`。
 
 需要注意的是：`KnowledgeUnit` 在 2026-07-20 后新增了独立的 `subject` 和 `category` 必填字段。旧版本已经保存过的笔记行可能没有这两个字段的有效语义，表现为字段为空、旧分类仍混在 `tags` 中，或 UI 需要从旧标签兜底推断。
 
@@ -411,7 +411,7 @@ AI / OCR / 历史数据
 
 ## 一、当前状态总览
 
-MathMind 是一个 HarmonyOS 数学学习助手,通过 **拍照 → OCR → AI 分类 → 知识结构化 → 持久化 → 复习**的整链,把"看到的数学题"变成"可复习的知识"。
+MindTrace 是一个 HarmonyOS 数学学习助手,通过 **拍照 → OCR → AI 分类 → 知识结构化 → 持久化 → 复习**的整链,把"看到的数学题"变成"可复习的知识"。
 
 ### 1.1 已实现功能
 
@@ -450,7 +450,7 @@ MathMind 是一个 HarmonyOS 数学学习助手,通过 **拍照 → OCR → AI �
 ## 二、5 module 工程结构
 
 ```
-MathMind/
+MindTrace/
 ├── entry/        # HAP · type:entry      主 App(UI + 浮层 + 数据库 + ViewModel)
 ├── common/       # HSP · shared          共享类型 + 工具 + LLM + MockData
 ├── agents/       # HSP · shared          OCR/分类/知识建模 pipeline
@@ -511,7 +511,7 @@ MathMind/
 ### 3.7 AgentFloatWindow · 真实 LLM (2026-07-14)
 
 - `7e3f4da` `realReply()` 替代 mock: `LlmClient.call()` → DeepSeek
-- 系统提示词: "你是 MathMind AI 助手,用简洁中文回答数学问题,适当使用 LaTeX"
+- 系统提示词: "你是 MindTrace AI 助手,用简洁中文回答数学问题,适当使用 LaTeX"
 - 错误分类: `NO_API_KEY` / `NETWORK_ERROR` / 其他(截断显示)
 
 ### 3.8 编译修复 + 代码清理 (2026-07-14)
@@ -782,7 +782,7 @@ Index.ets  ─→  AiService  ─→  Dispatcher  ─→  TypeClassifier  ─→
 ### 7.2 整链真机验证流程
 
 1. 启动本地 FastAPI OCR 服务:`formula_api:ocr_router`(端口 8000)
-2. 真机/模拟器跑 MathMind,确保能访问 `127.0.0.1:8000`(模拟器用 LAN IP)
+2. 真机/模拟器跑 MindTrace,确保能访问 `127.0.0.1:8000`(模拟器用 LAN IP)
 3. 配置 API Key(我的 → 模型配置 → 测试连接)
 4. 拍张数学题照片
 5. 预期:Toast "笔记已生成: {title}" → 首页/笔记页能看到新笔记

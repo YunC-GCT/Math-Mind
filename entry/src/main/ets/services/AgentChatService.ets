@@ -156,7 +156,7 @@ export class AgentChatService {
     const messages: ChatMessage[] = [
       {
         role: 'system',
-        content: '你负责把 MathMind 当前对话整理成 KnowledgeModel.structure 可直接使用的“完整笔记原材料”，不是短摘要。请用稳定、结构化的中文输出，包含：主题/标题候选、原题或原始材料、关键公式、推导/步骤、结论、易错点、用户补充、上下文来源。不要丢数学细节，不要只给一句总结，不要输出 markdown 代码块，不要编造对话中没有的信息；无法确定的内容标注为“未提供”或省略。',
+        content: '你负责把 MindTrace 当前对话整理成 KnowledgeModel.structure 可直接使用的“完整笔记原材料”，不是短摘要。请用稳定、结构化的中文输出，包含：主题/标题候选、原题或原始材料、关键公式、推导/步骤、结论、易错点、用户补充、上下文来源。不要丢数学细节，不要只给一句总结，不要输出 markdown 代码块，不要编造对话中没有的信息；无法确定的内容标注为“未提供”或省略。',
       },
       {
         role: 'user',
@@ -171,7 +171,7 @@ export class AgentChatService {
   }
 
   private buildReplyMessages(memoryContext: string, learnerProfileContext: string, userContent: string): ChatMessage[] {
-    let systemPrompt: string = '你是 MathMind AI 数学助手。回答要求：\n'
+    let systemPrompt: string = '你是 MindTrace AI 数学助手。回答要求：\n'
       + '1. 先判断用户当前意图，再结合 Learner profile 的生效水平调整解释密度；不要把所有问题套成同一种结构。\n'
       + '2. 当前用户明确要求“详细讲”“像小白一样讲”“直接给答案”“不要展开”时，本轮优先服从当前指令，而不是画像。\n'
       + '3. beginner：少术语，多直观解释、例子和关键易错点；步骤可以更细，但仍要避免空泛寒暄。\n'
@@ -234,7 +234,7 @@ export class AgentChatService {
     const messages: ChatMessage[] = [
       {
         role: 'system',
-        content: 'Classify the MathMind user message intent. Return strict JSON only: {"intent":"note_generation"} or {"intent":"chat"}. note_generation means the user wants current/previous/provided content turned into saveable learning material, such as a note, knowledge point, notebook entry, retained problem record, or material to store for later review. This includes natural requests like remembering/saving the above problem as study material even if the wording is informal. Return chat for normal Q&A, explanation, calculation, practice generation, casual chat, or temporary summarization/organization where the user only wants an answer and does not imply saving or forming reusable learning material. If uncertain, return chat.',
+        content: 'Classify the MindTrace user message intent. Return strict JSON only: {"intent":"note_generation"} or {"intent":"chat"}. note_generation means the user wants current/previous/provided content turned into saveable learning material, such as a note, knowledge point, notebook entry, retained problem record, or material to store for later review. This includes natural requests like remembering/saving the above problem as study material even if the wording is informal. Return chat for normal Q&A, explanation, calculation, practice generation, casual chat, or temporary summarization/organization where the user only wants an answer and does not imply saving or forming reusable learning material. If uncertain, return chat.',
       },
       {
         role: 'user',

@@ -2,7 +2,7 @@
   "module": {
     "name": "skill",
     "type": "feature",
-    "description": "MathMind xiaoyi skill (7 Intent)",
+    "description": "MindTrace xiaoyi skill (7 Intent)",
     "mainElement": "SkillAbility",
     "deviceTypes": [
       "phone",
@@ -15,7 +15,7 @@
       {
         "name": "SkillAbility",
         "srcEntry": "./ets/skillability/SkillAbility.ets",
-        "description": "MathMind xiaoyi skill",
+        "description": "MindTrace xiaoyi skill",
         "icon": "$media:layered_image",
         "label": "$string:app_name",
         "startWindowIcon": "$media:startIcon",

@@ -6,7 +6,7 @@
 struct FormPage {
   build() {
     Column() {
-      Text('MathMind Card')
+      Text('MindTrace Card')
         .fontSize(16)
         .fontColor('#333333')
     }

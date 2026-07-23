@@ -14,7 +14,7 @@
 5. [MathJax vs KaTeX in Split-View Scenarios](#5-mathjax-vs-katex-in-split-view-scenarios)
 6. [CSS Containment and Layout Isolation](#6-css-containment-and-layout-isolation)
 7. [Server-Side Rendering of Formulas](#7-server-side-rendering-of-formulas)
-8. [Recommendations for MathMind](#8-recommendations-for-mathmind)
+8. [Recommendations for MindTrace](#8-recommendations-for-mathmind)
 
 ---
 
@@ -396,7 +396,7 @@ From the KaTeX API:
 - SVG output is completely self-contained — no CSS or font dependencies
 - MathJax SSR is used by many publishing tools (arXiv, Stack Exchange, etc.)
 
-#### Viability for MathMind
+#### Viability for MindTrace
 
 **Option A: Server pre-renders all formulas → client inserts HTML strings into WebViews**
 
@@ -435,7 +435,7 @@ From the KaTeX API:
 
 ---
 
-## 8. Recommendations for MathMind
+## 8. Recommendations for MindTrace
 
 ### Short-Term (Multi-WebView Approach)
 

@@ -195,7 +195,7 @@ export class AgentMemoryService {
     const llmMessages: ChatMessage[] = [
       {
         role: 'system',
-        content: '请把 MathMind 当前会话更新为后续对话可用的 session summary。输出稳定、结构化、信息密集的中文摘要，保留：题目/原始材料、关键公式、用户目标、已识别 OCR 材料、已讲解结论、待整理内容、未解决问题。避免寒暄、评价和重复；不要编造没有出现在材料里的信息；如果某项没有信息可省略。已有 summary 只是参考，请结合新增消息生成一份最新 summary。',
+        content: '请把 MindTrace 当前会话更新为后续对话可用的 session summary。输出稳定、结构化、信息密集的中文摘要，保留：题目/原始材料、关键公式、用户目标、已识别 OCR 材料、已讲解结论、待整理内容、未解决问题。避免寒暄、评价和重复；不要编造没有出现在材料里的信息；如果某项没有信息可省略。已有 summary 只是参考，请结合新增消息生成一份最新 summary。',
       },
       {
         role: 'user',
@@ -326,7 +326,7 @@ export class AgentMemoryService {
     const messages: ChatMessage[] = [
       {
         role: 'system',
-        content: '你负责判断 MathMind 用户的数学学习水平画像。只输出严格 JSON，不要解释。画像分三档：beginner=小白，常要求基础解释、直观例子、步骤很细；novice=初识者，能跟随常规步骤但仍需要关键解释；advanced=精通者，能使用专业术语，关注证明、边界条件、推导效率。请保守更新，不要因为单句话大幅改变画像；无法确定时保持当前水平。globalLevel 表示用户长期整体水平，sessionLevel 表示当前会话/当前主题熟悉度，confidence 是 0 到 1，evidence 用一句中文概括依据且不超过 60 字。输出格式必须是 {"globalLevel":"beginner|novice|advanced","sessionLevel":"beginner|novice|advanced","confidence":0.0,"evidence":"简短依据"}。',
+        content: '你负责判断 MindTrace 用户的数学学习水平画像。只输出严格 JSON，不要解释。画像分三档：beginner=小白，常要求基础解释、直观例子、步骤很细；novice=初识者，能跟随常规步骤但仍需要关键解释；advanced=精通者，能使用专业术语，关注证明、边界条件、推导效率。请保守更新，不要因为单句话大幅改变画像；无法确定时保持当前水平。globalLevel 表示用户长期整体水平，sessionLevel 表示当前会话/当前主题熟悉度，confidence 是 0 到 1，evidence 用一句中文概括依据且不超过 60 字。输出格式必须是 {"globalLevel":"beginner|novice|advanced","sessionLevel":"beginner|novice|advanced","confidence":0.0,"evidence":"简短依据"}。',
       },
       {
         role: 'user',

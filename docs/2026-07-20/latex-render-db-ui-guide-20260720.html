@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MathMind 数据库笔记 LaTeX 渲染到 UI 方案</title>
+<title>MindTrace 数据库笔记 LaTeX 渲染到 UI 方案</title>
 <style>
   :root {
     --page: #f5f7fb;
@@ -493,10 +493,10 @@
   <header>
     <div>
       <h1>数据库笔记 LaTeX 渲染到 UI 方案</h1>
-      <p class="tagline">目标是把 `MathMind.db` 中 `knowledge_unit.content / summary` 里的普通文本与 LaTeX 文本稳定拆分、规范化、渲染，并在 ArkUI 笔记详情页呈现为可读的数学内容。</p>
+      <p class="tagline">目标是把 `MindTrace.db` 中 `knowledge_unit.content / summary` 里的普通文本与 LaTeX 文本稳定拆分、规范化、渲染，并在 ArkUI 笔记详情页呈现为可读的数学内容。</p>
     </div>
     <div class="meta">
-      <div>MathMind</div>
+      <div>MindTrace</div>
       <div>2026-07-20</div>
       <div>文件: latex-render-db-ui-guide-20260720.html</div>
     </div>
@@ -507,7 +507,7 @@
     <div class="grid">
       <div>
         <h3>数据库里存的是字符串，不是渲染结果</h3>
-        <p>真实笔记写入 `MathMind.db` 的 `knowledge_unit` 表。`content`、`summary`、`source` 都是 TEXT 字段；`tags`、`prerequisites`、`related`、`embedding` 是 JSON 字符串。也就是说，数据库负责保存原始/结构化文本，UI 负责解析和渲染。</p>
+        <p>真实笔记写入 `MindTrace.db` 的 `knowledge_unit` 表。`content`、`summary`、`source` 都是 TEXT 字段；`tags`、`prerequisites`、`related`、`embedding` 是 JSON 字符串。也就是说，数据库负责保存原始/结构化文本，UI 负责解析和渲染。</p>
         <p><span class="chip">RDB</span><span class="chip">knowledge_unit.content</span><span class="chip">普通 LaTeX 文本</span></p>
       </div>
       <div>
@@ -613,7 +613,7 @@
     <div class="screen-row">
       <div class="phone">
         <div class="phone-inner">
-          <div class="status"><span>9:41</span><span>MathMind</span></div>
+          <div class="status"><span>9:41</span><span>MindTrace</span></div>
           <div class="topbar">
             <div class="back">‹</div>
             <strong>泰勒公式余项形式</strong>

@@ -1,10 +1,10 @@
-// MathMind - 统一日志工具
+// MindTrace - 统一日志工具
 // 封装 hilog,统一 TAG,按级别输出
 // 创建: Z (W1 块 2 - 2026-07-04)
 
 import hilog from '@ohos.hilog';
 
-const APP_TAG = 'MathMind';
+const APP_TAG = 'MindTrace';
 const DOMAIN = 0x0001;
 
 export enum LogLevel {

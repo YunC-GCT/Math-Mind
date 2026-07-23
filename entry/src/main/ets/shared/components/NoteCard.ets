@@ -72,7 +72,6 @@ export struct NoteCard {
           lineHeightValue: 17,
           maxLines: 1,
           minHeight: 18,
-          maxHeight: 23,
           maxChars: 46,
         })
           .margin({ top: 2 })

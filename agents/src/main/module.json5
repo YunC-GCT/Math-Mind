@@ -2,7 +2,7 @@
   "module": {
     "name": "agents",
     "type": "shared",
-    "description": "MathMind shared agents — main + 5 sub Agents",
+    "description": "MindTrace shared agents — main + 5 sub Agents",
     "deviceTypes": [
       "phone",
       "tablet",
