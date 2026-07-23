@@ -125,7 +125,6 @@ export struct MarkdownRenderer {
         lineHeight: this.bodyLineHeight(),
         formulaFontSize: this.bodyFontSize(),
         formulaLineHeight: this.bodyLineHeight(),
-        maxHeight: this.profile === 'chat' ? 4000 : 1800,
       })
     } else {
       Text() {
@@ -241,7 +240,6 @@ export struct MarkdownRenderer {
       lineHeight: this.bodyLineHeight(),
       formulaFontSize: this.bodyFontSize(),
       formulaLineHeight: this.bodyLineHeight(),
-      maxHeight: this.profile === 'chat' ? 4000 : 1800,
     })
   }
 
@@ -373,10 +371,7 @@ export struct MarkdownRenderer {
     if (!this.parseReady) {
       return
     }
-    this.visibleBlockCount = Math.min(
-      this.parsedBlocks.length,
-      this.visibleBlockCount + MARKDOWN_BLOCK_BATCH_SIZE,
-    )
+    this.visibleBlockCount = this.parsedBlocks.length
   }
 
   private visibleBlocks = (): MarkdownBlock[] => {

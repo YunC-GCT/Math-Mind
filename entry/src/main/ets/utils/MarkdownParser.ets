@@ -242,7 +242,10 @@ export function parseMarkdown(text: string): MarkdownBlock[] {
     }
 
     if (trimmed.length === 0) {
-      flushOpenBlocks(blocks, paragraphLines, quoteLines, listItems, listOrdered)
+      // 空行: flush 段落和引用, 但不 flush 列表
+      // (Markdown 中空行不应打断列表; 列表项之间常有空行, 打断会导致每项变成独立列表, 序号全部从 1 开始)
+      pushParagraph(blocks, paragraphLines)
+      pushQuote(blocks, quoteLines)
       continue
     }
 

@@ -99,7 +99,7 @@ export struct DetailStepList {
   }
 
   private showNextItemBatch = (): void => {
-    this.visibleItemCount = Math.min(this.items.length, this.visibleItemCount + DETAIL_STEP_BATCH_SIZE)
+    this.visibleItemCount = this.items.length
   }
 
   private visibleItems = (): string[] => {
