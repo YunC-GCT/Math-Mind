@@ -4,11 +4,13 @@ import { BG_CARD, TEXT, TEXT_3, TEXT_4, R_MD, R_LG, F_XS, F_SM } from 'common'
 export struct OcrConfigSection {
   @Prop endpoint: string = ''
   @Prop isEnabled: boolean = true
+  @Prop mode: string = 'text'
   @Prop statusText: string = ''
   @Prop testing: boolean = false
 
   onEndpointChange?: (v: string) => void = (_v: string): void => {}
   onEnabledChange?: (v: boolean) => void = (_v: boolean): void => {}
+  onModeChange?: (v: string) => void = (_v: string): void => {}
   onReset?: () => void = (): void => {}
   onTest?: () => void = (): void => {}
 
@@ -30,7 +32,53 @@ export struct OcrConfigSection {
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
 
       Row() {
-        Text('服务地址')
+        Text('快速')
+          .fontSize(F_XS)
+          .fontColor(this.modeTextColor('text'))
+          .textAlign(TextAlign.Center)
+          .layoutWeight(1)
+          .height(34)
+          .backgroundColor(this.modeBgColor('text'))
+          .borderRadius(R_MD)
+          .onClick((): void => {
+            if (this.onModeChange) {
+              this.onModeChange('text')
+            }
+          })
+        Text('公式')
+          .fontSize(F_XS)
+          .fontColor(this.modeTextColor('formula'))
+          .textAlign(TextAlign.Center)
+          .layoutWeight(1)
+          .height(34)
+          .backgroundColor(this.modeBgColor('formula'))
+          .borderRadius(R_MD)
+          .margin({ left: 6 })
+          .onClick((): void => {
+            if (this.onModeChange) {
+              this.onModeChange('formula')
+            }
+          })
+        Text('自动')
+          .fontSize(F_XS)
+          .fontColor(this.modeTextColor('auto'))
+          .textAlign(TextAlign.Center)
+          .layoutWeight(1)
+          .height(34)
+          .backgroundColor(this.modeBgColor('auto'))
+          .borderRadius(R_MD)
+          .margin({ left: 6 })
+          .onClick((): void => {
+            if (this.onModeChange) {
+              this.onModeChange('auto')
+            }
+          })
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 0, bottom: 8 })
+
+      Row() {
+        Text('服务地址 / OCR 电脑 IP')
           .fontSize(F_SM)
           .fontColor(TEXT)
           .layoutWeight(1)
@@ -39,7 +87,7 @@ export struct OcrConfigSection {
       .padding({ left: 12, right: 12, top: 4, bottom: 4 })
 
       Row() {
-        TextInput({ text: this.endpoint, placeholder: 'http://192.168.x.x:8000/api/v1/ocr/recognize' })
+        TextInput({ text: this.endpoint, placeholder: '192.168.x.x 或 192.168.x.x:8000' })
           .layoutWeight(1)
           .height(44)
           .fontSize(F_XS)
@@ -92,7 +140,7 @@ export struct OcrConfigSection {
       .padding({ left: 12, right: 12, top: 4, bottom: 8 })
 
       Row() {
-        Text('真机填电脑局域网 IP，127.0.0.1 只适合本机或同机服务')
+        Text('快速模式只识别文字；公式模式适合裁剪后的单块公式。填写运行 OCR 服务那台电脑的局域网 IPv4')
           .fontSize(F_XS)
           .fontColor(TEXT_4)
           .layoutWeight(1)
@@ -104,5 +152,13 @@ export struct OcrConfigSection {
     .borderRadius(R_LG)
     .backgroundColor(BG_CARD)
     .margin({ left: 8, right: 8 })
+  }
+
+  private modeBgColor(value: string): ResourceColor {
+    return this.mode === value ? '#1F8CFFCC' : '#0AFFFFFF'
+  }
+
+  private modeTextColor(value: string): ResourceColor {
+    return this.mode === value ? '#FFFFFF' : TEXT_4
   }
 }

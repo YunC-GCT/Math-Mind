@@ -50,6 +50,9 @@ export class ImageUriResolver {
     const destUri: string = 'file://' + localPath;
 
     await fileIo.copy(imageUri, destUri);
+    const localBytes: number = this.fileSize(localPath);
+    console.info('[ImageUriResolver] copied image fileName=' + fileName +
+      ' bytes=' + localBytes.toString() + ' originalUri=' + imageUri);
 
     return {
       originalUri: imageUri,
@@ -72,5 +75,13 @@ export class ImageUriResolver {
   private buildFileName(uri: string): string {
     const ext: string = extFromUri(uri);
     return 'capture_' + Date.now().toString() + '_' + Math.floor(Math.random() * 100000).toString() + ext;
+  }
+
+  private fileSize(path: string): number {
+    try {
+      return fileIo.statSync(path).size;
+    } catch (_e) {
+      return 0;
+    }
   }
 }

@@ -79,10 +79,13 @@ struct AiSettingsPage {
     if (!this.vm.ocrEnabled) {
       return "OCR 已关闭"
     }
+    const modeLabel: string = this.vm.ocrMode === 'formula'
+      ? '公式模式'
+      : (this.vm.ocrMode === 'auto' ? '自动模式' : '快速模式')
     if (this.vm.ocrEndpoint.trim().length === 0) {
-      return "未配置 OCR"
+      return modeLabel + " / 未配置 OCR"
     }
-    return this.vm.ocrEndpoint.trim()
+    return modeLabel + " / " + this.vm.ocrEndpoint.trim()
   }
 
   build() {
@@ -169,10 +172,12 @@ struct AiSettingsPage {
           OcrConfigSection({
             endpoint: this.vm.ocrEndpoint,
             isEnabled: this.vm.ocrEnabled,
+            mode: this.vm.ocrMode,
             statusText: this.vm.ocrStatusText,
             testing: this.vm.ocrTesting,
             onEndpointChange: (v: string): void => { this.vm.setOcrEndpoint(v) },
             onEnabledChange: (v: boolean): void => { this.vm.setOcrEnabled(v) },
+            onModeChange: (v: string): void => { this.vm.setOcrMode(v) },
             onReset: (): void => { this.vm.resetOcrEndpoint() },
             onTest: (): void => {
               this.vm.testOcr().then((ok: boolean): void => {

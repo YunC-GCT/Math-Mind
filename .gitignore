@@ -33,6 +33,10 @@ test-results.xml
 *.log
 logs/
 
+# ===== Python runtime caches =====
+__pycache__/
+*.py[cod]
+
 # ===== OS =====
 .DS_Store
 Thumbs.db

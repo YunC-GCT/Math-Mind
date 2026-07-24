@@ -1,0 +1,10 @@
+# MathMind OCR 服务依赖
+# 安装: pip install -r requirements.txt
+
+paddleocr[doc-parser]>=3.7
+paddlepaddle>=3.3
+pytesseract>=0.3
+Pillow>=10.0
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9

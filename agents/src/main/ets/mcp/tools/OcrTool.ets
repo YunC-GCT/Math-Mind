@@ -26,11 +26,21 @@ interface CombinedOcrResponse {
   text_lines: string[];
   text: string;
   message: string;
+  mode?: string;
+  formula_skipped?: boolean;
+  formula_timeout?: boolean;
+  formula_rejected?: boolean;
 }
 
 interface OcrError {
   code?: number;
   message?: string;
+}
+
+interface OcrUploadFile {
+  filePath: string;
+  fileName: string;
+  contentType: string;
 }
 
 /**
@@ -55,9 +65,12 @@ export class OcrTool {
     imageBytes: ArrayBuffer,
     endpoint: string,
     fileName: string = 'upload.png',
+    mode?: string,
   ): Promise<OcrRecognitionResult> {
     let lastError: string = '';
-    const target: string = endpoint.trim().length > 0 ? endpoint.trim() : OcrConfig.getInstance().getEndpoint();
+    const target: string = endpoint.trim().length > 0
+      ? this.withOcrMode(OcrConfig.normalizeEndpointInput(endpoint), mode ?? OcrConfig.getInstance().getMode())
+      : this.resolveOcrEndpoint(mode);
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const raw: string = await this.postBytes(target, imageBytes, fileName);
@@ -97,6 +110,7 @@ export class OcrTool {
 
   async recognizeImage(imageUri: string): Promise<OcrRecognitionResult> {
     const filePath: string = this.normalizeFilePath(imageUri);
+    const mode: string = OcrConfig.getInstance().getMode();
     let textLines: string[] = [];
     let formulas: string[] = [];
     let textError: string = '';
@@ -111,7 +125,7 @@ export class OcrTool {
 
     if (textError.length > 0) {
       try {
-        const fallback: CombinedOcrResponse = await this.requestCombinedWithRetry(filePath);
+        const fallback: CombinedOcrResponse = await this.requestCombinedWithRetry(filePath, mode);
         if (fallback.success) {
           textLines = fallback.text_lines ?? [];
           if (textLines.length === 0 && fallback.text.trim().length > 0) {
@@ -127,15 +141,20 @@ export class OcrTool {
         formulaError = this.errorText(e as OcrError);
       }
     } else {
-      try {
-        const response: FormulaResponse = await this.requestFormulaWithRetry(filePath);
-        if (response.success) {
-          formulas = response.formulas ?? [];
-        } else {
-          formulaError = response.message;
+      if (mode !== 'text') {
+        try {
+          const response: CombinedOcrResponse = await this.requestCombinedWithRetry(filePath, mode);
+          if (response.success) {
+            formulas = response.formulas ?? [];
+            if (response.formula_timeout === true || response.formula_rejected === true) {
+              formulaError = response.message;
+            }
+          } else {
+            formulaError = response.message;
+          }
+        } catch (e) {
+          formulaError = this.errorText(e as OcrError);
         }
-      } catch (e) {
-        formulaError = this.errorText(e as OcrError);
       }
     }
 
@@ -231,6 +250,16 @@ export class OcrTool {
     return this.formulaEndpoint;
   }
 
+  private resolveOcrEndpoint(mode?: string): string {
+    return this.withOcrMode(OcrConfig.getInstance().getEndpoint(), mode ?? OcrConfig.getInstance().getMode());
+  }
+
+  private withOcrMode(endpoint: string, mode: string): string {
+    const normalizedMode: string = OcrConfig.normalizeModeInput(mode);
+    const separator: string = endpoint.indexOf('?') >= 0 ? '&' : '?';
+    return endpoint + separator + 'mode=' + normalizedMode + '&formula_timeout=30';
+  }
+
   private async requestFormulaWithRetry(filePath: string): Promise<FormulaResponse> {
     let lastError: string = '';
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -244,11 +273,11 @@ export class OcrTool {
     throw new Error('Formula request failed: ' + lastError);
   }
 
-  private async requestCombinedWithRetry(filePath: string): Promise<CombinedOcrResponse> {
+  private async requestCombinedWithRetry(filePath: string, mode?: string): Promise<CombinedOcrResponse> {
     let lastError: string = '';
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const responseText: string = await this.postImage(OcrConfig.getInstance().getEndpoint(), filePath);
+        const responseText: string = await this.postImage(this.resolveOcrEndpoint(mode), filePath);
         return JSON.parse(responseText) as CombinedOcrResponse;
       } catch (e) {
         lastError = this.errorText(e as OcrError);
@@ -258,7 +287,7 @@ export class OcrTool {
   }
 
   private async postImage(endpoint: string, filePath: string): Promise<string> {
-    const fileName: string = this.fileNameFromUri(filePath);
+    const uploadFile: OcrUploadFile = await this.prepareUploadFile(filePath);
     const httpReq: http.HttpRequest = http.createHttp();
 
     try {
@@ -270,9 +299,9 @@ export class OcrTool {
         multiFormDataList: [
           {
             name: 'file',
-            contentType: this.mimeFromName(fileName),
-            filePath: filePath,
-            remoteFileName: fileName,
+            contentType: uploadFile.contentType,
+            filePath: uploadFile.filePath,
+            remoteFileName: uploadFile.fileName,
           },
         ],
         expectDataType: http.HttpDataType.STRING,
@@ -288,6 +317,14 @@ export class OcrTool {
     } finally {
       httpReq.destroy();
     }
+  }
+
+  private async prepareUploadFile(filePath: string): Promise<OcrUploadFile> {
+    return {
+      filePath: filePath,
+      fileName: this.fileNameFromUri(filePath),
+      contentType: this.mimeFromName(filePath),
+    };
   }
 
   private async postBytes(endpoint: string, imageBytes: ArrayBuffer, fileName: string): Promise<string> {

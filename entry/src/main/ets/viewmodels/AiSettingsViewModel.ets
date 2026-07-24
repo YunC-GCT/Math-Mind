@@ -5,6 +5,7 @@ import { OcrTool } from "agents"
 import type { OcrRecognitionResult } from "agents"
 
 const DEFAULT_OCR_ENDPOINT: string = "http://127.0.0.1:8000/api/v1/ocr/recognize"
+const DEFAULT_OCR_MODE: string = "text"
 const OCR_TEST_PNG_BYTES: number[] = [
   0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
   0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
@@ -30,6 +31,7 @@ export class AiSettingsViewModel {
   to: number = 120000
   ocrEndpoint: string = DEFAULT_OCR_ENDPOINT
   ocrEnabled: boolean = true
+  ocrMode: string = DEFAULT_OCR_MODE
   ocrTesting: boolean = false
   ocrStatusText: string = "未测试"
 
@@ -58,11 +60,13 @@ export class AiSettingsViewModel {
     try {
       this.ocrEndpoint = ocr.getEndpoint()
       this.ocrEnabled = ocr.isEnabled()
+      this.ocrMode = ocr.getMode()
       this.ocrStatusText = this.ocrEnabled ? "未测试" : "OCR 已关闭"
     } catch (_e) {
       ok = false
       this.ocrEndpoint = DEFAULT_OCR_ENDPOINT
       this.ocrEnabled = true
+      this.ocrMode = DEFAULT_OCR_MODE
       this.ocrStatusText = "未测试"
     }
     return ok
@@ -83,6 +87,9 @@ export class AiSettingsViewModel {
       const ocr: OcrConfig = OcrConfig.getInstance()
       await ocr.setEndpoint(this.ocrEndpoint)
       await ocr.setEnabled(this.ocrEnabled)
+      await ocr.setMode(this.ocrMode)
+      this.ocrEndpoint = ocr.getEndpoint()
+      this.ocrMode = ocr.getMode()
       this.statusText = "已保存"
       return true
     } catch (_e) {
@@ -111,6 +118,7 @@ export class AiSettingsViewModel {
       await ocr.resetDefaults()
       this.ocrEndpoint = ocr.getEndpoint()
       this.ocrEnabled = ocr.isEnabled()
+      this.ocrMode = ocr.getMode()
       this.ocrStatusText = "未测试"
       return true
     } catch (_e) {
@@ -152,12 +160,14 @@ export class AiSettingsViewModel {
     this.ocrTesting = true
     try {
       const tool: OcrTool = new OcrTool()
-      const endpoint: string = this.ocrEndpoint.trim()
+      const endpoint: string = OcrConfig.normalizeEndpointInput(this.ocrEndpoint)
+      this.ocrEndpoint = endpoint
       const imageBytes: ArrayBuffer = new Uint8Array(OCR_TEST_PNG_BYTES).buffer as ArrayBuffer
       const result: OcrRecognitionResult = await tool.recognizeBytesWithEndpoint(
         imageBytes,
         endpoint,
         "ocr_test.png",
+        this.ocrMode,
       )
       this.ocrStatusText = result.success
         ? "OCR 可达 / 公式 " + result.formulas.length.toString() + " / 文本 " + result.textLines.length.toString()
@@ -213,8 +223,13 @@ export class AiSettingsViewModel {
     this.ocrEnabled = value
   }
 
+  setOcrMode(value: string): void {
+    this.ocrMode = OcrConfig.normalizeModeInput(value)
+  }
+
   resetOcrEndpoint(): void {
     this.ocrEndpoint = DEFAULT_OCR_ENDPOINT
+    this.ocrMode = DEFAULT_OCR_MODE
   }
 
   currentModelText(): string {
