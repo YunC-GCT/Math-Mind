@@ -26,6 +26,10 @@ const UNIVERSE_MIN_WORLD_WIDTH: number = UNIVERSE_WIDTH * 2
 const UNIVERSE_MIN_WORLD_HEIGHT: number = UNIVERSE_HEIGHT * 2
 const UNIVERSE_SUBJECT_HIT_SIZE: number = 44
 const UNIVERSE_WRAP_OFFSETS: number[] = [-1, 0, 1]
+const UNIVERSE_DEFAULT_ZOOM: number = 0.82
+const UNIVERSE_MIN_ZOOM: number = 0.6
+const UNIVERSE_MAX_ZOOM: number = 4.2
+const UNIVERSE_ZOOM_STEP: number = 0.35
 const UNIVERSE_STAR_INDEXES: number[] = [
   0, 1, 2, 3, 4, 5, 6, 7,
   8, 9, 10, 11, 12, 13, 14, 15,
@@ -124,7 +128,7 @@ export struct ReviewGraphView {
   @State vm: KnowledgeGalaxyViewModel = new KnowledgeGalaxyViewModel()
   @State selectedSubject: string = ""
   @State zoom: number = 1
-  @State universeZoom: number = 1
+  @State universeZoom: number = UNIVERSE_DEFAULT_ZOOM
   @State universeCameraX: number = UNIVERSE_MIN_WORLD_WIDTH / 2
   @State universeCameraY: number = UNIVERSE_MIN_WORLD_HEIGHT / 2
   @State orbitOffset: number = 0
@@ -345,19 +349,21 @@ export struct ReviewGraphView {
 
   private zoomUniverseIn(): void {
     animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
-      this.universeZoom = clamp(Math.round((this.universeZoom + ZOOM_STEP) * 100) / 100, 1, MAX_ZOOM)
+      this.universeZoom = clamp(Math.round((this.universeZoom + UNIVERSE_ZOOM_STEP) * 100) / 100,
+        UNIVERSE_MIN_ZOOM, UNIVERSE_MAX_ZOOM)
     })
   }
 
   private zoomUniverseOut(): void {
     animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
-      this.universeZoom = clamp(Math.round((this.universeZoom - ZOOM_STEP) * 100) / 100, 1, MAX_ZOOM)
+      this.universeZoom = clamp(Math.round((this.universeZoom - UNIVERSE_ZOOM_STEP) * 100) / 100,
+        UNIVERSE_MIN_ZOOM, UNIVERSE_MAX_ZOOM)
     })
   }
 
   private resetUniverseViewport(): void {
     animateTo({ duration: 180, curve: Curve.FastOutSlowIn }, (): void => {
-      this.universeZoom = 1
+      this.universeZoom = UNIVERSE_DEFAULT_ZOOM
       this.universeCameraX = this.universeWidth() / 2
       this.universeCameraY = this.universeHeight() / 2
     })
@@ -1000,7 +1006,7 @@ struct SubjectUniverseView {
   }
 
   private inverseZoom(): number {
-    return 1 / Math.max(1, this.zoom)
+    return 1 / Math.max(UNIVERSE_MIN_ZOOM, this.zoom)
   }
 
   private subjectIndex(subject: string): number {
