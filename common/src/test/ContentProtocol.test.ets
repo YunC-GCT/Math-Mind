@@ -32,6 +32,20 @@ export default function contentProtocolTest(): void {
       expect(result.fixes.indexOf('split_display_from_text') >= 0).assertTrue();
     });
 
+    it('unwraps_numbered_list_display_formula_fences', 0, () => {
+      const source: string = '1. 由柯西中值定理可得\n'
+        + '2. $$\n'
+        + '3. \\frac{f(x)-f(a)}{g(x)-g(a)}=\\frac{f^{\\prime}(\\xi)}{g^{\\prime}(\\xi)}\n'
+        + '4. $$\n'
+        + '5. 即得到结论。';
+      const result: ContentValidationResult = new ContentProtocol().normalizeNoteMarkdown(source);
+      expect(result.fallbackRequired).assertFalse();
+      expect(result.normalizedText.indexOf('2. $$')).assertEqual(-1);
+      expect(result.normalizedText.indexOf('4. $$')).assertEqual(-1);
+      expect(result.normalizedText).assertContain('$$\n\\frac{f(x)-f(a)}{g(x)-g(a)}=\\frac{f^{\\prime}(\\xi)}{g^{\\prime}(\\xi)}\n$$');
+      expect(result.fixes.indexOf('remove_list_marker_from_display_block') >= 0).assertTrue();
+    });
+
     it('falls_back_on_unclosed_inline_formula', 0, () => {
       const result: ContentValidationResult = new ContentProtocol().normalizeNoteMarkdown('当 $a>0 时开口向上。');
       expect(result.fallbackRequired).assertTrue();

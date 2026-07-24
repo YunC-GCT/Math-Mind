@@ -23,7 +23,8 @@
  *   - struct 内方法均为箭头函数 (除 @Watch 回调)
  */
 
-import { TEXT, TEXT_2, F_SM } from 'common'
+import { TEXT, TEXT_2, F_SM, ContentProtocol } from 'common'
+import type { ContentValidationResult } from 'common'
 import { MathTextRenderer } from './MathTextRenderer'
 
 const MAX_TOTAL_BLOCKS: number = 30
@@ -187,6 +188,7 @@ export struct FormulaSplitRenderer {
   @Prop @Watch('onTextChanged') text: string = ''
   @Prop profile: 'chat' | 'chatUser' = 'chat'
   private dataSource: FormulaBlockDataSource = new FormulaBlockDataSource()
+  private contentProtocol: ContentProtocol = new ContentProtocol()
 
   aboutToAppear(): void {
     this.rebuildBlocks()
@@ -198,9 +200,18 @@ export struct FormulaSplitRenderer {
   }
 
   private rebuildBlocks = (): void => {
-    const rawBlocks: FormulaBlock[] = splitByFormulas(this.text)
+    const normalizedText: string = this.normalizedTextForSplit()
+    const rawBlocks: FormulaBlock[] = splitByFormulas(normalizedText)
     const blocks: FormulaBlock[] = splitLongTextBlocks(rawBlocks)
     this.dataSource.setBlocks(blocks)
+  }
+
+  private normalizedTextForSplit = (): string => {
+    const result: ContentValidationResult = this.contentProtocol.normalizeNoteMarkdown(this.text)
+    if (!result.fallbackRequired && result.normalizedText.length > 0) {
+      return result.normalizedText
+    }
+    return this.text
   }
 
   private textColorForProfile = (): ResourceColor => {

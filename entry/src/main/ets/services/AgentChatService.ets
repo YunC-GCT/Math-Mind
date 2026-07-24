@@ -6,8 +6,10 @@ import {
   ChatMessage,
   LlmGuard,
   ContentProtocol,
+  JSON_ONLY_RULES,
+  LATEX_GENERATION_RULES,
 } from 'common';
-import type { ContentValidationResult, LlmGuardValidationResult } from 'common';
+import type { ContentValidationResult, LlmGuardJsonResult, LlmGuardValidationResult } from 'common';
 import { common } from '@kit.AbilityKit';
 import { AiService } from './AiService';
 import { AgentMemoryService } from './AgentMemoryService';
@@ -81,11 +83,7 @@ export class AgentChatService {
         return;
       }
       this.setStep('reply_model_call');
-      const client: LlmClient = new LlmClient();
-      const reply: string = await client.call(this.buildReplyMessages(memoryContext, learnerProfileContext, userContent), {
-        maxTokens: 4096,
-        timeoutMs: 120000,
-      });
+      const reply: string = await this.callChatAnswerWithRetry(memoryContext, learnerProfileContext, userContent);
       await this.addAiMessage(sessionId, reply);
       this.finishBusy();
       await this.safeUpdateLearnerProfileIfNeeded(sessionId);
@@ -181,10 +179,14 @@ export class AgentChatService {
       + '7. 总结/整理/复盘：使用标题和要点，覆盖核心结论、原因、方法、待补充内容；不要只输出一句总结。\n'
       + '8. 信息不足时先说明缺少什么，可以基于上文给出合理假设；无法确定时追问，不编造题目或结论。\n'
       + '9. 不要主动生成笔记；只有系统已判定用户明确要保存/生成笔记时，才会走笔记生成链路。\n'
-      + '10. 输出采用 MM-MD-v1 子集：只使用标题、段落、单层有序/无序列表、加粗、行内代码和代码块；不要输出原始 HTML、Markdown 表格、任务列表、脚注或 Mermaid。\n'
-      + '11. 短公式必须融入文字并用单个美元符定界，例如 $a>0$；不要输出裸 \\mu、\\sigma、\\Phi、\\operatorname，也不要使用单独的 [ ] 充当公式边界。\n'
-      + '12. 重要公式、长公式和多行推导使用展示公式，起止 $$ 必须各占独立一行；不要写成 $$公式$$，不要在 $$ 内嵌套单个美元符，也不要用 Markdown 代码块包公式。\n'
-      + '13. 多行公式只能在独立的 $$ 块内使用 \\begin{aligned}...\\end{aligned}；不要使用 align 或 align* 环境。';
+      + '10. 只输出严格 JSON 对象，格式固定为 {"answer":"..."}；不要输出 JSON 代码块、解释或额外文本。\n'
+      + '11. answer 字段采用 MM-MD-v1 子集：只使用标题、段落、单层有序/无序列表、加粗、行内代码和代码块；不要输出原始 HTML、Markdown 表格、任务列表、脚注或 Mermaid。\n'
+      + '12. 短公式必须融入文字并用单个美元符定界，例如 $a>0$；不要输出裸 \\mu、\\sigma、\\Phi、\\operatorname，也不要使用单独的 [ ] 充当公式边界。\n'
+      + '13. 重要公式、长公式和多行推导使用展示公式，起止 $$ 必须各占独立一行；不要写成 $$公式$$，不要在 $$ 内嵌套单个美元符，也不要用 Markdown 代码块包公式。\n'
+      + '14. 多行公式只能在独立的 $$ 块内使用 \\begin{aligned}...\\end{aligned}；不要使用 align 或 align* 环境。\n'
+      + '15. 列表项内只允许短行内公式；长公式和 $$ 定界符必须移到列表外，绝不能写成“1. $$”“2. 公式”“3. $$”。如需分步推导，用“第 1 步：”文字段落，再另起独立 $$ 块。\n\n'
+      + JSON_ONLY_RULES + '\n'
+      + LATEX_GENERATION_RULES;
     const profileContext: string = learnerProfileContext.trim();
     if (profileContext.length > 0) {
       systemPrompt += '\n\n用户画像如下，只用于控制解释密度和回答粒度，不要在回答中复述画像：\n' + profileContext;
@@ -204,6 +206,105 @@ export class AgentChatService {
       },
     ];
     return messages;
+  }
+
+  private async callChatAnswerWithRetry(
+    memoryContext: string,
+    learnerProfileContext: string,
+    userContent: string,
+  ): Promise<string> {
+    const guarded: LlmGuardJsonResult = await new LlmGuard().callJsonWithRetry(
+      this.buildReplyMessages(memoryContext, learnerProfileContext, userContent),
+      {
+        maxTokens: 4096,
+        timeoutMs: 120000,
+        label: 'chat answer',
+      },
+      (json: Record<string, Object>): LlmGuardValidationResult => this.validateChatAnswerJson(json),
+    );
+    const answerValue: Object | undefined = guarded.json['answer'];
+    const answer: string = typeof answerValue === 'string' ? answerValue : '';
+    const protocolResult: ContentValidationResult = this.contentProtocol.normalizeNoteMarkdown(answer);
+    return protocolResult.normalizedText.length > 0 ? protocolResult.normalizedText : answer;
+  }
+
+  private validateChatAnswerJson(json: Record<string, Object>): LlmGuardValidationResult {
+    const issues: string[] = [];
+    const answerValue: Object | undefined = json['answer'];
+    if (typeof answerValue !== 'string') {
+      issues.push('answer must be a non-empty string containing the final Markdown reply');
+      return { ok: false, issues: issues };
+    }
+    const answer: string = answerValue.trim();
+    if (answer.length === 0) {
+      issues.push('answer must not be empty');
+      return { ok: false, issues: issues };
+    }
+    if (this.hasFormulaInCodeBlock(answer)) {
+      issues.push('do not wrap formulas in Markdown code fences; use $...$ or independent $$ blocks');
+    }
+    if (this.hasMermaidCodeBlock(answer)) {
+      issues.push('Mermaid blocks are not supported in answer');
+    }
+    const contentResult: ContentValidationResult = this.contentProtocol.validateNoteMarkdown(answer);
+    if (!contentResult.ok) {
+      issues.push('answer violates MM-MD-v1: ' + this.describeContentIssues(contentResult));
+    }
+    return {
+      ok: issues.length === 0,
+      issues: issues,
+    };
+  }
+
+  private describeContentIssues(result: ContentValidationResult): string {
+    const descriptions: string[] = [];
+    for (const issue of result.issues) {
+      if (issue === 'list_marker_on_display_delimiter') {
+        descriptions.push('display formula fence must not be inside numbered or bullet lists');
+      } else if (issue === 'display_formula_inside_text') {
+        descriptions.push('display formulas must be separated from surrounding text by blank lines');
+      } else if (issue === 'inline_display_fence') {
+        descriptions.push('do not write $$formula$$ on one line');
+      } else if (issue === 'unclosed_display_delimiter') {
+        descriptions.push('display formula $$ block is not closed');
+      } else if (issue === 'unclosed_inline_delimiter') {
+        descriptions.push('inline formula $...$ is not closed');
+      } else if (issue === 'display_delimiter_not_independent') {
+        descriptions.push('$$ delimiters must occupy independent lines');
+      } else if (issue === 'markdown_table_not_supported') {
+        descriptions.push('Markdown tables are not supported');
+      } else if (issue === 'raw_html_not_supported') {
+        descriptions.push('raw HTML is not supported');
+      } else {
+        descriptions.push(issue);
+      }
+    }
+    return descriptions.join('; ');
+  }
+
+  private hasFormulaInCodeBlock(text: string): boolean {
+    let inCode: boolean = false;
+    for (const rawLine of text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')) {
+      const trimmed: string = rawLine.trim();
+      if (trimmed.indexOf('```') === 0) {
+        inCode = !inCode;
+        continue;
+      }
+      if (inCode && this.contentProtocol.hasFormulaSyntax(rawLine)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private hasMermaidCodeBlock(text: string): boolean {
+    for (const rawLine of text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')) {
+      const trimmed: string = rawLine.trim().toLowerCase();
+      if (trimmed === '```mermaid') {
+        return true;
+      }
+    }
+    return false;
   }
 
   private async classifyTextIntent(userContent: string): Promise<TextIntent> {

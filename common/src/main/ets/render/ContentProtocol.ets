@@ -90,6 +90,7 @@ export class ContentProtocol {
     const lines: string[] = rawText.split('\n');
     let inCode: boolean = false;
     let inDisplay: boolean = false;
+    let displayFromList: boolean = false;
     for (const rawLine of lines) {
       const trimmed: string = rawLine.trim();
       if (trimmed.indexOf('```') === 0) {
@@ -102,15 +103,18 @@ export class ContentProtocol {
         continue;
       }
       if (inDisplay) {
-        if (trimmed === '$$' || trimmed === '\\]') {
+        const displayLine: string = displayFromList ? this.stripMarkdownListMarker(rawLine).trim() : trimmed;
+        if (displayLine === '$$' || displayLine === '\\]') {
           output.push('$$');
-          if (trimmed === '\\]') {
+          if (displayLine === '\\]') {
             issues.push('compat_display_delimiter');
             fixes.push('normalize_display_delimiter');
           }
           inDisplay = false;
+          displayFromList = false;
         } else {
-          output.push(this.normalizeFormulaBody(rawLine, issues, fixes));
+          const bodyLine: string = displayFromList ? this.stripMarkdownListMarker(rawLine) : rawLine;
+          output.push(this.normalizeFormulaBody(bodyLine, issues, fixes));
         }
         continue;
       }
@@ -121,6 +125,20 @@ export class ContentProtocol {
           fixes.push('normalize_display_delimiter');
         }
         inDisplay = true;
+        displayFromList = false;
+        continue;
+      }
+      const listText: string = this.stripMarkdownListMarker(rawLine).trim();
+      if (listText === '$$' || listText === '\\[') {
+        output.push('$$');
+        if (listText === '\\[') {
+          issues.push('compat_display_delimiter');
+          fixes.push('normalize_display_delimiter');
+        }
+        issues.push('list_marker_on_display_delimiter');
+        fixes.push('remove_list_marker_from_display_block');
+        inDisplay = true;
+        displayFromList = true;
         continue;
       }
       if (this.appendStandaloneDisplay(output, rawLine, issues, fixes)) {
@@ -141,6 +159,15 @@ export class ContentProtocol {
       output.push(this.normalizeInlineFormulaBodies(inlineNormalized, issues, fixes));
     }
     return output.join('\n');
+  }
+
+  private stripMarkdownListMarker(line: string): string {
+    const trimmed: string = line.trim();
+    const match: RegExpMatchArray | null = trimmed.match(/^(\d+[.)]|[-*+])\s+(.*)$/);
+    if (match !== null && match.length >= 3) {
+      return match[2];
+    }
+    return line;
   }
 
   private appendStandaloneDisplay(

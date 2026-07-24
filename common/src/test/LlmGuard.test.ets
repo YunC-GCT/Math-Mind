@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium';
-import { LlmGuard } from '../main/ets/Index';
-import type { LlmCaller, LlmGuardValidationResult, ChatMessage } from '../main/ets/Index';
+import { ContentProtocol, LlmGuard } from '../main/ets/Index';
+import type { ContentValidationResult, LlmCaller, LlmGuardValidationResult, ChatMessage } from '../main/ets/Index';
 
 class FakeCaller implements LlmCaller {
   public calls: ChatMessage[][] = [];
@@ -51,6 +51,34 @@ export default function llmGuardTest(): void {
         (_json: Record<string, Object>): LlmGuardValidationResult => ({ ok: true, issues: [] }),
       );
       expect(result.issues.length > 0).assertTrue();
+    });
+
+    it('retries_chat_answer_after_mm_md_validation_failure', 0, async () => {
+      const fake: FakeCaller = new FakeCaller([
+        '{"answer":"2. $$\\n3. \\\\frac{x}{y}\\n4. $$"}',
+        '{"answer":"$$\\n\\\\frac{x}{y}\\n$$"}',
+      ]);
+      const protocol: ContentProtocol = new ContentProtocol();
+      const guard: LlmGuard = new LlmGuard(fake);
+      const result = await guard.callJsonWithRetry(
+        [{ role: 'system', content: 'Return JSON {"answer":"..."}' }, { role: 'user', content: 'test' }],
+        { label: 'chat answer' },
+        (json: Record<string, Object>): LlmGuardValidationResult => {
+          const answer: Object | undefined = json['answer'];
+          if (typeof answer !== 'string') {
+            return { ok: false, issues: ['answer must be string'] };
+          }
+          const validation: ContentValidationResult = protocol.validateNoteMarkdown(answer);
+          return {
+            ok: validation.ok,
+            issues: validation.ok ? [] : ['answer violates MM-MD-v1: ' + validation.issues.join(', ')],
+          };
+        },
+      );
+      expect(result.attempts).assertEqual(2);
+      expect(fake.calls.length).assertEqual(2);
+      expect(String(result.json['answer'])).assertEqual('$$\n\\frac{x}{y}\n$$');
+      expect(fake.calls[1][fake.calls[1].length - 1].content).assertContain('answer violates MM-MD-v1');
     });
   });
 }
