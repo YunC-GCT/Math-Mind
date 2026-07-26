@@ -46,8 +46,8 @@ interface OcrUploadFile {
 /**
  * Hybrid image recognition:
  * - HarmonyOS CoreVisionKit recognizes ordinary text on supported devices.
- * - The local FormulaNet HTTP service recognizes formulas as LaTeX.
- * - Devices without CoreVisionKit fall back to the combined OCR endpoint.
+ * - The local OCR service is used as fallback text OCR and formula OCR.
+ * - A partial result still succeeds when either text or formula recognition works.
  */
 export class OcrTool {
   private formulaEndpoint: string;
@@ -114,7 +114,7 @@ export class OcrTool {
     let textLines: string[] = [];
     let formulas: string[] = [];
     let textError: string = '';
-    let formulaError: string = '';
+    let serverError: string = '';
     let usedServerFallback: boolean = false;
 
     try {
@@ -123,54 +123,45 @@ export class OcrTool {
       textError = this.errorText(e as OcrError);
     }
 
-    if (textError.length > 0) {
+    if (textError.length > 0 || mode !== 'text') {
       try {
-        const fallback: CombinedOcrResponse = await this.requestCombinedWithRetry(filePath, mode);
-        if (fallback.success) {
-          textLines = fallback.text_lines ?? [];
-          if (textLines.length === 0 && fallback.text.trim().length > 0) {
-            textLines.push(fallback.text.trim());
+        const response: CombinedOcrResponse = await this.requestCombinedWithRetry(filePath, mode);
+        if (response.success) {
+          if (textLines.length === 0) {
+            textLines = response.text_lines ?? [];
+            if (textLines.length === 0 && response.text.trim().length > 0) {
+              textLines.push(response.text.trim());
+            }
           }
-          formulas = fallback.formulas ?? [];
-          textError = '';
-          usedServerFallback = true;
+          formulas = response.formulas ?? [];
+          if (textLines.length > 0 || formulas.length > 0) {
+            textError = '';
+            usedServerFallback = true;
+          }
+          if ((response.formula_timeout === true || response.formula_rejected === true) && formulas.length === 0) {
+            serverError = response.message;
+          }
         } else {
-          formulaError = fallback.message;
+          serverError = response.message;
         }
       } catch (e) {
-        formulaError = this.errorText(e as OcrError);
-      }
-    } else {
-      if (mode !== 'text') {
-        try {
-          const response: CombinedOcrResponse = await this.requestCombinedWithRetry(filePath, mode);
-          if (response.success) {
-            formulas = response.formulas ?? [];
-            if (response.formula_timeout === true || response.formula_rejected === true) {
-              formulaError = response.message;
-            }
-          } else {
-            formulaError = response.message;
-          }
-        } catch (e) {
-          formulaError = this.errorText(e as OcrError);
-        }
+        serverError = this.errorText(e as OcrError);
       }
     }
 
     const text: string = textLines.join('\n');
     const success: boolean = text.trim().length > 0 || formulas.length > 0;
     const messages: string[] = [];
-    if (textError.length > 0) {
+    if (!success && textError.length > 0) {
       messages.push('Local text OCR: ' + textError);
     }
-    if (formulaError.length > 0) {
-      messages.push('Formula OCR: ' + formulaError);
+    if (!success && serverError.length > 0) {
+      messages.push('Server OCR: ' + serverError);
     }
     if (messages.length === 0) {
-      const mode: string = usedServerFallback ? 'server fallback' : 'on-device text OCR';
+      const source: string = usedServerFallback ? 'server fallback' : 'on-device text OCR';
       messages.push('Recognized ' + textLines.length.toString() +
-        ' text lines and ' + formulas.length.toString() + ' formulas using ' + mode);
+        ' text lines and ' + formulas.length.toString() + ' formulas using ' + source);
     }
 
     return {

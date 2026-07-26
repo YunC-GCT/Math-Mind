@@ -1,10 +1,8 @@
 """
-Formula OCR + text OCR FastAPI service for MathMind.
+OCR FastAPI service for MindTrace competition demos.
 
-The combined OCR endpoint is optimized for competition demos:
-- text mode is the default and skips the slow formula model;
-- formula mode runs FormulaNet with a timeout and output quality filter;
-- auto mode only runs FormulaNet for small, formula-like images.
+The App tries HarmonyOS CoreVisionKit text OCR first. This service provides
+server-side fallback text OCR and FormulaNet formula OCR.
 """
 
 import asyncio
@@ -24,7 +22,7 @@ from pydantic import BaseModel, Field
 from formula_tool import FormulaTool
 from ocr_text_tool import OcrTextTool
 
-logger = logging.getLogger("mathmind.api.formula")
+logger = logging.getLogger("mindtrace.api.formula")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 router = APIRouter(prefix="/formula", tags=["formula"])
@@ -42,6 +40,7 @@ MIN_FORMULA_BLOCK_HEIGHT = 22
 MAX_FORMULA_BLOCK_HEIGHT_RATIO = 0.38
 MAX_FORMULA_BLOCK_AREA_RATIO = 0.45
 MIN_FORMULA_SIGNAL_SCORE = 2.5
+FORMULA_FULL_IMAGE_MAX_EDGE = 1000
 
 
 def get_formula_tool() -> FormulaTool:
@@ -55,12 +54,13 @@ def get_formula_tool() -> FormulaTool:
 def get_ocr_tool() -> OcrTextTool:
     global _ocr_tool
     if _ocr_tool is None:
-        logger.info("Initializing text OCR tool")
+        logger.info("Initializing fallback text OCR tool")
         _ocr_tool = OcrTextTool()
     return _ocr_tool
 
 
 class FormulaResponse(BaseModel):
+    """公式识别响应模型。"""
     success: bool
     count: int
     formulas: List[str]
@@ -68,12 +68,14 @@ class FormulaResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
+    """健康检查响应模型。"""
     status: str
     model: str
     engine: str
 
 
 class FormulaRegion(BaseModel):
+    """公式区域信息。"""
     left: int
     top: int
     right: int
@@ -85,6 +87,7 @@ class FormulaRegion(BaseModel):
 
 
 class OcrResponse(BaseModel):
+    """公式 OCR 响应模型，保留 text 字段以兼容 App 旧接口。"""
     success: bool
     formula_count: int
     formulas: List[str]
@@ -108,6 +111,7 @@ async def recognize_formula(
     use_layout: bool = Query(False),
     use_preprocessor: bool = Query(False),
 ):
+    """公式识别端点 —— 仅运行 FormulaNet，返回 LaTeX 公式列表。"""
     validate_image_upload(file)
     contents = await read_upload(file)
 
@@ -129,6 +133,7 @@ async def recognize_formula(
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
+    """健康检查端点 —— 返回 OCR 服务状态与模型信息。"""
     return HealthResponse(
         status="ok",
         model="PP-FormulaNet_plus-M",
@@ -142,6 +147,7 @@ async def recognize_ocr(
     mode: str = Query("text", description="text | formula | auto"),
     formula_timeout: int = Query(30, ge=3, le=120),
 ):
+    """App-compatible OCR endpoint with fallback text OCR and optional formula OCR."""
     validate_image_upload(file)
     normalized_mode = mode.lower().strip()
     if normalized_mode not in VALID_OCR_MODES:
@@ -161,7 +167,7 @@ async def recognize_ocr(
     formula_rejected = False
 
     try:
-        text_lines, source_image, preprocess_ms, text_ocr_ms = recognize_text(contents)
+        text_lines, source_image, preprocess_ms, text_ocr_ms = recognize_fallback_text(contents)
         text = " ".join(text_lines)
         timings["text_preprocess_ms"] = round(preprocess_ms, 1)
         timings["text_ocr_ms"] = round(text_ocr_ms, 1)
@@ -206,6 +212,21 @@ async def recognize_ocr(
                 timings["formula_resize_ms"] = 0
                 timings["formula_ocr_ms"] = round(elapsed_ms(formula_ocr_start), 1)
                 formulas, formula_rejected = filter_formulas(raw_formulas)
+                if len(formulas) == 0 and formula_rejected and normalized_mode == "formula" and not formula_timed_out:
+                    fallback_formulas, fallback_timed_out = await recognize_formula_with_timeout(
+                        prepare_formula_image(source_image),
+                        Path(filename).suffix or ".png",
+                        formula_timeout,
+                    )
+                    formula_timed_out = formula_timed_out or fallback_timed_out
+                    if not fallback_timed_out:
+                        fallback_accepted, fallback_rejected = filter_formulas(fallback_formulas)
+                        if len(fallback_accepted) > 0:
+                            formulas = fallback_accepted
+                            formula_rejected = False
+                            skip_reason = "fallback_full_image"
+                        else:
+                            formula_rejected = formula_rejected or fallback_rejected
         else:
             formula_skipped = True
             candidate_count = 0
@@ -213,6 +234,10 @@ async def recognize_ocr(
             timings["formula_prepare_ms"] = 0
             timings["formula_resize_ms"] = 0
             timings["formula_ocr_ms"] = 0
+
+        if normalized_mode == "formula" and len(formulas) > 0:
+            text_lines = filter_formula_mode_text_lines(text_lines)
+            text = " ".join(text_lines)
 
         timings["total_ms"] = round(elapsed_ms(total_start), 1)
         message = build_ocr_message(
@@ -271,6 +296,7 @@ async def recognize_ocr(
 
 
 def validate_image_upload(file: UploadFile) -> None:
+    """校验上传文件是否为合法图片。"""
     if file.content_type and not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=400,
@@ -279,6 +305,7 @@ def validate_image_upload(file: UploadFile) -> None:
 
 
 async def read_upload(file: UploadFile) -> bytes:
+    """读取上传图片为字节数据。"""
     contents = await file.read()
     if len(contents) == 0:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
@@ -287,7 +314,8 @@ async def read_upload(file: UploadFile) -> bytes:
     return contents
 
 
-def recognize_text(contents: bytes) -> Tuple[List[str], Image.Image, float, float]:
+def recognize_fallback_text(contents: bytes) -> Tuple[List[str], Image.Image, float, float]:
+    """Run server-side fallback text OCR for devices without local OCR."""
     preprocess_start = time.perf_counter()
     source_image = Image.open(io.BytesIO(contents))
     source_image.load()
@@ -313,6 +341,7 @@ def should_run_formula_ocr(
     text_lines: List[str],
     text: str,
 ) -> Tuple[bool, str]:
+    """根据模式与图片特征判断是否运行公式 OCR。"""
     if mode == "text":
         return False, "text_mode"
     if mode == "formula":
@@ -342,7 +371,97 @@ def formula_signal_count(text: str) -> int:
     return sum(1 for signal in signals if signal in lower)
 
 
+def filter_formula_mode_text_lines(text_lines: List[str]) -> List[str]:
+    """Keep caption text in formula mode and drop formula-like noise."""
+    filtered: List[str] = []
+    for line in text_lines:
+        stripped = line.strip()
+        if len(stripped) == 0:
+            continue
+        if is_formula_noise_text_line(stripped):
+            continue
+        filtered.append(stripped)
+    return filtered
+
+
+def merge_formula_captions(text_lines: List[str], captions: List[str]) -> List[str]:
+    cleaned_captions = unique_clean_lines(captions)
+    if len(cleaned_captions) == 0:
+        return text_lines
+
+    merged: List[str] = []
+    for caption in cleaned_captions:
+        merged.append(caption)
+    for line in text_lines:
+        if has_near_cjk_caption(line, cleaned_captions):
+            continue
+        if line not in merged:
+            merged.append(line)
+    return merged
+
+
+def extract_formula_captions(formulas: List[str]) -> List[str]:
+    captions: List[str] = []
+    for formula in formulas:
+        candidate = formula.strip()
+        dollar_index = candidate.find("$")
+        begin_index = candidate.find("\\begin{")
+        frac_index = candidate.find("\\frac")
+        cut_indices = [idx for idx in [dollar_index, begin_index, frac_index] if idx > 0]
+        if len(cut_indices) > 0:
+            candidate = candidate[:min(cut_indices)].strip()
+        candidate = re.sub(r"\s+", " ", candidate).strip(" ：:，,。.;；")
+        if is_caption_text(candidate):
+            captions.append(candidate)
+    return unique_clean_lines(captions)
+
+
+def unique_clean_lines(lines: List[str]) -> List[str]:
+    result: List[str] = []
+    for line in lines:
+        cleaned = line.strip()
+        if len(cleaned) > 0 and cleaned not in result:
+            result.append(cleaned)
+    return result
+
+
+def is_caption_text(text: str) -> bool:
+    if len(text) == 0 or len(text) > 40:
+        return False
+    cjk_count = len(re.findall(r"[\u4e00-\u9fff]", text))
+    return cjk_count >= 2 and cjk_count / max(1, len(text)) >= 0.45
+
+
+def has_near_cjk_caption(line: str, captions: List[str]) -> bool:
+    if not is_caption_text(line):
+        return False
+    for caption in captions:
+        if is_caption_text(caption) and abs(len(line) - len(caption)) <= 4:
+            return True
+    return False
+
+
+def is_formula_noise_text_line(line: str) -> bool:
+    cjk_count = len(re.findall(r"[\u4e00-\u9fff]", line))
+    symbol_count = len(re.findall(r"[=+\-*/^_()'’]", line))
+    latin_count = len(re.findall(r"[A-Za-z]", line))
+    digit_count = len(re.findall(r"\d", line))
+    math_words = len(re.findall(r"\b(lim|sin|cos|tan|log|ln|frac|sqrt)\b", line.lower()))
+    non_space_len = len(re.sub(r"\s+", "", line))
+    if non_space_len == 0:
+        return True
+    if cjk_count > 0 and cjk_count / non_space_len >= 0.35:
+        return False
+    signal = symbol_count + math_words * 2
+    if signal >= 2 and cjk_count == 0:
+        return True
+    if latin_count + digit_count >= 4 and signal >= 1 and cjk_count <= 1:
+        return True
+    return False
+
+
 def prepare_formula_image(image: Image.Image) -> Image.Image:
+    """预处理图片以适配 FormulaNet 输入。"""
     formula_image, _bbox = crop_document_region(image)
     if formula_image.mode not in ("RGB", "L"):
         formula_image = formula_image.convert("RGB")
@@ -361,6 +480,19 @@ def prepare_formula_candidates(
     if is_full_page_formula_risk(mode, document.size, text_lines):
         return [], [], "full_page_document"
 
+    if should_prefer_full_formula_image(mode, document.size):
+        region = FormulaRegion(
+            left=doc_bbox[0],
+            top=doc_bbox[1],
+            right=doc_bbox[2],
+            bottom=doc_bbox[3],
+            width=doc_bbox[2] - doc_bbox[0],
+            height=doc_bbox[3] - doc_bbox[1],
+            score=10.0,
+            reason="formula_full_image",
+        )
+        return [(prepare_candidate_image(document), region)], [region], ""
+
     columns = split_document_columns(document)
     all_candidates: List[Tuple[Image.Image, FormulaRegion]] = []
     all_regions: List[FormulaRegion] = []
@@ -376,6 +508,12 @@ def prepare_formula_candidates(
     if len(all_candidates) == 0:
         return [], [], "no_formula_candidates"
     return all_candidates[:MAX_FORMULA_CANDIDATES], all_regions, ""
+
+
+def should_prefer_full_formula_image(mode: str, image_size: Tuple[int, int]) -> bool:
+    if mode != "formula":
+        return False
+    return max(image_size) <= FORMULA_FULL_IMAGE_MAX_EDGE
 
 
 def is_full_page_formula_risk(mode: str, image_size: Tuple[int, int], text_lines: List[str]) -> bool:
@@ -687,6 +825,7 @@ async def recognize_formula_with_timeout(
     suffix: str,
     timeout_seconds: int,
 ) -> Tuple[List[str], bool]:
+    """带超时保护的公式 OCR 调用。"""
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         image.save(tmp.name)
         temp_name = tmp.name
@@ -711,6 +850,7 @@ def recognize_formula_file(path: str) -> List[str]:
 
 
 def filter_formulas(formulas: List[str]) -> Tuple[List[str], bool]:
+    """对公式 OCR 结果进行质量过滤。"""
     accepted: List[str] = []
     rejected = False
     for formula in formulas:
@@ -723,7 +863,53 @@ def filter_formulas(formulas: List[str]) -> Tuple[List[str], bool]:
 
 
 def normalize_formula(formula: str) -> str:
-    return re.sub(r"\s+", " ", formula).strip()
+    normalized = re.sub(r"\s+", " ", formula).strip()
+    dollar_match = re.search(r"\$(.+?)\$", normalized)
+    if dollar_match is not None:
+        normalized = dollar_match.group(1).strip()
+    begin_index = normalized.find("\\begin{")
+    if begin_index > 0:
+        normalized = normalized[begin_index:].strip()
+    else:
+        math_start = first_formula_start(normalized)
+        if math_start > 0:
+            normalized = normalized[math_start:].strip()
+    if formula_has_math_signal(normalized):
+        normalized = strip_light_cjk_noise(normalized)
+    return normalized
+
+
+def first_formula_start(text: str) -> int:
+    command_match = re.search(
+        r"\\(frac|lim|sqrt|sum|int|prod|left|right|sin|cos|tan|log|ln|begin)\b",
+        text,
+    )
+    if command_match is not None:
+        return command_match.start()
+
+    stripped_prefix = re.match(r"^[\u4e00-\u9fff\s:：，,。；;、]+(.+)$", text)
+    if stripped_prefix is not None and formula_has_math_signal(stripped_prefix.group(1)):
+        return stripped_prefix.start(1)
+
+    signal_match = re.search(r"[A-Za-z0-9(][A-Za-z0-9\s_()'.,]*[=+\-*/^<>]", text)
+    if signal_match is not None:
+        return signal_match.start()
+    return 0
+
+
+def formula_has_math_signal(formula: str) -> bool:
+    if re.search(r"\\(frac|lim|sqrt|sum|int|prod|left|right|sin|cos|tan|log|ln|begin)\b", formula):
+        return True
+    return re.search(r"[=+\-*/^_<>]|\\to|\\in|\\le|\\ge", formula) is not None
+
+
+def strip_light_cjk_noise(formula: str) -> str:
+    cjk_count = len(re.findall(r"[\u4e00-\u9fff]", formula))
+    if cjk_count == 0 or cjk_count > 4:
+        return formula
+    cleaned = re.sub(r"[\u4e00-\u9fff]+", "", formula)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" :：，,。；;、")
+    return cleaned if len(cleaned) > 0 else formula
 
 
 def is_bad_formula(formula: str) -> bool:
@@ -732,7 +918,9 @@ def is_bad_formula(formula: str) -> bool:
     if len(formula) > 800:
         return True
     cjk_count = len(re.findall(r"[\u4e00-\u9fff]", formula))
-    if cjk_count > 8 or cjk_count / max(1, len(formula)) > 0.12:
+    if cjk_count > 8:
+        return True
+    if cjk_count / max(1, len(formula)) > 0.12 and not formula_has_math_signal(formula):
         return True
     if re.search(r"(.{1,8})\1{8,}", formula):
         return True
@@ -780,6 +968,7 @@ def build_ocr_message(
     rejected: bool,
     skip_reason: str,
 ) -> str:
+    """构建 Human-readable 的 OCR 响应消息。"""
     parts = [f"mode={mode}", f"text_lines={text_count}", f"formulas={formula_count}"]
     if skipped:
         parts.append(f"formula_skipped={skip_reason}")
@@ -791,10 +980,12 @@ def build_ocr_message(
 
 
 def elapsed_ms(start: float) -> float:
+    """计算从 start_time 到当前的毫秒耗时。"""
     return (time.perf_counter() - start) * 1000
 
 
 def safe_unlink(path: str) -> None:
+    """安全删除临时文件。"""
     try:
         Path(path).unlink()
     except FileNotFoundError:

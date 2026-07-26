@@ -1,3 +1,7 @@
+// ============================================================================
+//  OCR 配置区块 — 端点地址/启用开关/模式选择
+// ============================================================================
+
 import { BG_CARD, TEXT, TEXT_3, TEXT_4, R_MD, R_LG, F_XS, F_SM } from 'common'
 
 @Component
@@ -87,7 +91,7 @@ export struct OcrConfigSection {
       .padding({ left: 12, right: 12, top: 4, bottom: 4 })
 
       Row() {
-        TextInput({ text: this.endpoint, placeholder: '192.168.x.x 或 192.168.x.x:8000' })
+        TextInput({ text: this.endpoint, placeholder: '填入 start.bat 启动后显示的 App OCR Endpoint 地址' })
           .layoutWeight(1)
           .height(44)
           .fontSize(F_XS)
@@ -140,7 +144,7 @@ export struct OcrConfigSection {
       .padding({ left: 12, right: 12, top: 4, bottom: 8 })
 
       Row() {
-        Text('快速模式只识别文字；公式模式适合裁剪后的单块公式。填写运行 OCR 服务那台电脑的局域网 IPv4')
+        Text('快速模式优先使用本地文字 OCR，失败时走服务器保底；公式/自动模式会额外调用公式 OCR 服务')
           .fontSize(F_XS)
           .fontColor(TEXT_4)
           .layoutWeight(1)

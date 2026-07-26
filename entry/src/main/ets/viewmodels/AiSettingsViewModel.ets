@@ -1,10 +1,16 @@
+/**
+ * @file AiSettingsViewModel.ets — AI 设置页视图模型
+ *
+ * 职责：管理 API Key、端点、模型、OCR 配置的读写与连接测试。
+ * 依赖：LlmConfig、OcrConfig、LlmClient、OcrTool
+ */
 import { LlmClient, LlmConfig, OcrConfig } from "common"
 import { DS_ENDPOINT } from "../pages/AiSettings/EndpointPicker"
 import { PRO_MODEL } from "../pages/AiSettings/ModelPicker"
 import { OcrTool } from "agents"
 import type { OcrRecognitionResult } from "agents"
 
-const DEFAULT_OCR_ENDPOINT: string = "http://127.0.0.1:8000/api/v1/ocr/recognize"
+const DEFAULT_OCR_ENDPOINT: string = ""
 const DEFAULT_OCR_MODE: string = "text"
 const OCR_TEST_PNG_BYTES: number[] = [
   0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,

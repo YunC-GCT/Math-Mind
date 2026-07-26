@@ -1,13 +1,13 @@
 @echo off
 chcp 65001 >nul
 setlocal EnableExtensions EnableDelayedExpansion
-title MathMind OCR Service
+title MindTrace OCR Service
 
 cd /d "%~dp0"
 
 echo ========================================
-echo   MathMind OCR Service v1.2
-echo   Formula OCR + Text OCR
+echo   MindTrace OCR Service v1.2
+echo   Formula OCR + fallback text OCR
 echo ========================================
 echo.
 
@@ -36,10 +36,10 @@ if defined PORT_BUSY (
 echo       Port 8000 is available.
 
 echo.
-echo [3/5] Checking Tesseract...
+echo [3/5] Checking fallback text OCR...
 if not exist "C:\Program Files\Tesseract-OCR\tesseract.exe" (
     echo [WARN] Tesseract was not found in the default path.
-    echo        Text OCR may be unavailable. Formula OCR can still start.
+    echo        Server fallback text OCR may be unavailable.
 ) else (
     echo       Tesseract is installed.
 )
@@ -88,7 +88,7 @@ echo.
 
 start "" /b powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 8; try { $r = Invoke-WebRequest -UseBasicParsing 'http://localhost:8000/api/v1/formula/health' -TimeoutSec 5; if ($r.StatusCode -eq 200) { Write-Host '[Health] OCR service is available.'; } else { Write-Host ('[Health] HTTP ' + $r.StatusCode); } } catch { Write-Host ('[Health] Failed: ' + $_.Exception.Message); }"
 
-python -c "from fastapi import FastAPI; import uvicorn; from formula_api import router, ocr_router; app=FastAPI(title='MathMind OCR Service'); app.include_router(router, prefix='/api/v1'); app.include_router(ocr_router, prefix='/api/v1'); uvicorn.run(app, host='0.0.0.0', port=8000, log_level='info')"
+python -c "from fastapi import FastAPI; import uvicorn; from formula_api import router, ocr_router; app=FastAPI(title='MindTrace OCR Service'); app.include_router(router, prefix='/api/v1'); app.include_router(ocr_router, prefix='/api/v1'); uvicorn.run(app, host='0.0.0.0', port=8000, log_level='info')"
 
 echo.
 echo OCR service stopped.
