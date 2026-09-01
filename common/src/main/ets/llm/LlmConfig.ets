@@ -11,6 +11,7 @@ const KEY_MODEL = 'model';
 const KEY_TEMPERATURE = 'temperature';
 const KEY_MAX_TOKENS = 'max_tokens';
 const KEY_TIMEOUT_MS = 'timeout_ms';
+const KEY_ENABLE_THINKING = 'enable_thinking';
 
 // 默认值 — 用户未配置时使用
 const DEFAULT_ENDPOINT = 'https://api.deepseek.com';
@@ -30,6 +31,7 @@ export class LlmConfig {
   private cachedTemperature: number = DEFAULT_TEMPERATURE;
   private cachedMaxTokens: number = DEFAULT_MAX_TOKENS;
   private cachedTimeoutMs: number = DEFAULT_TIMEOUT_MS;
+  private cachedEnableThinking: boolean = false;
 
   private constructor() {}
 
@@ -67,6 +69,8 @@ export class LlmConfig {
     if (mt >= 0) { this.cachedMaxTokens = mt; }
     const tm: number = await s.get(KEY_TIMEOUT_MS, -1) as number;
     if (tm >= 0) { this.cachedTimeoutMs = tm; }
+    const et: boolean = await s.get(KEY_ENABLE_THINKING, false) as boolean;
+    this.cachedEnableThinking = et;
   }
 
   // ===== API Key =====
@@ -140,6 +144,15 @@ export class LlmConfig {
     await this.store!.flush();
   }
 
+  // ===== Enable Thinking =====
+  public getEnableThinking(): boolean { return this.cachedEnableThinking; }
+  public async setEnableThinking(v: boolean): Promise<void> {
+    this.requireInited();
+    this.cachedEnableThinking = v;
+    await this.store!.put(KEY_ENABLE_THINKING, v);
+    await this.store!.flush();
+  }
+
   // ===== 恢复默认 =====
   public async resetDefaults(): Promise<void> {
     this.requireInited();
@@ -148,12 +161,14 @@ export class LlmConfig {
     this.cachedTemperature = DEFAULT_TEMPERATURE;
     this.cachedMaxTokens = DEFAULT_MAX_TOKENS;
     this.cachedTimeoutMs = DEFAULT_TIMEOUT_MS;
+    this.cachedEnableThinking = false;
     const s = this.store!;
     await s.put(KEY_ENDPOINT, DEFAULT_ENDPOINT);
     await s.put(KEY_MODEL, DEFAULT_MODEL);
     await s.put(KEY_TEMPERATURE, DEFAULT_TEMPERATURE);
     await s.put(KEY_MAX_TOKENS, DEFAULT_MAX_TOKENS);
     await s.put(KEY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
+    await s.put(KEY_ENABLE_THINKING, false);
     await s.flush();
   }
 

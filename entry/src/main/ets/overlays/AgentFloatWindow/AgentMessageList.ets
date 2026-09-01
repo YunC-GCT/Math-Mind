@@ -6,7 +6,7 @@
  * 依赖: ChatBubble, EmptyStateHint, ChatModels
  */
 
-import { S_2, S_4 } from 'common';
+import { S_2, S_4, MINT, TEXT_4 } from 'common';
 import { ChatBubble } from './chat/ChatBubble';
 import { EmptyStateHint } from './chat/EmptyStateHint';
 import { ChatMsg, ChatStatusMeta } from './chat/ChatModels';
@@ -18,7 +18,7 @@ function safeIndex(index: number | undefined): number {
 class ChatMessageDataSource implements IDataSource {
   private messages: ChatMsg[] = [];
   private listeners: DataChangeListener[] = [];
-  private fallback: ChatMsg = { id: 0, role: 'ai', content: '', ts: 0 };
+  private fallback: ChatMsg = { id: 0, role: 'ai', content: '', ts: 0, streaming: false, reasoning: '' };
 
   constructor(messages: ChatMsg[]) {
     this.messages = messages.slice(0);
@@ -62,7 +62,7 @@ export struct AgentMessageList {
   @Prop statusMeta: ChatStatusMeta | null = null;
   scroller: Scroller = new Scroller();
   private dataSource: ChatMessageDataSource = new ChatMessageDataSource([]);
-  onRetry: (msg: ChatMsg) => void = (_msg: ChatMsg): void => {};
+  onToggleReasoning: (msg: ChatMsg) => void = (_msg: ChatMsg): void => {};
 
   aboutToAppear(): void {
     this.dataSource.setMessages(this.messages);
@@ -70,6 +70,10 @@ export struct AgentMessageList {
 
   onMessagesChanged(): void {
     this.dataSource.setMessages(this.messages);
+    // 流式消息自动滚到底部
+    if (this.messages.length > 0 && this.messages[this.messages.length - 1].streaming) {
+      setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom); }, 50);
+    }
   }
 
   build() {
@@ -85,23 +89,29 @@ export struct AgentMessageList {
           ListItem() {
             ChatBubble({
               msg: msg,
-              onCopy: (_text: string): void => {},
-              onFeedback: (_msg: ChatMsg): void => {},
-              onRegen: (retryMsg: ChatMsg): void => { this.onRetry(retryMsg); },
+              onToggleReasoning: (toggleMsg: ChatMsg): void => { this.onToggleReasoning(toggleMsg); },
             });
           }
           .width('100%')
           .padding({ left: S_4, right: S_4, top: safeIndex(index) === 0 ? S_2 : 0 });
         },
-        (msg: ChatMsg): string => msg.id.toString()
+        (msg: ChatMsg): string => msg.id.toString() + '_c' + msg.content.length.toString() + '_s' + (msg.streaming ? '1' : '0') + '_r' + (msg.reasoningExpanded ?? false ? '1' : '0')
       );
 
-      if (this.busy) {
+      if (this.busy && (this.statusMeta === null || this.statusMeta.step !== 'completed')) {
         ListItem() {
-          this.TransientStatusBubble(this.statusMeta);
+          Row() {
+            LoadingProgress().width(10).height(10).color(MINT)
+            Text(this.statusMeta?.title ?? '处理中...').fontSize(11).fontColor(TEXT_4).margin({ left: 6 })
+            if (this.statusMeta !== null && (this.statusMeta.detail ?? '').length > 0) {
+              Text('· ' + (this.statusMeta.detail ?? '')).fontSize(10).fontColor(TEXT_4).margin({ left: 4 }).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+          }
+          .width('100%')
+          .padding({ left: S_4, top: 4, bottom: 4 })
+          .justifyContent(FlexAlign.Start)
         }
         .width('100%')
-        .padding({ left: S_4, right: S_4 });
       }
 
       ListItem() {
@@ -112,24 +122,6 @@ export struct AgentMessageList {
       }
     }
     .layoutWeight(1).width('100%').scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring);
-  }
-
-  @Builder TransientStatusBubble(meta: ChatStatusMeta | null) {
-    if (meta !== null && meta.step !== 'completed') {
-      ChatBubble({
-        msg: {
-          id: -1,
-          role: 'ai',
-          content: '',
-          ts: 0,
-        },
-        statusMeta: meta,
-        transient: true,
-        onCopy: (_text: string): void => {},
-        onFeedback: (_msg: ChatMsg): void => {},
-        onRegen: (_msg: ChatMsg): void => {},
-      });
-    }
   }
 
   private initialIndex = (): number => {

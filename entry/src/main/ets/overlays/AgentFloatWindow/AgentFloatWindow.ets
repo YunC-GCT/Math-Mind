@@ -84,6 +84,7 @@ export struct AgentFloatWindow {
   onPendingImageChange(): void { if (this.pendingImageUri.length > 0) { this.imagePreview = this.pendingImageUri; } }
   onMessagesChange(): void {
     if (this.messages.length > 0) {
+      this.renderKey++;
       this.sync(); this.sm.save(this.sessions);
       setTimeout((): void => { this.scroller.scrollEdge(Edge.Bottom); }, 200);
     }
@@ -99,7 +100,22 @@ export struct AgentFloatWindow {
 
   private async loadHistory(): Promise<void> {
     const cbs: AgentChatCallbacks = {
-      addAiMsg: (c: string): void => { this.messages = [...this.messages, { id: nowId(), role: 'ai', content: c, ts: Date.now() }]; },
+      addAiMsg: (c: string): void => { this.messages = [...this.messages, { id: nowId(), role: 'ai', content: c, ts: Date.now(), streaming: false, reasoning: '' }]; },
+      addAiMsgEmpty: (): number => {
+        const id: number = nowId();
+        this.messages = [...this.messages, { id, role: 'ai', content: '', ts: Date.now(), streaming: true, reasoning: '' }];
+        return id;
+      },
+      appendAiMsg: (id: number, delta: string, kind?: 'reasoning' | 'content'): void => {
+        if (kind === 'reasoning') {
+          this.messages = this.messages.map((m: ChatMsg): ChatMsg => m.id === id ? { id: m.id, role: m.role, content: m.content, ts: m.ts, streaming: m.streaming, reasoning: (m.reasoning ?? '') + delta } : m);
+        } else {
+          this.messages = this.messages.map((m: ChatMsg): ChatMsg => m.id === id ? { id: m.id, role: m.role, content: m.content + delta, ts: m.ts, streaming: m.streaming, reasoning: m.reasoning } : m);
+        }
+      },
+      finishAiMsg: (id: number): void => {
+        this.messages = this.messages.map((m: ChatMsg): ChatMsg => m.id === id ? { id: m.id, role: m.role, content: m.content, ts: m.ts, streaming: false, reasoning: m.reasoning } : m);
+      },
       bumpNotesVersion: (): void => { const v: number = AppStorage.get<number>('notesVersion') ?? 0; AppStorage.setOrCreate('notesVersion', v + 1); },
       setBusy: (v: boolean): void => { this.busy = v; },
       setStatusMeta: (meta: ChatStatusMeta | null): void => { this.statusMeta = meta; },
@@ -110,7 +126,7 @@ export struct AgentFloatWindow {
     this.service = new AgentChatService(cbs);
     const ss: ChatSession[] = await this.sm.init(getContext(this));
     if (ss.length > 0) { this.sessions = ss; this.activeSid = ss[0].id; this.messages = ss[0].messages; return; }
-    this.messages = [{ id: 1, role: 'ai', content: '👋 你好，我是 MindTrace AI。可以帮你分析题目、讲解知识点、整理笔记。试试问我吧 👉', ts: Date.now() }];
+    this.messages = [{ id: 1, role: 'ai', content: '👋 你好，我是 MindTrace AI。可以帮你分析题目、讲解知识点、整理笔记。试试问我吧 👉', ts: Date.now(), streaming: false, reasoning: '' }];
   }
 
   private sync(): void {
@@ -135,7 +151,17 @@ export struct AgentFloatWindow {
     }
     return parts.join('\n\n');
   }
-  private switchSession(sid: string): void { this.sync(); const s = this.sessions.find((item: ChatSession): boolean => item.id === sid); if (s !== undefined) { this.activeSid = sid; this.messages = s.messages; } }
+  private switchSession(sid: string): void {
+    this.sync();
+    // 取消旧会话中正在进行的流式消息
+    if (this.messages.length > 0 && this.messages[this.messages.length - 1].streaming) {
+      this.messages = this.messages.map((m: ChatMsg, i: number): ChatMsg =>
+        i === this.messages.length - 1 ? { id: m.id, role: m.role, content: m.content, ts: m.ts, streaming: false, reasoning: m.reasoning } : m
+      );
+    }
+    const s: ChatSession | undefined = this.sessions.find((item: ChatSession): boolean => item.id === sid);
+    if (s !== undefined) { this.activeSid = sid; this.messages = s.messages; }
+  }
   private newSession(): void { this.sync(); const s: ChatSession = { id: sid(), name: '会话 ' + (this.sessions.length + 1).toString(), messages: [] }; this.sessions = [...this.sessions, s]; this.activeSid = s.id; this.messages = []; this.sm.save(this.sessions); }
   private deleteSession(sid: string): void { if (this.sessions.length <= 1) { return; } const f = this.sessions.filter((s: ChatSession): boolean => s.id !== sid); this.sessions = f; if (sid === this.activeSid) { this.activeSid = f[0].id; this.messages = f[0].messages; }; this.sm.save(this.sessions); }
 
@@ -148,16 +174,10 @@ export struct AgentFloatWindow {
     if (!msg && !this.imagePreview) { return; }
     if (this.busy) { promptAction.openToast({ message: 'AI 正在回复中...', duration: 1200 }); return; }
     const uri: string = this.imagePreview;
-    this.messages = [...this.messages, { id: nowId(), role: 'user', content: msg || '[图片]', ts: Date.now() }];
+    this.messages = [...this.messages, { id: nowId(), role: 'user', content: msg || '[图片]', ts: Date.now(), streaming: false, reasoning: '' }];
     this.inputText = ''; this.imagePreview = '';
     if (uri.length > 0) { this.service?.captureReply(uri, msg); return; }
-    this.service?.realReply(msg);
-  };
-
-  private retryFromAiMessage = (msg: ChatMsg): void => {
-    if (msg.role !== 'ai') { return; }
-    const idx: number = this.messages.findIndex((item: ChatMsg): boolean => item.id === msg.id);
-    if (idx > 0 && this.messages[idx - 1].role === 'user') { this.send(this.messages[idx - 1].content); }
+    this.service?.realReplyStream(msg);
   };
 
   private modelLabel(): string {
@@ -235,7 +255,7 @@ export struct AgentFloatWindow {
 
           SessionBar({ sessions: this.sessions, activeSid: this.activeSid, onSwitch: (sid: string): void => { this.switchSession(sid); }, onDelete: (sid: string): void => { this.deleteSession(sid); }, onNew: (): void => { this.newSession(); } });
 
-          AgentMessageList({ messages: this.messages, busy: this.busy, statusMeta: this.statusMeta, scroller: this.scroller, onRetry: (msg: ChatMsg): void => { this.retryFromAiMessage(msg); } });
+          AgentMessageList({ messages: this.messages, busy: this.busy, statusMeta: this.statusMeta, scroller: this.scroller, onToggleReasoning: (msg: ChatMsg): void => { this.messages = this.messages.map((m: ChatMsg): ChatMsg => m.id === msg.id ? { id: m.id, role: m.role, content: m.content, ts: m.ts, streaming: m.streaming, reasoning: m.reasoning, reasoningExpanded: !(m.reasoningExpanded ?? false) } : m); } });
           Row().width('100%').height(0.5).backgroundColor(BORDER);
 
           QuickSuggestions({ onSelect: (p: string): void => { this.send(p); } });

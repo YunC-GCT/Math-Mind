@@ -20,6 +20,15 @@ export interface ChatMsg {
 
   // 时间戳
   ts: number
+
+  // 是否正在流式生成中 (仅 ai 消息)
+  streaming: boolean
+
+  // 思考链内容 (DeepSeek 思考模式, 仅 ai 消息)
+  reasoning: string
+
+  // 思考面板是否展开 (仅 ai 消息, 默认收起)
+  reasoningExpanded?: boolean
 }
 
 export type ChatStatusStep =

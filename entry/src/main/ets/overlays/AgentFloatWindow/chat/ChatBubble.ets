@@ -8,18 +8,14 @@ import {
   S_1, S_2, S_3, R_MD, F_SM, W_SEMIBOLD,
   ContentProtocol,
 } from 'common'
-import { ChatMsg, ChatStatusMeta } from './ChatModels'
+import { ChatMsg } from './ChatModels'
 import { FormulaSplitRenderer } from '../../../shared/components/FormulaSplitRenderer'
 import { MarkdownRenderer } from '../../../shared/components/MarkdownRenderer'
 
 @Component
 export struct ChatBubble {
-  @Prop msg: ChatMsg = { id: 0, role: 'ai', content: '', ts: 0 }
-  @Prop statusMeta: ChatStatusMeta | null = null
-  @Prop transient: boolean = false
-  onCopy: (text: string) => void = (_text: string): void => {}
-  onRegen: (msg: ChatMsg) => void = (_msg: ChatMsg): void => {}
-  onFeedback: (msg: ChatMsg) => void = (_msg: ChatMsg): void => {}
+  @Prop msg: ChatMsg = { id: 0, role: 'ai', content: '', ts: 0, streaming: false, reasoning: '' }
+  onToggleReasoning: (msg: ChatMsg) => void = (_msg: ChatMsg): void => {}
   private contentProtocol: ContentProtocol = new ContentProtocol()
 
   build() {
@@ -64,9 +60,48 @@ export struct ChatBubble {
               .fontWeight(W_SEMIBOLD)
               .margin({ bottom: S_1, left: S_1 })
 
+            // 思考过程折叠面板
+            if ((this.msg.reasoning ?? '').length > 0) {
+              Row() {
+                Text((this.msg.reasoningExpanded ?? false) ? '▾' : '▸')
+                  .fontSize(10)
+                  .fontColor(MINT)
+                  .fontWeight(W_SEMIBOLD)
+                  .margin({ right: S_1 })
+                Text('思考过程')
+                  .fontSize(10)
+                  .fontColor(TEXT_4)
+                  .fontWeight(W_SEMIBOLD)
+              }
+              .padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 })
+              .borderRadius(S_1)
+              .backgroundColor('rgba(91,227,176,0.06)')
+              .margin({ bottom: S_1 })
+              .onClick((): void => { this.onToggleReasoning(this.msg) })
+
+              if ((this.msg.reasoningExpanded ?? false)) {
+                Text(this.msg.reasoning)
+                  .fontSize(F_SM)
+                  .fontColor(TEXT_3)
+                  .fontStyle(FontStyle.Italic)
+                  .lineHeight(18)
+                  .width('100%')
+                  .padding({ left: S_2, right: S_2, top: S_1, bottom: S_1 })
+                  .margin({ bottom: S_1 })
+              }
+            }
+
             Column() {
               if (this.msg.content.trim().length > 0) {
-                if (this.containsFormulaSyntax(this.msg.content)) {
+                if (this.msg.streaming) {
+                  // 流式模式: 轻量 Text 直接渲染,避免每 token 做 Markdown 重解析
+                  Text(this.msg.content)
+                    .fontSize(F_SM)
+                    .fontColor(TEXT)
+                    .lineHeight(20)
+                    .width('100%')
+                    .textAlign(TextAlign.Start)
+                } else if (this.containsFormulaSyntax(this.msg.content)) {
                   FormulaSplitRenderer({
                     text: this.msg.content,
                     profile: 'chat',
@@ -82,38 +117,12 @@ export struct ChatBubble {
                 }
               }
 
-              if (this.statusMeta !== null && this.statusMeta.step !== 'completed') {
-                this.StatusMetaLine(this.statusMeta)
-              }
             }
             .width('100%')
             .padding({ left: S_3, right: S_3, top: S_2, bottom: S_2 })
             .borderRadius({ topLeft: R_MD + 4, topRight: R_MD + 4, bottomLeft: S_1, bottomRight: R_MD + 4 })
             .backgroundColor(this.msg.content.length > 240 ? 'rgba(255,255,255,0.035)' : PURPLE_LIGHT)
             .constraintSize({ maxWidth: this.msg.content.length > 240 ? '94%' : '88%' })
-
-            if (!this.transient) {
-              Row() {
-                Text('Copy')
-                  .fontSize(9)
-                  .fontColor(TEXT_4)
-                  .fontWeight(W_SEMIBOLD)
-                  .padding({ top: S_1, right: S_2 })
-                  .onClick((): void => { this.onCopy(this.msg.content) })
-                Text('Retry')
-                  .fontSize(9)
-                  .fontColor(TEXT_4)
-                  .fontWeight(W_SEMIBOLD)
-                  .padding({ top: S_1 })
-                  .onClick((): void => { this.onRegen(this.msg) })
-                Text('Flag')
-                  .fontSize(9)
-                  .fontColor(TEXT_4)
-                  .fontWeight(W_SEMIBOLD)
-                  .padding({ top: S_1, left: S_2 })
-                  .onClick((): void => { this.onFeedback(this.msg) })
-              }
-            }
           }
           .alignItems(HorizontalAlign.Start)
           Blank()
@@ -126,34 +135,5 @@ export struct ChatBubble {
 
   private containsFormulaSyntax = (text: string): boolean => {
     return this.contentProtocol.hasFormulaSyntax(text)
-  }
-
-  @Builder StatusMetaLine(meta: ChatStatusMeta | null) {
-    if (meta !== null) {
-      Row() {
-        LoadingProgress()
-          .width(9)
-          .height(9)
-          .color(MINT)
-        Text(meta.title)
-          .fontSize(10)
-          .fontColor(TEXT_3)
-          .fontWeight(W_SEMIBOLD)
-          .margin({ left: S_1 })
-        Text('·')
-          .fontSize(10)
-          .fontColor(TEXT_4)
-          .margin({ left: S_1, right: S_1 })
-        Text(meta.detail)
-          .fontSize(10)
-          .fontColor(TEXT_4)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .layoutWeight(1)
-      }
-      .width('100%')
-      .height(16)
-      .margin({ top: S_1 })
-    }
   }
 }

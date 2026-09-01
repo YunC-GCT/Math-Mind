@@ -24,6 +24,12 @@ export interface LlmRequestBody {
   max_tokens: number;
   stream: boolean;
   response_format?: LlmResponseFormat;
+  thinking?: LlmThinkingConfig;   // DeepSeek 思考模式配置
+  reasoning_effort?: string;      // 思考强度: "high" | "max"
+}
+
+export interface LlmThinkingConfig {
+  type: 'enabled' | 'disabled';
 }
 
 export interface LlmResponseFormat {
@@ -61,6 +67,7 @@ export type LlmErrorKind =
   | 'PARSE_ERROR'       // 响应 JSON 解析失败
   | 'EMPTY_RESPONSE'    // 响应内容为空
   | 'TIMEOUT'           // 超时
+  | 'STREAM_FAILED'     // 流式传输中断
   | 'PERSIST_ERROR';    // preferences 读写失败
 
 export class LlmError extends Error {
@@ -79,6 +86,33 @@ export interface LlmConfigInitResult {
   message: string;
 }
 
+// ==================== LlmStreamChunk (SSE 流式响应增量)====================
+// DeepSeek / OpenAI 兼容的 SSE chunk 格式
+// 流式响应中每个 chunk 的 delta 字段是增量文本,而非完整消息
+export interface LlmStreamDelta {
+  role?: 'assistant';
+  content?: string;            // 正式回答的增量文本
+  reasoning_content?: string;  // 思考模式的思维链增量文本
+}
+
+export interface LlmStreamChoice {
+  index: number;
+  delta: LlmStreamDelta;
+  finish_reason: string | null;
+}
+
+export interface LlmStreamChunk {
+  id: string;
+  object: string;              // "chat.completion.chunk"
+  created: number;
+  model: string;
+  choices: LlmStreamChoice[];
+  usage?: LlmResponseUsage;    // 仅 stream_options.include_usage 时在最后 chunk 有值
+}
+
+// 流式回调: delta 为本次增量文本, kind 区分思考内容 / 正式回答
+export type LlmStreamCallback = (delta: string, kind: 'reasoning' | 'content') => void;
+
 // ==================== LlmCallOptions (单次调用可选参数)====================
 export interface LlmCallOptions {
   // 不指定则用 LlmConfig 的默认配置
@@ -87,4 +121,6 @@ export interface LlmCallOptions {
   model?: string;
   timeoutMs?: number;
   responseFormat?: LlmResponseFormat;
+  // 流式专用
+  enableThinking?: boolean;    // 是否启用思考模式 (DeepSeek thinking: {type: "enabled"})
 }

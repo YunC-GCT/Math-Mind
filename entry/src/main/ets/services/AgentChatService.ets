@@ -19,6 +19,12 @@ type TextIntent = 'note_generation' | 'chat';
 
 export interface AgentChatCallbacks {
   addAiMsg: (content: string) => void;
+  // 流式回调: 创建空 AI 消息,返回 msgId (用于后续增量追加)
+  addAiMsgEmpty: () => number;
+  // 流式回调: 向指定 msgId 追加 delta 文本 (kind 区分思考/正式回答, 默认 content)
+  appendAiMsg: (id: number, delta: string, kind?: 'reasoning' | 'content') => void;
+  // 流式回调: 标记流式消息完成
+  finishAiMsg: (id: number) => void;
   bumpNotesVersion: () => void;
   setBusy: (v: boolean) => void;
   setStatusMeta: (meta: ChatStatusMeta | null) => void;
@@ -86,6 +92,97 @@ export class AgentChatService {
       const reply: string = await this.callChatAnswerWithRetry(memoryContext, learnerProfileContext, userContent);
       await this.addAiMessage(sessionId, reply);
       this.finishBusy();
+      await this.safeUpdateLearnerProfileIfNeeded(sessionId);
+      await this.safeSummarizeIfNeeded(sessionId);
+    } catch (e) {
+      const errMsg: string = AgentChatService.errorMessage(e);
+      if (errMsg.indexOf('NO_API_KEY') >= 0) {
+        await this.addAiMessage(sessionId, '⚠️ 请先在「我的 → 设置」中配置 API Key');
+      } else if (errMsg.indexOf('NETWORK_ERROR') >= 0) {
+        await this.addAiMessage(sessionId, '⚠️ 网络连接失败，请检查网络后重试');
+      } else {
+        await this.addAiMessage(sessionId, '⚠️ AI 回复异常: ' + errMsg.substring(0, 100));
+      }
+    } finally {
+      this.finishBusy();
+    }
+  }
+
+  /**
+   * 流式回复 — 基于 DeepSeek SSE,逐 token 实时推送 UI
+   * 非流式 realReply() 作为回退保留,当 callStream 失败时自动降级
+   */
+  async realReplyStream(userContent: string): Promise<void> {
+    const sessionId: string = this.currentSessionId();
+    this.cbs.setBusy(true);
+    this.setStep('intent_check');
+    try {
+      const intent: TextIntent = await this.classifyTextIntent(userContent);
+      if (intent === 'note_generation') {
+        // 笔记生成目前仍走非流式
+        const generated: boolean = await this.generateNoteFromConversation(sessionId, userContent);
+        if (generated) {
+          this.setStep('completed');
+        } else {
+          this.setStep('completed');
+        }
+        return;
+      }
+
+      this.setStep('reply_context_load');
+      const memoryContext: string = await this.safeGetContextForReply(sessionId);
+      const learnerProfileContext: string = await this.safeGetLearnerProfileContext(sessionId);
+      await this.safeSaveUserMessage(sessionId, userContent);
+      const configured: boolean = await LlmConfig.getInstance().isConfigured();
+      if (!configured) {
+        await this.addAiMessage(sessionId, '⚠️ 请先在「我的 → 设置」中配置 API Key');
+        this.setStep('completed');
+        return;
+      }
+
+      // 创建空消息占位,拿到 msgId
+      const msgId: number = this.cbs.addAiMsgEmpty();
+      this.setStep('reply_model_call');
+
+      const client: LlmClient = new LlmClient();
+      let accumulatedContent: string = '';
+
+      try {
+        // 优先流式,不可用时降级非流式
+        const tokens: string[] = await client.callSseTokens(
+          this.buildReplyMessages(memoryContext, learnerProfileContext, userContent),
+          { maxTokens: 4096, timeoutMs: 120000, enableThinking: LlmConfig.getInstance().getEnableThinking() },
+        );
+        this.setStep('completed');
+        for (const token of tokens) {
+          accumulatedContent += token;
+          this.cbs.appendAiMsg(msgId, token, 'content');
+          await this.delayMs(15);
+        }
+        this.cbs.finishAiMsg(msgId);
+      } catch (streamErr) {
+        // 流式失败: 保留已展示的部分内容 + 追加错误提示
+        if (accumulatedContent.length > 0) {
+          this.cbs.appendAiMsg(msgId, '\n\n⚠️ *AI 回复中断，请重试*');
+          this.cbs.finishAiMsg(msgId);
+          // 保存已收到的部分内容
+          await this.safeSaveAssistantMessage(sessionId, accumulatedContent);
+          return;  // 阻止 fall-through 到成功路径导致的 double-finish
+        } else {
+          // 完全失败,降级到非流式
+          this.cbs.finishAiMsg(msgId);
+          const reply: string = await client.call(
+            this.buildReplyMessages(memoryContext, learnerProfileContext, userContent),
+            { maxTokens: 4096, timeoutMs: 120000 },
+          );
+          await this.addAiMessage(sessionId, reply);
+          this.finishBusy();
+          return;
+        }
+      }
+
+      // 异步持久化完整内容
+      await this.safeSaveAssistantMessage(sessionId, accumulatedContent);
       await this.safeUpdateLearnerProfileIfNeeded(sessionId);
       await this.safeSummarizeIfNeeded(sessionId);
     } catch (e) {
@@ -746,6 +843,10 @@ export class AgentChatService {
     } catch (e) {
       console.warn('[AgentChatService] summarize memory failed: ' + AgentChatService.errorMessage(e));
     }
+  }
+
+  private delayMs(ms: number): Promise<void> {
+    return new Promise<void>((resolve: () => void): void => { setTimeout(resolve, ms); });
   }
 
   private static errorMessage(e: Object): string {
