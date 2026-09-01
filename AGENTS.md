@@ -194,3 +194,19 @@ MindTrace/
 - **新 .ets 改完**: PowerShell 验首 3 字节 `69 6D 70` (= "imp" = "import" 无 BOM)
 - **跨 session 通信**: 用上面 "跨 session 通信协议" 表格
 - **Working tree 互斥**: 跟其他 session 在同一 worktree 时,只能 read,别动 write
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), used as-is. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — one `CONTEXT.md` and `docs/adr/` at the repo root (created lazily by `/domain-modeling` when decisions are actually recorded). See `docs/agents/domain.md`.
