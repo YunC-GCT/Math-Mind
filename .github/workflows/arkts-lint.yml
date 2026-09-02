@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: scripts/arkts-lint/package-lock.json
+          cache-dependency-path: scripts/arkts-lint/package.json
 
       - name: Install dependencies
         working-directory: scripts/arkts-lint
@@ -41,7 +41,7 @@ jobs:
         working-directory: scripts/arkts-lint
         run: npm test
 
-  # ─── Job 2: AST lint (v0.3) — fails build on errors ───
+  # ─── Job 2: AST lint (v0.3) �?fails build on errors ───
   lint-ast:
     name: Lint (arkts-lint v0.3 AST)
     runs-on: ubuntu-latest
@@ -55,7 +55,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: scripts/arkts-lint/package-lock.json
+          cache-dependency-path: scripts/arkts-lint/package.json
 
       - name: Install dependencies
         working-directory: scripts/arkts-lint
@@ -67,7 +67,7 @@ jobs:
         # The script auto-skips its own fixtures and tests via path-based exclusion.
         run: node scripts/arkts-lint/index.mjs --quiet
 
-  # ─── Job 3: Regex lint (v1) — for backwards compat ───
+  # ─── Job 3: Regex lint (v1) �?for backwards compat ───
   lint-regex:
     name: Lint (v1 regex, reference)
     runs-on: ubuntu-latest
