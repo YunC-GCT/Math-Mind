@@ -281,7 +281,7 @@ MindTrace/
 
 ### Domain docs
 
-单 context 布局 — 仓库根 [`CONTEXT.md`](./CONTEXT.md) (项目专属词汇表) + [`docs/adr/`](./docs/adr/) (架构决策记录,6 个)。**写代码前先读 CONTEXT.md**;**改动设计前先查 docs/adr/**。详见 [`docs/agents/domain.md`](./docs/agents/domain.md) (workflow 规约)。
+单 context 布局 — 仓库根 [`CONTEXT.md`](./CONTEXT.md) (项目专属词汇表) + [`docs/adr/`](./docs/adr/) (架构决策记录,7 个) + [`docs/specs/`](./docs/specs/) (依 ADR 写的实施 spec,Phase 3 产出)。**写代码前先读 CONTEXT.md**;**改动设计前先查 docs/adr/**;**实施前先看 docs/specs/**。详见 [`docs/agents/domain.md`](./docs/agents/domain.md) (workflow 规约)。
 
 ### Issue tracker
 
@@ -310,6 +310,7 @@ GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI. 详见 [`docs/agents/issue-
 | **#4** | 🔴 P0 入口泄漏 | `Dispatcher.analyze`+`dispatch`+`routeDispatch` 合一 | `agents/core/Dispatcher.ets` (spec: [`docs/specs/004-dispatcher-single-entry.md`](./docs/specs/004-dispatcher-single-entry.md), ADR: 0003) |
 | **#5** | 🔴 P0 LLM 三路径 | `call` + `callStream` + `callSseTokens` 合一 | `common/llm/LlmClient.ets` (spec: [`docs/specs/005-llm-client-consolidation.md`](./docs/specs/005-llm-client-consolidation.md), ADR: 0004) |
 | **#7** | 🔴 P0 god class | `AgentChatService` 802 LOC 拆 3 个 service | `entry/services/` |
+| **#10** | 🟡 P1 命名误导 | `agents/mcp/tools/` → `agents/tools/` (改 git mv) | `agents/mcp/tools/` (spec: [`docs/specs/010-mcp-to-tools-rename.md`](./docs/specs/010-mcp-to-tools-rename.md), ADR: 0005) |
 
 详见 [`docs/architecture-audit-full-20260901.md`](./docs/architecture-audit-full-20260901.md) §7 与 [子代理深读报告](./docs/audit-deepdive-20260901.md)。
 
