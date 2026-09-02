@@ -2,7 +2,7 @@
 
 > 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z
-> 最近更新: 2026-07-24 · W4 多 WebView 分块渲染 + renderFormula bridge + 超长文本段落拆分 已落地
+> 最近更新: 2026-09-01 · 全代码库架构审计 + arkts-lint v0.3 (AST) + GitHub Actions CI 已落地
 
 ---
 
@@ -870,3 +870,37 @@ archive/mvp-experiments/
 | Local OCR | `babdba8` |
 | Z 端 refactor | `81a6ef6` |
 | **整链接入** ✨ | `5b6f155` |
+| W4 多 WebView 分块渲染 | `13c934f` ~ `e98318c` |
+| **arkts-lint v0.3 + CI** (2026-09-01) | `c559ae0` (engine) + `0e429ed` (audit docs) |
+
+---
+
+## 🛠️ Tooling & CI (2026-09-01)
+
+**Lint 引擎 (双轨制)** — `scripts/`:
+
+- **v1 (regex)** — `scripts/audit-arkts-strict.mjs` · 25 规则 · 174 文件 · baseline `0/285`
+- **v0.3 (AST)** — `scripts/arkts-lint/index.mjs` · 34 规则 + 63 单元测试 · 173 文件 · baseline `0/253` (90 个是 fix 后真问题)
+
+详细规则定义见 [`docs/style/arkts-1.1.md`](./docs/style/arkts-1.1.md) (40+ 官方 rule ID + error code)。
+
+**CI** — [`.github/workflows/arkts-lint.yml`](./.github/workflows/arkts-lint.yml) 3 个 job:
+
+| Job | 内容 | 依赖 |
+|---|---|---|
+| `test` | `npm ci` + 63 单元测试 | — |
+| `lint-ast` | `node scripts/arkts-lint/index.mjs --quiet` | needs: test |
+| `lint-regex` | `node scripts/audit-arkts-strict.mjs --quiet` | 独立 |
+
+**审计文档** (2026-09-01) — `docs/`:
+
+| 文件 | 大小 | 内容 |
+|---|---|---|
+| `architecture-audit-full-20260901.md` | 54 KB | 5 模块全代码库审计 (21 P0/P1/P2 finding) |
+| `audit-deepdive-20260901.md` | 49 KB | 7 个最大文件深读 (§F1-§F7) |
+| `lint-baseline-20260901.json` | 149 KB | v1 baseline (0/285) |
+| `lint-baseline-20260901-ast.json` | 106 KB | v0.3 baseline (0/253) |
+| `research/huawei-arkui-agent-20260901.md` | 45 KB | 30+ ArkTS 官方资料 |
+| `style/arkts-1.1.md` | 21 KB | 40+ rule 手册 (lint 权威) |
+
+**Agent 工作环境** — `AGENTS.md` (被 34 规则 + 63 测试 + CI 守门)
