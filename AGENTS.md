@@ -259,7 +259,7 @@ MindTrace/
 6. **一个鸿蒙应用只能有一个 `type:entry` 模块**: 其他 HAP 用 `type:feature` (`entry`/`skill`/`cardservice`)
 7. **obfuscation-rules.txt 必须存在**: 即使 `enable:false` 也要有文件
 8. **新 .ets 文件必须用 Write 工具创建**: 避免 PowerShell 5.1/7 的中文编码陷阱;Edit 改文件 OK
-9. **agent/mcp 目录是命名误导**: `agents/src/main/ets/mcp/tools/OcrTool.ets` 不是真 MCP 集成, 项目未运行 MCP server (audit §4.8) — 计划改名 `tools/`
+9. **agent/mcp 目录是命名误导**: `agents/src/main/ets/mcp/tools/OcrTool.ets` 不是真 MCP 集成, 项目未运行 MCP server (audit §4.8) — 改名决策见 [`docs/adr/0005-mcp-to-tools-rename.md`](./docs/adr/0005-mcp-to-tools-rename.md)
 
 **完整规则**: ArkTS 1.1 strict 40+ 条已在本节 "Code style" 列出, **完整手册已抽出到 [`docs/style/arkts-1.1.md`](./docs/style/arkts-1.1.md)** (可被其他 agent / 新 session 直接加载)。**Lint job 已接入 CI** — 两套 ([`.github/workflows/arkts-lint.yml`](./.github/workflows/arkts-lint.yml)):
 - v1 (regex): [`scripts/audit-arkts-strict.mjs`](./scripts/audit-arkts-strict.mjs), 25 条规则, baseline: 0 errors / 285 warnings
@@ -281,7 +281,7 @@ MindTrace/
 
 ### Domain docs
 
-单 context 布局 — 仓库根 `CONTEXT.md` + `docs/adr/` (Phase 2 创建, 用 `domain-modeling` skill)。详见 [`docs/agents/domain.md`](./docs/agents/domain.md)。
+单 context 布局 — 仓库根 [`CONTEXT.md`](./CONTEXT.md) (项目专属词汇表) + [`docs/adr/`](./docs/adr/) (架构决策记录,6 个)。**写代码前先读 CONTEXT.md**;**改动设计前先查 docs/adr/**。详见 [`docs/agents/domain.md`](./docs/agents/domain.md) (workflow 规约)。
 
 ### Issue tracker
 
@@ -315,4 +315,13 @@ GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI. 详见 [`docs/agents/issue-
 
 ---
 
-**报告结束**。下一步:Phase 2 用 `grilling` skill 决策 §8 开放问题,产出 `CONTEXT.md` + ADR。
+**报告结束 (2026-09-01)**。本仓库关键文档:
+
+- 入口: `AGENTS.md` (本文件)
+- 术语: [`CONTEXT.md`](./CONTEXT.md) (项目专属词汇,agent 写代码前先读)
+- 架构决策: [`docs/adr/`](./docs/adr/) (6 个 ADR,Phase 2 产出)
+- 规则: [`docs/style/arkts-1.1.md`](./docs/style/arkts-1.1.md) (40+ ArkTS 1.1 strict 规则)
+- 审计: [`docs/architecture-audit-full-20260901.md`](./docs/architecture-audit-full-20260901.md) + [`docs/audit-deepdive-20260901.md`](./docs/audit-deepdive-20260901.md)
+- 工具链: `scripts/arkts-lint/` (AST 引擎 34 规则 + 63 测试) + `scripts/audit-arkts-strict.mjs` (regex 引擎 25 规则) + `.github/workflows/arkts-lint.yml` (CI)
+
+Phase 3+ 工作:依 ADR 写 ticket spec,然后实施。**禁止直接改 `main`** — 只能在 `YunCeH` 上 push,user 手动 review + merge。
