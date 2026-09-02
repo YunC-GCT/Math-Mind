@@ -307,7 +307,7 @@ GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI. 详见 [`docs/agents/issue-
 | **#15** | ✅ P0 规约错误 (已修) | AGENTS.md / MEMORY ArkTS 铁律基于错误理解 (C-style `for` 反向) | [`docs/style/arkts-1.1.md`](./docs/style/arkts-1.1.md) ✅ + [`scripts/audit-arkts-strict.mjs`](./scripts/audit-arkts-strict.mjs) v1 ✅ + [`scripts/arkts-lint/`](./scripts/arkts-lint/) v0.3 ✅ (34 规则, 63 tests) + **CI** [`.github/workflows/arkts-lint.yml`](./.github/workflows/arkts-lint.yml) ✅ |
 | **#1** | 🔴 P0 文档过期 | 本文档剩余过期项 (本 PR 已修大部分) | — |
 | **#3** | 🔴 P0 god class | `KnowledgeModel` 870 LOC 拆 3 个 service | `agents/` |
-| **#4** | 🔴 P0 入口泄漏 | `Dispatcher.analyze`+`dispatch`+`routeDispatch` 合一 | `agents/core/Dispatcher.ets` |
+| **#4** | 🔴 P0 入口泄漏 | `Dispatcher.analyze`+`dispatch`+`routeDispatch` 合一 | `agents/core/Dispatcher.ets` (spec: [`docs/specs/004-dispatcher-single-entry.md`](./docs/specs/004-dispatcher-single-entry.md), ADR: 0003) |
 | **#5** | 🔴 P0 LLM 三路径 | `call` + `callStream` + `callSseTokens` 合一 | `common/llm/LlmClient.ets` (spec: [`docs/specs/005-llm-client-consolidation.md`](./docs/specs/005-llm-client-consolidation.md), ADR: 0004) |
 | **#7** | 🔴 P0 god class | `AgentChatService` 802 LOC 拆 3 个 service | `entry/services/` |
 
@@ -319,7 +319,8 @@ GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI. 详见 [`docs/agents/issue-
 
 - 入口: `AGENTS.md` (本文件)
 - 术语: [`CONTEXT.md`](./CONTEXT.md) (项目专属词汇,agent 写代码前先读)
-- 架构决策: [`docs/adr/`](./docs/adr/) (6 个 ADR,Phase 2 产出)
+- 架构决策: [`docs/adr/`](./docs/adr/) (7 个 ADR,Phase 2 产出 + 1 增补 ADR-0007)
+- Ticket specs: [`docs/specs/`](./docs/specs/) (依 ADR 写的实施 spec,Phase 3 进行中)
 - 规则: [`docs/style/arkts-1.1.md`](./docs/style/arkts-1.1.md) (40+ ArkTS 1.1 strict 规则)
 - 审计: [`docs/architecture-audit-full-20260901.md`](./docs/architecture-audit-full-20260901.md) + [`docs/audit-deepdive-20260901.md`](./docs/audit-deepdive-20260901.md)
 - 工具链: `scripts/arkts-lint/` (AST 引擎 34 规则 + 63 测试) + `scripts/audit-arkts-strict.mjs` (regex 引擎 25 规则) + `.github/workflows/arkts-lint.yml` (CI)
