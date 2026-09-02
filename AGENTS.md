@@ -311,6 +311,7 @@ GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI. 详见 [`docs/agents/issue-
 | **#5** | 🔴 P0 LLM 三路径 | `call` + `callStream` + `callSseTokens` 合一 | `common/llm/LlmClient.ets` (spec: [`docs/specs/005-llm-client-consolidation.md`](./docs/specs/005-llm-client-consolidation.md), ADR: 0004) |
 | **#7** | 🔴 P0 god class | `AgentChatService` 802 LOC 拆 3 个 service | `entry/services/` (spec: [`docs/specs/007-agent-chat-service-decomposition.md`](./docs/specs/007-agent-chat-service-decomposition.md)) |
 | **#10** | 🟡 P1 命名误导 | `agents/mcp/tools/` → `agents/tools/` (改 git mv) | `agents/mcp/tools/` (spec: [`docs/specs/010-mcp-to-tools-rename.md`](./docs/specs/010-mcp-to-tools-rename.md), ADR: 0005) |
+| **#9** | 🟡 P1 静默覆盖 | `LlmConfig.normalize*` 命中 keyword 改 throw `LlmError` | `common/src/main/ets/llm/LlmConfig.ets` (spec: [`docs/specs/009-llm-config-throw-on-silent-override.md`](./docs/specs/009-llm-config-throw-on-silent-override.md)) |
 
 详见 [`docs/architecture-audit-full-20260901.md`](./docs/architecture-audit-full-20260901.md) §7 与 [子代理深读报告](./docs/audit-deepdive-20260901.md)。
 
