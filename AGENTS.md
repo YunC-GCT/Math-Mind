@@ -308,7 +308,7 @@ GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI. 详见 [`docs/agents/issue-
 | **#1** | 🔴 P0 文档过期 | 本文档剩余过期项 (本 PR 已修大部分) | — |
 | **#3** | 🔴 P0 god class | `KnowledgeModel` 870 LOC 拆 3 个 service | `agents/` |
 | **#4** | 🔴 P0 入口泄漏 | `Dispatcher.analyze`+`dispatch`+`routeDispatch` 合一 | `agents/core/Dispatcher.ets` |
-| **#5** | 🔴 P0 LLM 三路径 | `call` + `callStream` + `callSseTokens` 合一 | `common/llm/LlmClient.ets` |
+| **#5** | 🔴 P0 LLM 三路径 | `call` + `callStream` + `callSseTokens` 合一 | `common/llm/LlmClient.ets` (spec: [`docs/specs/005-llm-client-consolidation.md`](./docs/specs/005-llm-client-consolidation.md), ADR: 0004) |
 | **#7** | 🔴 P0 god class | `AgentChatService` 802 LOC 拆 3 个 service | `entry/services/` |
 
 详见 [`docs/architecture-audit-full-20260901.md`](./docs/architecture-audit-full-20260901.md) §7 与 [子代理深读报告](./docs/audit-deepdive-20260901.md)。
