@@ -1,0 +1,21 @@
+{
+  "name": "arkts-lint",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "ArkTS 1.1 strict lint — AST-based implementation",
+  "scripts": {
+    "lint": "node index.mjs",
+    "scan": "node index.mjs --quiet",
+    "baseline": "node index.mjs --baseline=docs/lint-baseline-20260901-ast.json --quiet",
+    "check-rules": "node index.mjs --check-rules",
+    "test": "node --test tests/parser.test.mjs tests/registry.test.mjs tests/rules-official.test.mjs"
+  },
+  "dependencies": {
+    "@typescript-eslint/parser": "^8.18.0",
+    "typescript": "^5.7.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
