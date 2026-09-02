@@ -51,6 +51,8 @@ desktop.ini
 # ===== Node (DevEco CLI use npm/yarn) =====
 node_modules/
 package-lock.json
+# Subpackage (arkts-lint) needs its lockfile for CI reproducibility
+!scripts/arkts-lint/package-lock.json
 
 # ===== Resource caches =====
 **/.cache/
