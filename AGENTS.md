@@ -306,7 +306,7 @@ GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI. 详见 [`docs/agents/issue-
 | **#16** | 🔴 P0 BUG | Production fixture data 泄漏到用户 (`ENABLE_GALAXY_PREVIEW_UNITS = true`) | `KnowledgeGalaxyViewModel.ets` |
 | **#15** | ✅ P0 规约错误 (已修) | AGENTS.md / MEMORY ArkTS 铁律基于错误理解 (C-style `for` 反向) | [`docs/style/arkts-1.1.md`](./docs/style/arkts-1.1.md) ✅ + [`scripts/audit-arkts-strict.mjs`](./scripts/audit-arkts-strict.mjs) v1 ✅ + [`scripts/arkts-lint/`](./scripts/arkts-lint/) v0.3 ✅ (34 规则, 63 tests) + **CI** [`.github/workflows/arkts-lint.yml`](./.github/workflows/arkts-lint.yml) ✅ |
 | **#1** | 🔴 P0 文档过期 | 本文档剩余过期项 (本 PR 已修大部分) | — |
-| **#3** | 🔴 P0 god class | `KnowledgeModel` 870 LOC 拆 3 个 service | `agents/` |
+| **#3** | 🔴 P0 god class | `KnowledgeModel` 870 LOC 拆 3 个 service | `agents/` (spec: [`docs/specs/003-knowledge-model-decomposition.md`](./docs/specs/003-knowledge-model-decomposition.md), ADR: 0006) |
 | **#4** | 🔴 P0 入口泄漏 | `Dispatcher.analyze`+`dispatch`+`routeDispatch` 合一 | `agents/core/Dispatcher.ets` (spec: [`docs/specs/004-dispatcher-single-entry.md`](./docs/specs/004-dispatcher-single-entry.md), ADR: 0003) |
 | **#5** | 🔴 P0 LLM 三路径 | `call` + `callStream` + `callSseTokens` 合一 | `common/llm/LlmClient.ets` (spec: [`docs/specs/005-llm-client-consolidation.md`](./docs/specs/005-llm-client-consolidation.md), ADR: 0004) |
 | **#7** | 🔴 P0 god class | `AgentChatService` 802 LOC 拆 3 个 service | `entry/services/` |
