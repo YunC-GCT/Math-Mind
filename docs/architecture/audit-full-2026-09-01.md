@@ -925,6 +925,35 @@ interface IntentClassifier {
 
 总计 ~16 个 ticket (删除 #2 后实际 16 个),工作量 ≈ 30-45h。**优先级重排**: #16 (P0 用户可见 BUG) > #15 (P0 规约错误) > #1 (P0 文档过期) > #3 (P0 god class) > #4-7,12 (P0/P1 架构) > #9-11 (P1 小修) > #13-14,17 (P1 测试/小修)。
 
+### Phase 2 + Phase 3 现状 (2026-09-01)
+
+**4 个 design surfaces (全部齐了)**:
+- `CONTEXT.md` — 19 个项目专属术语
+- `docs/adr/` — 7 个 ADR (含 ADR-0007 test baseline)
+- `docs/specs/` — 6 个 ticket spec (依 ADR 写的实施 spec)
+- `docs/style/arkts-1.1.md` — 40+ ArkTS 1.1 strict 规则手册
+
+**工作流 (§4 finding → 实施)**:
+看 §4 → 找 ticket → 查 ADR (why) → 查 spec (how) → 实施
+
+### Phase 4 推荐实施顺序
+
+1. **#4** (Dispatcher single-entry) — 最小 blast radius,unblocks other changes
+2. **#5** (LLMClient consolidation) — 独立,~5 行 refactor
+3. **#3** (KnowledgeModel decomposition) — 3 atomic PRs,870-LOC class
+4. **#7** (AgentChatService decomposition) — 3 atomic PRs,802-LOC class
+5. **#10** (mcp → tools rename) — git mv,~3 import lines
+6. **#9** (LlmConfig throw) — ~10 行 change in LlmConfig
+
+**完成后架构匹配 ADR 意图**:
+- Dispatcher 1 public method
+- LlmClient 1 public method (call + adapters)
+- KnowledgeModel 不存在 (3 services 替代)
+- AgentChatService thin facade
+- mcp/ 目录不存在
+
+**Phase 2 决策完成,Phase 3 spec 6/6,实施待开始**。
+
 ---
 
 ## 8. 待 Phase 2 决策的问题
