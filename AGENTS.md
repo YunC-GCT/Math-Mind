@@ -21,7 +21,6 @@
 | 改安全 / secrets / 签名 | [`docs/agents/security.md`](./docs/agents/security.md) |
 | 准备 PR / smoke test | [`docs/agents/smoke-test.md`](./docs/agents/smoke-test.md) |
 | 排查 build / 编码陷阱 | [`docs/agents/file-header-template.md`](./docs/agents/file-header-template.md) §"创建新文件" |
-| 改跨 session 通信 | [`docs/agents/cross-session.md`](./docs/agents/cross-session.md) |
 | 写 / 改 / 归档 doc | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md) (issue 模板) + `docs/agents/domain.md` (workflow) |
 | 写 issue / 改 spec | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md) + [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
 | 排查 audit finding | [`docs/architecture/audit-full-2026-09-01.md`](./docs/architecture/audit-full-2026-09-01.md) |
@@ -37,6 +36,7 @@
 4. **绝对路径** — 根目录 = `D:\HMgent\MathMind` (不是 `D:\HMgent\MindTrace`, 大小写敏感)
 5. **commit 规范** — conventional commits + 模块前缀 (`docs(frontend):` / `fix(agents):`); 详见 [`docs/agents/git-conventions.md`](./docs/agents/git-conventions.md)
 6. **不进 `main`** — 所有改动 commit 到 `YunCeH`, user 手动 review + merge
+7. **worktree 互斥** — 多 session 共享同一 worktree 时, 一个 session 改时另一个别动; 多 worktree 用 `YunCeH` 分支同步
 
 ---
 
