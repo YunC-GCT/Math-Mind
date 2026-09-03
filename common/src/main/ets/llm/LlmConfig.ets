@@ -1,4 +1,4 @@
-﻿// MindTrace - LLM 配置管理(单例 + preferences 持久化 + 运行时读写)
+// MindTrace - LLM 配置管理(单例 + preferences 持久化 + 运行时读写)
 // 创建: 2026-07-14
 
 import { preferences } from '@kit.ArkData';
@@ -205,7 +205,12 @@ export class LlmConfig {
     }
     const lower: string = t.toLowerCase();
     if (lower.indexOf('siliconflow') >= 0) {
-      return DEFAULT_ENDPOINT;
+      throw new LlmError(
+        `LlmConfig.normalizeEndpoint: input "${v}" matches reserved keyword "siliconflow"; ` +
+        `siliconflow is not supported. Use DEFAULT_ENDPOINT or override ` +
+        `normalizeEndpoint() if this is intentional.`,
+        'NORMALIZE_KEYWORD_REJECTED'
+      );
     }
     if (lower.indexOf('api.deepseek.com') >= 0) {
       const idx: number = lower.indexOf('/chat/completions');
@@ -231,7 +236,12 @@ export class LlmConfig {
       lower.indexOf('deepseek-reasoner') >= 0 ||
       lower.indexOf('r1') >= 0
     ) {
-      return DEFAULT_MODEL;
+      throw new LlmError(
+        `LlmConfig.normalizeModel: input "${v}" matches a reserved keyword; ` +
+        `DEFAULT_MODEL is enforced. Reserved keywords: v3, flash, deepseek-chat, ` +
+        `deepseek-reasoner, r1, and the DEFAULT_MODEL value itself.`,
+        'NORMALIZE_KEYWORD_REJECTED'
+      );
     }
     return t;
   }
