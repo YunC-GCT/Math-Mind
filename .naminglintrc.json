@@ -4,11 +4,14 @@
   "skip": {
     "dirs": [
       "__snapshots__",
-      "fixtures"
+      "fixtures",
+      "legacy"
     ],
     "files": [
       ".prettierrc",
-      ".eslintrc"
+      ".eslintrc",
+      "agent-framework-comparison-2026-09-02.html",
+      "langgraph-migration-2026-09-02.html"
     ],
     "patterns": [
       "^mock-",

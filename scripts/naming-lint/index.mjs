@@ -135,7 +135,10 @@ function checkEntry({ relPath, name, isDir }, violations) {
   const ext = extname(name).toLowerCase();
 
   // 4. .html in docs/ is gitignored render, not source
-  if (ext === '.html' && relPath.startsWith('docs/')) {
+  // Normalize to forward slashes — `path.relative()` returns OS-native separators
+  // (e.g. `docs\foo` on Windows, `docs/foo` on POSIX), so naive startsWith('docs/')
+  // silently misses every file on Windows. Bug fixed 2026-09-04.
+  if (ext === '.html' && relPath.replace(/\\/g, '/').startsWith('docs/')) {
     violations.push({ relPath, name, rule: 'no-html-in-docs', msg: 'HTML files in docs/ must be gitignored renders, not source' });
     return;
   }
