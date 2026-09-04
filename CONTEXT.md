@@ -1,8 +1,23 @@
 # MindTrace Domain Context
 
-The single source of truth for what MindTrace-specific words mean. New agent sessions and PRs that introduce a new term must register it here; terms that are not here should be challenged.
+> **For:** MindTrace project only.
+> **Scope:** MindTrace-specific terms (`KnowledgeUnit`, `NoteType`, etc.)
+> **NOT for:** universal agent architecture terms (Atom, Molecule, Node, State, etc.) — see [`docs/agents/agent-glossary.md`](./docs/agents/agent-glossary.md).
 
-## Language
+The single source of truth for what MindTrace-specific words mean. New agent sessions or PRs that introduce a new MindTrace-specific term must register it here; terms not here should be challenged.
+
+## Universal vs project-specific
+
+This file is **project-specific** (MindTrace). For universal agent / software architecture terms that apply to any agent project, see [`docs/agents/agent-glossary.md`](./docs/agents/agent-glossary.md) — that file covers:
+
+- Agent, sub-agent, Node, Edge, State, Channel, StateGraph
+- Checkpoint, Thread, Run, Command, Interrupt
+- Tool, Reducer, Dispatcher, Subgraph, HITL, Streaming
+- Atomic Design: Atom, Molecule, Organism, Template, Page
+- Frontend Service vs Backend Service
+- Component, Hook, Prop, State (React)
+
+## Language (MindTrace-specific)
 
 **Order**:
 The single source-of-truth pipeline the user triggers when capturing a math note. An Order flows Capture → Classify → Structure → Persist, with optional Preview augmentation.
@@ -93,7 +108,7 @@ The word **agent** is overloaded in this codebase. Use the precise form:
 ## Rules
 
 - **Be opinionated.** The glossary disambiguates; it does not enumerate every synonym. When two words could mean the same thing, pick one and list the others under `_Avoid_`.
-- **Be MindTrace-specific.** General terms (e.g. "function", "string", "Promise") don't belong here even if used heavily. Only terms whose meaning is *project-specific* belong.
+- **Be project-specific.** This file is for MindTrace. Universal terms (Node, Edge, State, Atom, Molecule) live in [`docs/agents/agent-glossary.md`](./docs/agents/agent-glossary.md). General terms (function, string, Promise) don't belong in either glossary.
 - **Cross-reference code.** When a term is defined here, it should match the field name in code. If you find a mismatch, surface it.
 
 ## Note on this file
@@ -101,3 +116,9 @@ The word **agent** is overloaded in this codebase. Use the precise form:
 This file is **devoid of implementation details**. Where a term's meaning *requires* code knowledge (e.g. "Dispatcher" is the class name in `agents/core/Dispatcher.ets`), the link is given for grounding but the *meaning* here is what an agent should treat as canonical. If the code contradicts this file, the code is wrong.
 
 Implementation decisions (why this Dispatcher signature, why LlmGuard exists, why mcp/ is misnamed) live in [`docs/adr/`](./docs/adr/).
+
+## Migration note (2026-09-02)
+
+Universal agent terms (previously here) have been moved to [`docs/agents/agent-glossary.md`](./docs/agents/agent-glossary.md) as part of the naming governance refactor. This file now contains only MindTrace-specific terms.
+
+If a term is **not** in this file and is **not** a common programming term, it likely belongs in the universal glossary.
