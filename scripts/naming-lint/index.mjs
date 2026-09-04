@@ -4,7 +4,7 @@
  * Lints file and directory names against docs/style/naming-conventions.md.
  * Source of truth: docs/style/naming-conventions.md
  *
- * Scanned roots (configurable via argv, default: docs/, scripts/):
+ * Scanned roots (configurable via argv or .naminglintrc.json):
  *   - docs/         (markdown docs, atomic design, langgraph)
  *   - scripts/      (Node tooling)
  *   - frontend/     (React + Atomic Design) — only if exists
@@ -25,10 +25,11 @@
  *   - Files starting with `_` (scaffolds, templates)
  *   - Test files: only the prefix-before-`.test.<ext>` is checked
  *
- * Skipped paths (always):
+ * Skipped paths (default; project can ADD to via .naminglintrc.json):
  *   - node_modules/, .git/, .hvigor/, build/, oh_modules/, dist/
  *   - .reasonix/ (agent metadata)
  *   - docs/research/_fetched/ (raw fetched material)
+ *   - __generated__/, vendor/, third_party/ (codegen / vendored)
  *
  * Exit code: 0 = pass, 1 = violations found.
  */
@@ -37,16 +38,10 @@ import { readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, basename, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isKebabCase, isPascalCase, isSnakeCase, isIsoDate } from './rule-checkers.mjs';
+import { loadConfig } from './config-loader.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..', '..');
-
-const DEFAULT_ROOTS = ['docs', 'scripts'];
-const SKIP_DIRS = new Set([
-  'node_modules', '.git', '.hvigor', 'build', 'oh_modules', 'dist',
-  '.reasonix', '_fetched', '.appanalyzer',
-]);
-const SKIP_FILES = new Set(['.DS_Store', 'Thumbs.db']);
 
 // Extension → expected-case rule
 const RULES = {
@@ -71,16 +66,28 @@ const SPEC_RE = /^(\d{3})-.+\.md$/;
 const RESEARCH_DATE_RE = /-\d{4}-\d{2}-\d{2}\.md$/;
 
 // ----------------------------------------------------------------------------
-// Helpers
+// Walker (uses Config)
 // ----------------------------------------------------------------------------
 
-function walk(rootPath, onEntry) {
+function walk(rootPath, config, onEntry) {
+  const skipDirs = new Set(config.skip.dirs);
+  const skipFiles = new Set(config.skip.files);
+  const skipPatterns = config.skip.patterns.map((p) => new RegExp(p));
+
+  function isSkipped(name) {
+    if (skipDirs.has(name) || skipFiles.has(name)) return true;
+    for (const re of skipPatterns) {
+      if (re.test(name)) return true;
+    }
+    return false;
+  }
+
   function visit(p) {
     let st;
     try { st = statSync(p); } catch { return; }
     if (st.isDirectory()) {
       const base = basename(p);
-      if (SKIP_DIRS.has(base)) return;
+      if (isSkipped(base)) return;
       onEntry({ absPath: p, relPath: relative(REPO_ROOT, p), name: base, isDir: true });
       let entries;
       try { entries = readdirSync(p); } catch { return; }
@@ -89,7 +96,7 @@ function walk(rootPath, onEntry) {
       }
     } else if (st.isFile()) {
       const base = basename(p);
-      if (SKIP_FILES.has(base)) return;
+      if (isSkipped(base)) return;
       onEntry({ absPath: p, relPath: relative(REPO_ROOT, p), name: base, isDir: false });
     }
   }
@@ -116,6 +123,7 @@ function checkEntry({ relPath, name, isDir }, violations) {
   if (name === 'README.md') return;
 
   // 2. Files starting with `_` are scaffolds (e.g. _template.mjs)
+  // (already excluded by config.skip.patterns '^_', but kept as defense in depth)
   if (name.startsWith('_')) return;
 
   // 3. No spaces anywhere
@@ -188,14 +196,28 @@ function checkEntry({ relPath, name, isDir }, violations) {
 function main() {
   const args = process.argv.slice(2);
   const jsonMode = args.includes('--json');
-  const roots = args.filter((a) => !a.startsWith('--') && a.length > 0);
-  const scanRoots = roots.length > 0 ? roots : DEFAULT_ROOTS;
+  const configPath = (() => {
+    const i = args.indexOf('--config');
+    if (i >= 0 && args[i + 1]) return args[i + 1];
+    return undefined;
+  })();
+  const positional = args.filter((a) => !a.startsWith('--') && a.length > 0);
+
+  let config;
+  try {
+    config = loadConfig(configPath);
+  } catch (err) {
+    console.error(`naming-lint: config error: ${err.message}`);
+    process.exit(2);
+  }
+
+  const scanRoots = positional.length > 0 ? positional : config.roots;
   const violations = [];
 
   for (const root of scanRoots) {
     const abs = join(REPO_ROOT, root);
     if (!existsSync(abs)) continue; // skip non-existent roots gracefully
-    walk(abs, (entry) => checkEntry(entry, violations));
+    walk(abs, config, (entry) => checkEntry(entry, violations));
   }
 
   // JSON output mode for CI integration
@@ -204,6 +226,7 @@ function main() {
       tool: 'naming-lint',
       version: '0.1.0',
       timestamp: new Date().toISOString(),
+      config: config.source ?? '(defaults)',
       roots: scanRoots,
       passed: violations.length === 0,
       violationCount: violations.length,

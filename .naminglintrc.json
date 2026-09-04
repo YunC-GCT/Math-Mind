@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "roots": ["docs", "scripts"],
+  "skip": {
+    "dirs": [
+      "__snapshots__",
+      "fixtures"
+    ],
+    "files": [
+      ".prettierrc",
+      ".eslintrc"
+    ],
+    "patterns": [
+      "^mock-",
+      "fixture$"
+    ]
+  }
+}
