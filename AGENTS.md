@@ -25,8 +25,8 @@
 | 排查 build / 编码陷阱 | [`docs/agents/file-header-template.md`](./docs/agents/file-header-template.md) §"创建新文件" |
 | 写 / 改 / 归档 doc | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md) (issue 模板) + `docs/agents/domain.md` (workflow) |
 | 写 issue / 改 spec | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md) + [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
-| 排查 audit finding | [`docs/architecture/audit-full-2026-09-01.md`](./docs/architecture/audit-full-2026-09-01.md) |
-| 整体目录结构 | `docs/architecture/audit-full-2026-09-01.md` §3 |
+| 排查 audit finding | [`docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](./docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md) |
+| 整体目录结构 | `docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md` §3 |
 | 写新文件 / 改文件名 | [`docs/style/naming-conventions.md`](./docs/style/naming-conventions.md) (权威源) + `node scripts/naming-lint/index.mjs` (验证) |
 
 ---
@@ -71,7 +71,7 @@
 | **LlmClient 流式响应 (W4 新)** | `common/src/main/ets/llm/LlmClient.ets` | 3 调用路径待合一, spec [`005`](./docs/specs/005-llm-client-consolidation.md) |
 | **知识星系可视化** | `entry/src/main/ets/pages/KnowledgeGalaxy*` | 用户学情可视化 |
 | **ArkTS 严格 lint 引擎** | `scripts/arkts-lint/` | 自研 AST 引擎, 34 规则 + 63 单元测试, **CI 已接入** |
-| **审计 + ADR + Spec 完整设计层** | `docs/architecture/` + `docs/adr/` + `docs/specs/` | 7 ADR + 6 ticket spec, 设计透明度高 |
+| **审计 + ADR + Spec 完整设计层** | `docs/legacy/mindtrace/architecture/` (历史审计) + `docs/adr/` + `docs/specs/` | 7 ADR + 6 ticket spec, 设计透明度高 |
 
 ### 演示路径 (5 分钟 walk-through)
 
@@ -79,14 +79,14 @@
 2. DevEco Studio `Run → Run 'entry'` (真机/模拟器)
 3. 主流程: 拍照 → OCR → AI 分类 → 知识结构化 → 持久化 → 复习浮窗对话 (SSE 流式)
 4. 5 Tab 流畅 / 知识星系无 "示例:*" 假学科 (ticket #16 已修)
-5. 源码: `agents/` (AI 业务) + `scripts/arkts-lint/` (工程亮点) + `docs/architecture/audit-full-2026-09-01.md` (21 个 finding 的架构审计)
+5. 源码: `agents/` (AI 业务) + `scripts/arkts-lint/` (工程亮点) + `docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md` (21 个 finding 的架构审计)
 
 ### 状态 (per audit 2026-09-01)
 
 ✅ 已修: **#15** ArkTS 铁律 (规约错误) · **#9** LlmConfig 静默覆盖 (TDD) · **#16** fixture data 泄漏 (TDD)
 🟡 待修: **#1** doc expiry · **#3** / #4 / #5 / #7 god class & 入口泄漏 (有 spec, 待实施) · **#10** mcp/ → tools/ rename
 
-详细: [`docs/architecture/audit-full-2026-09-01.md`](./docs/architecture/audit-full-2026-09-01.md) §7 + [`docs/specs/`](./docs/specs/)
+详细: [`docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](./docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md) §7 + [`docs/specs/`](./docs/specs/)
 
 ---
 

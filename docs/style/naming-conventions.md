@@ -42,6 +42,7 @@ These apply to **every** file and directory in this repo.
 | Architecture / audit | `docs/architecture/` | `{scope}-{YYYY-MM-DD}.md` |
 | API contract | `docs/api/` | `contract.md` or `contract-{module}.md` |
 | Competition / submission | `docs/competition/` | `{topic}-{YYYY-MM-DD}.md` |
+| **Legacy / old project** | `docs/legacy/{project}/` | (preserves old naming — frozen) |
 | Agent workflow pointer docs | `docs/agents/` | `{topic-slug}.md` |
 | Template (canonical) | `docs/template/` | `{doc-type}-template.md` |
 | Legacy content (old project) | `docs/legacy/{project}/` | (preserves old naming) |
@@ -230,7 +231,7 @@ Example: `fix(backend): throw LlmError on reserved keyword override`
 | `My Component.tsx` (space + capital in name) | breaks JSX, looks like import |
 | `mv old.md new.md` (without `git`) | loses git history |
 | `package-lock.json` (committed) | except where intended (`scripts/*/package-lock.json` is intentionally committed for CI reproducibility) |
-| `.html` in `docs/research/` or `docs/architecture/` | HTML is a generated render, not the source — only `.md` is committed |
+| `.html` in `docs/research/` or `docs/architecture/` or `docs/legacy/` | HTML is a generated render, not the source — only `.md` is committed |
 | `node_modules/`, `build/`, `oh_modules/`, `dist/` | always gitignored |
 
 ## 8. Validation
