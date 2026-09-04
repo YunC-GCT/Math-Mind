@@ -12,6 +12,7 @@ an ADR (`docs/adr/`) and follows the same template.
 | **#4** | [`004-dispatcher-single-entry.md`](./004-dispatcher-single-entry.md) | [`0003`](../adr/0003-dispatcher-single-entry-design.md) | spec ready, not implemented |
 | **#5** | [`005-llm-client-consolidation.md`](./005-llm-client-consolidation.md) | [`0004`](../adr/0004-llm-call-layer-consolidation.md) | spec ready, not implemented |
 | **#7** | [`007-agent-chat-service-decomposition.md`](./007-agent-chat-service-decomposition.md) | (implicit) | spec ready, not implemented |
+| **#9** | [`009-llm-config-throw-on-silent-override.md`](./009-llm-config-throw-on-silent-override.md) | (implicit, defensive coding principle) | spec for review (Phase 3) |
 | **#10** | [`010-mcp-to-tools-rename.md`](./010-mcp-to-tools-rename.md) | [`0005`](../adr/0005-mcp-to-tools-rename.md) | spec ready, not implemented |
 
 ## P0 tickets without spec
@@ -19,7 +20,6 @@ an ADR (`docs/adr/`) and follows the same template.
 | Ticket | Status |
 |--------|--------|
 | **#1** (doc expiry) | meta — not a refactor, just self-referential cleanup |
-| **#9** (LlmConfig silent override → throw) | planned |
 
 ## Implementation order (recommended)
 
