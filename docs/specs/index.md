@@ -1,7 +1,7 @@
 # Ticket specs index
 
 This directory holds **implementation specs** for the P0/P1 tickets identified in the
-2026-09-01 audit (`docs/architecture-audit-full-20260901.md`). Each spec is derived from
+2026-09-01 audit ([`docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](../legacy/mindtrace/architecture/audit-full-2026-09-01.md)). Each spec is derived from
 an ADR (`docs/adr/`) and follows the same template.
 
 ## Coverage map
