@@ -1,0 +1,98 @@
+name: naming-lint
+
+# Run on push to main, on PRs, and manual dispatch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel in-progress runs for same branch on new push
+concurrency:
+  group: naming-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Job 1: Unit tests (naming-lint helpers)
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run naming-lint unit tests
+        run: node --test scripts/naming-lint/tests/*.test.mjs
+
+  # Job 2: Naming lint scan (--json output)
+  lint:
+    name: Lint (naming-conventions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run naming lint (--json)
+        # Scan docs/ and scripts/ (default roots). Exit 1 = violations.
+        # --json output is captured, then pretty-printed in the failure log.
+        run: |
+          set +e
+          node scripts/naming-lint/index.mjs --json docs scripts > /tmp/naming-lint.json
+          EXIT=$?
+          set -e
+          if [ "$EXIT" -ne 0 ]; then
+            echo "::group::naming-lint violations"
+            node -e "const r=require('/tmp/naming-lint.json'); r.violations.forEach(v=>console.log('  ' + v.path + ' [' + v.rule + ']: ' + v.message))"
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "OK: 0 violations"
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: naming-lint-report
+          path: /tmp/naming-lint.json
+          if-no-files-found: ignore
+
+  # Job 3: PR comment with violations table
+  pr-comment:
+    name: PR comment
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    needs: lint
+    if: github.event_name == 'pull_request' && failure()
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build comment body
+        run: |
+          node scripts/naming-lint/install-hook.mjs --ci-comment docs scripts > /tmp/comment.md || echo "Failed to build comment" > /tmp/comment.md
+          echo "=== comment.md ==="
+          cat /tmp/comment.md
+
+      - name: Post / update PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: naming-lint
+          path: /tmp/comment.md
