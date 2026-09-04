@@ -59,6 +59,7 @@ package-lock.json
 
 # ===== Agent metadata =====
 .reasonix/
+.zcode/
 
 # ===== Research scratch (Phase 1 audit, cleanup after) =====
 docs/research/_fetched/
