@@ -8,6 +8,39 @@
 
 ---
 
+## Versioning
+
+This spec follows [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
+
+- **MAJOR** bump — breaking change. Any rule in this spec changes such that existing files become violations. E.g. adding a new rule, changing an existing rule, renaming a category.
+- **MINOR** bump — additive change. New rules or sections are added. Existing files are NOT affected.
+- **PATCH** bump — clarification or wording fix only. No rule changes.
+
+**When to bump:**
+
+| Change | Bump |
+|---|---|
+| Renaming a section without rule change | PATCH |
+| Adding a new rule (e.g. "no .html in docs/") | MINOR |
+| Expanding an existing rule (e.g. "skip _template.mjs" → "skip files starting with _") | MINOR |
+| Tightening a rule (e.g. "kebab-case" → "kebab-case with 50-char limit") | MAJOR (existing files may violate) |
+| Changing the lint tool's exit code semantics | MAJOR |
+| Fixing a typo / clarifying wording | PATCH |
+
+**Version policy enforcement:**
+- Each commit that changes this file bumps the version in the header
+- The version is referenced in [`scripts/naming-lint/index.mjs`](../../scripts/naming-lint/index.mjs) `--json` output
+- Breaking changes (MAJOR) require a migration note in this file
+
+## Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| 1.0 | 2026-09-02 | Initial spec with 9 sections (universal, top-level, docs, code branches, commits, forbidden) |
+| 1.1 | 2026-09-02 | Added §2.1 top-level whitelist, expanded §5 branches, expanded §6 commits, added §7 test files, added §8 file headers, added §9 generated files, added §10 env files, added §11 logs/temp, expanded §12 forbidden, added §13 validation, added §14 when to update, bumped version 1.0 → 1.1 |
+
+---
+
 ## 1. Universal Rules
 
 These apply to **every** file and directory in this repo.
