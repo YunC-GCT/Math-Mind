@@ -423,8 +423,11 @@ These files are typically **not** hand-written and should be excluded from namin
 | `*.pb.go` / `*.pb.cc` | protobuf | match source proto |
 | `vendor/` (Go) | third-party copy | preserve upstream naming |
 | `third_party/` (C++) | third-party | preserve upstream naming |
+| **`*.html` in `docs/`** | pandoc / vitepress / mermaid render | **don't commit** — see [`./html-in-docs.md`](./html-in-docs.md) |
 
 **Rule**: Generated files should be marked with `# AUTO-GENERATED — DO NOT EDIT` at the top, AND `.gitattributes` should mark them `linguist-generated` so diff stats don't count them.
+
+**HTML in docs/** (special case): HTML is a render, not a source. See [`./html-in-docs.md`](./html-in-docs.md) for the full decision tree, recipes for each case (generated / paired render / frozen legacy / true source), and how to whitelist specific files in `.naminglintrc.json` when they're intentional.
 
 **Linter behavior**: `scripts/naming-lint/index.mjs` should skip these paths (currently it skips `node_modules/`, `build/`, etc.; add generated paths as needed).
 
@@ -479,7 +482,7 @@ These files are runtime outputs / editor scratch / system state. They should **n
 | `My Component.tsx` (space + capital in name) | breaks JSX, looks like import |
 | `mv old.md new.md` (without `git`) | loses git history |
 | `package-lock.json` (committed) | except where intended (`scripts/*/package-lock.json` is intentionally committed for CI reproducibility) |
-| `.html` in `docs/research/` or `docs/legacy/` | HTML is a generated render, not the source — only `.md` is committed |
+| `.html` in `docs/research/` or `docs/legacy/` | HTML is a generated render, not the source — only `.md` is committed. See [`./html-in-docs.md`](./html-in-docs.md) for exceptions and recipes. |
 | `node_modules/`, `build/`, `oh_modules/`, `dist/` | always gitignored |
 | `__pycache__/`, `*.pyc` | Python bytecode |
 | `__snapshots__/`, `__mocks__/` | test framework internals (gitignored) |
