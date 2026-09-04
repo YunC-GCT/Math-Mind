@@ -50,7 +50,7 @@ If all three pass, you're set up correctly.
 - [`docs/adr/0001-0007`](./adr/) — 7 architecture decisions, **read in order**
 - [`docs/specs/003-010`](./specs/) — 6 implementation specs (TDD plans)
 - [`docs/style/arkts-1.1.md`](./style/arkts-1.1.md) — 40+ ArkTS rules
-- [`docs/architecture/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](./legacy/mindtrace/architecture/audit-full-2026-09-01.md) — 21 audit findings
+- [`docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](./legacy/mindtrace/architecture/audit-full-2026-09-01.md) — 21 audit findings
 
 ### 2. Read the code (10 min)
 
