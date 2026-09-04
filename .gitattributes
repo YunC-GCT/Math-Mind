@@ -1,0 +1,61 @@
+# .gitattributes: file-specific git attributes
+# See https://git-scm.com/docs/gitattributes
+
+# Auto-detect text files, normalize line endings to LF on commit
+* text=auto eol=lf
+
+# Markdown files: explicitly LF (Markdown spec)
+*.md text eol=lf
+
+# Shell scripts: LF
+*.sh text eol=lf
+*.bash text eol=lf
+*.ps1 text eol=lf
+
+# Source code: LF
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.py text eol=lf
+*.ets text eol=lf
+
+# Config: LF
+*.json text eol=lf
+*.json5 text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+
+# Docs: explicit text (no extension detection issues)
+docs/**/* text eol=lf
+
+# Generated files: don't diff
+*.gen.ts linguist-generated
+*.gen.tsx linguist-generated
+docs/research/_fetched/** linguist-generated
+__generated__/** linguist-generated
+
+# Binary: explicit
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+
+# Export exclude for archive (excludes from `git archive`)
+.gitattributes export-ignore
+.gitignore export-ignore
+CONTRIBUTING.md export-ignore
+.github/ export-ignore
+*.test.* export-ignore
+docs/research/_fetched/ export-ignore
+node_modules/ export-ignore
+oh_modules/ export-ignore
+build/ export-ignore
+.hvigor/ export-ignore
