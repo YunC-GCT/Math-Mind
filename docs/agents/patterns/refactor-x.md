@@ -107,7 +107,7 @@ If the refactor changes an interface documented in an ADR/spec:
 ```bash
 git add .
 git commit -m "refactor(llm): collapse 3 call paths to call(opts) per spec 005"
-git push -b YunCeH  # (per AGENTS.md: never push to main)
+git push -b origin feature/dispatcher-single-entry  # (per AGENTS.md: never push to main)
 ```
 
 ## Common pitfalls

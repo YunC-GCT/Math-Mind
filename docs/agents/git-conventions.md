@@ -2,10 +2,11 @@
 
 ## Branches
 
-- **主分支**: `main` (基线 `5b6f155`, 最新 HEAD `29df511`)
-- **当前模型**: 单 `main` 分支, 无 feature branch (`.worktrees/` 偶尔用)
-- **AI 必须在 `YunCeH` 工作**, 不在 `main` 上 commit
-- 详见 ADR-0001 (`docs/adr/0001-layer-boundaries-`) 与 `YuncH` 分支命名约定
+- **主分支**: `main`(只放稳定可发布版本,每次合并打 tag)
+- **集成分支**: `develop`(新功能汇集,日常 base;AI 与人均可在其上工作)
+- **临时分支**: `feature/*` / `release/*` / `hotfix/*` / `bugfix/*`,合入后删除
+- **历史模型**(2026-09-04 前): 单 `main` + AI 工作分支 `YunCeH`。**已废止** — 新工作不再使用 `YunCeH`;原 `origin/YunCeH` 保留作历史快照
+- **详细工作流**: 见本文件 §"分支工作流(Git Flow 轻量版)";命名细则见 `docs/style/naming-conventions.md` §"Git branch names"
 
 ## Commit 风格 — conventional commits
 
@@ -32,8 +33,70 @@ git log --oneline -3         # 最近 commit 风格一致
 ## 红线
 
 - **不 push** — 未经 user 明确说 "push",绝不 `git push`
-- **不进 main** — 所有改动 commit 到 `YunCeH`,user 手动 review + merge
+- **不进 main** — 所有改动通过 PR 合入 `develop`(功能)或 `main`(release/hotfix),user 手动 review + merge
 - **不 reset --hard** — `git reset --hard HEAD~n` 需 user 明确授权 (reflog 可找回)
+
+## 分支工作流(Git Flow 轻量版)
+
+> 自 2026-09-04 起,团队 (3 人) 采用 Git Flow 轻量版。模型基于你的图,适配复赛节奏。
+
+### 分支类型与寿命
+
+| 分支 | 寿命 | 从哪拉 | 合回哪 | 何时用 |
+|---|---|---|---|---|
+| `main` | 长期 | 初始 | — | 生产代码,仅放稳定可发布版本,每次合并打 tag |
+| `develop` | 长期 | `main` | `main`(发版时) | 开发集成,所有 feature 合入此 |
+| `feature/<slug>` | 临时 | `develop` | `develop` | 开发新功能,**一个人一个分支**,完成即合并删除 |
+| `release/<slug>` | 临时 | `develop` | `main` + `develop` | 准备发版,冻结功能只改 bug、写文档、改版本号 |
+| `hotfix/<slug>` | 临时 | `main` | `main` + `develop` | 生产线上紧急 bug,需立即上线 |
+| `bugfix/<slug>` | 临时 | `develop` | `develop` | 开发阶段非紧急 bug,不影响发版节奏 |
+
+### 命名约定
+
+| 类型 | 模板 | 例 |
+|---|---|---|
+| feature | `feature/<ticket-or-slug>` | `feature/dispatcher-single-entry`、`feature/w4-sse-streaming` |
+| release | `release/<version-or-stage>` | `release/w5`、`release/v1.0` |
+| hotfix | `hotfix/<issue-or-slug>` | `hotfix/16-fixture-leak`、`hotfix/fix-crash` |
+| bugfix | `bugfix/<ticket-or-slug>` | `bugfix/17-extract-json-regex` |
+
+**禁止模式**:空格、驼峰(分支用)、`YYYYMMDD` 后缀、缩写、`/main` `/develop` 子分支。
+
+### 关键时机(命令速查)
+
+| 阶段 | 命令 |
+|---|---|
+| ① 开始做功能 | `git checkout -b feature/<slug> develop` |
+| ② 功能完成 | PR `feature/*` → `develop`(走 PR 模板 + CODEOWNERS review),合并后删除 feature 分支 |
+| ③ 准备发版 | `git checkout -b release/<stage> develop`,只改 bug + 写文档 + 改版本号 |
+| ④ 正式发布 | PR `release/*` → `main`(合并后打 tag),再合回 `develop` |
+| ⑤ 线上出 bug | `git checkout -b hotfix/<slug> main` |
+| ⑥ 修复完成 | PR `hotfix/*` → `main`(合并后打 tag),同时 PR `hotfix/*` → `develop` |
+
+### PR 流程(3 人版)
+
+```
+各人本地:
+  develop ←─ feature/<your-slug>     (你/AI/队友各自开工)
+
+合并第一跳:
+  PR: feature/* → develop            (reviewer = CODEOWNERS 里的另 1 人,squash merge)
+
+合并第二跳(发版):
+  PR: develop → release/<stage>      (修 bug + 文档)
+  PR: release/<stage> → main         (你最后合并,打 tag)
+  PR: release/<stage> → develop      (同步回 develop)
+
+紧急修复:
+  PR: hotfix/* → main                (立刻打 tag)
+  PR: hotfix/* → develop             (同步)
+```
+
+### 与 PR 模板的对应
+
+- PR 模板 §"Branch type"checkbox 对应这里 5 类分支,选错会被 reviewer 打回
+- PR 模板 §"Reviewer checklist" 中 "Commits land on feature/*"(不是 main)的红线来源于此
+- 合并策略:**feature/* / bugfix/* 用 squash commit**;**release/* / hotfix/* 用 merge commit**(保留分支历史给 tag 引用)
 
 ## 跨 worktree 约束
 
@@ -91,11 +154,12 @@ Remove-Item .git/MSG_TMP
 新 session 接到 MindTrace, 第一件事按顺序:
 
 ```bash
-git branch --show-current        # 必须 != main (红线 6)
+git fetch origin
+git branch --show-current        # 必须 != main (红线 6);正常是 develop 或 feature/*
 git status                       # 看遗留修改
 git config --get core.sshCommand # 没值的话跑上面那个 git config --local 命令
 node scripts/naming-lint/index.mjs   # 0 violations expected
 node scripts/link-check/index.mjs    # 0 broken links expected
 ```
 
-跑完上面 5 行,环境就绪。
+跑完上面 5 行,环境就绪。**开始做功能前**再 `git checkout -b feature/<slug> develop`(或同步现有 feature)。

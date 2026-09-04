@@ -251,7 +251,8 @@ A file's directory determines its layer. **Don't put a `Page.tsx` in `atoms/`** 
 ### 5.1 Main branch
 
 - `main` — protected, no direct commits (only via PRs from work branches).
-- Local work happens on `YunCeH` (per `docs/agents/git-conventions.md`).
+- `develop` — long-lived integration branch, no direct commits (only via PRs from `feature/*` / `bugfix/*`).
+- Local work happens on `feature/*` / `bugfix/*` (per `docs/agents/git-conventions.md` §"分支工作流").
 
 ### 5.2 Work branch names
 
