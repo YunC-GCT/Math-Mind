@@ -65,6 +65,7 @@ docs/
 3. Walk the demo path (5 minutes)
 4. Inspect `docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md` for the full audit
 5. Inspect `docs/adr/` and `docs/specs/` for design decisions
+6. **New here?** Start with [`docs/onboarding.md`](./onboarding.md) for a 5/30-min reading path
 
 ## Doc type cheat sheet
 
