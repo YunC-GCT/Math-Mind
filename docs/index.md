@@ -14,16 +14,20 @@
 ```
 docs/
 ├── index.md                # This file
+├── onboarding.md           # 5/30-min onboarding path for new agents + humans
 ├── style/                  # Coding rules, naming conventions
 ├── adr/                    # Architecture Decision Records (why we did X)
 ├── specs/                  # Implementation specs (how to do Y)
-├── research/               # Investigated questions, with primary-source citations
+├── research/               # Active research (current project questions)
 ├── template/               # Copy-paste skeletons for new docs
-├── agents/                 # Agent workflow docs (issue tracking, triage, conventions)
-├── architecture/           # Active architecture docs (newer)
-├── legacy/                 # Frozen project docs (older, archived)
-├── api/                    # API contracts
-└── competition/            # Hackathon / competition submission docs
+├── agents/                 # Agent workflow docs (issue tracking, triage, conventions, patterns)
+└── legacy/                 # Frozen project docs (older, archived — see docs/legacy/index.md)
+    └── mindtrace/          # MindTrace (HarmonyOS ArkTS, 2026-09-01 frozen)
+        ├── architecture/   # Audit + deep-dive from 2026-09-01 (21 findings)
+        ├── api/            # API contract
+        ├── competition/    # Hackathon submission docs (鸿蒙高校创新赛 semifinal)
+        ├── plans/          # W3 / W4 era design plans
+        └── research/       # MindTrace-specific research (HarmonyOS / ArkUI / WebView / formula rendering)
 ```
 
 ## By purpose
@@ -35,9 +39,9 @@ docs/
 | **Investigate a question (e.g. "should we use X?")** | `docs/research/` — `{topic-slug}-{YYYY-MM-DD}.md` from [`docs/template/research-template.md`](./template/research-template.md) |
 | **Set a coding rule** | `docs/style/naming-conventions.md` (the canonical spec) |
 | **Find a coding rule for a specific framework** | `docs/style/` (e.g. `langgraph-style.md` when added) |
-| **Understand the current architecture** | `docs/architecture/` (audits, deep-dives) — or `docs/legacy/mindtrace/architecture/` for historical |
-| **Find an API contract** | `docs/api/contract.md` (or `contract-{module}.md`) |
-| **Look up a workflow (issue tracking, triage)** | `docs/agents/{topic}.md` (8 docs) |
+| **Understand the current architecture** | `docs/adr/` (current decisions) — for historical audits see [`docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](./legacy/mindtrace/architecture/audit-full-2026-09-01.md) |
+| **Find an API contract** | [`docs/legacy/mindtrace/api/contract.md`](./legacy/mindtrace/api/contract.md) |
+| **Look up a workflow (issue tracking, triage)** | `docs/agents/{topic}.md` (10 workflow docs + 3 patterns) |
 | **Create a new doc** | Pick a template from `docs/template/`, then run `node scripts/naming-lint/index.mjs` to verify the name conforms |
 
 ## By audience
