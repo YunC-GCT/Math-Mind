@@ -27,6 +27,25 @@
 | 写 issue / 改 spec | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md) + [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
 | 排查 audit finding | [`docs/architecture/audit-full-2026-09-01.md`](./docs/architecture/audit-full-2026-09-01.md) |
 | 整体目录结构 | `docs/architecture/audit-full-2026-09-01.md` §3 |
+| 写新文件 / 改文件名 | [`docs/style/naming-conventions.md`](./docs/style/naming-conventions.md) (权威源) + `node scripts/naming-lint/index.mjs` (验证) |
+
+---
+
+## 命名规范 (7 条硬约束, 不可逾越)
+
+> **权威源**: [`docs/style/naming-conventions.md`](./docs/style/naming-conventions.md)。本节是硬规则摘要, 详情查源。
+
+1. **顶级 doc**: UPPERCASE 单词 (`AGENTS.md` / `CONTEXT.md` / `README.md`)
+2. **目录 / doc / 配置**: `kebab-case` (kebab-case.md, langgraph-rules/) — **禁**驼峰、**禁**下划线、**禁**空格
+3. **日期后缀**: `YYYY-MM-DD` (非 `YYYYMMDD` / `_2026_09_15`)
+4. **React 组件 (.tsx)**: `PascalCase` 目录 + `PascalCase` 文件名 (e.g. `Button.tsx`, `SearchField.tsx`)
+5. **Python 节点 (.py)**: `snake_case.py` + `PascalCase` class (e.g. `retrieve_node.py` 的 `class RetrieveNode`)
+6. **测试文件**: `*.test.{ts,tsx,mjs,py}` 与被测文件同目录, 或 `__tests__/` / `tests/` 目录
+7. **重命名**: 必须 `git mv` (保 git 历史); **禁** `mv old new` 后再 `git add`
+
+**禁止模式** (完整列表见权威源 §7): 空格、驼峰 / 下划线 (doc 用)、`YYYYMMDD`、缩写、`.html` 入 git、`mv` 不带 `git`。
+
+**验证**: `node scripts/naming-lint/index.mjs` (CI 自动守门)
 
 ---
 
