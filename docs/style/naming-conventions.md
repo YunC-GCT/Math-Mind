@@ -98,9 +98,6 @@ If a file is not in the whitelist, it must be in a subdirectory (`docs/`, `scrip
 | Spec index | `docs/specs/` | `index.md` |
 | Style / coding standard | `docs/style/` | `{scope}-{topic}.md` |
 | Research note | `docs/research/` | `{topic-slug}-{YYYY-MM-DD}.md` |
-| Architecture / audit | `docs/architecture/` | `{scope}-{YYYY-MM-DD}.md` |
-| API contract | `docs/api/` | `contract.md` or `contract-{module}.md` |
-| Competition / submission | `docs/competition/` | `{topic}-{YYYY-MM-DD}.md` |
 | Agent workflow pointer docs | `docs/agents/` | `{topic-slug}.md` |
 | Template (canonical) | `docs/template/` | `{doc-type}-template.md` |
 | **Legacy / old project** | `docs/legacy/{project}/` | (preserves old naming — frozen) |
@@ -482,7 +479,7 @@ These files are runtime outputs / editor scratch / system state. They should **n
 | `My Component.tsx` (space + capital in name) | breaks JSX, looks like import |
 | `mv old.md new.md` (without `git`) | loses git history |
 | `package-lock.json` (committed) | except where intended (`scripts/*/package-lock.json` is intentionally committed for CI reproducibility) |
-| `.html` in `docs/research/` or `docs/architecture/` or `docs/legacy/` | HTML is a generated render, not the source — only `.md` is committed |
+| `.html` in `docs/research/` or `docs/legacy/` | HTML is a generated render, not the source — only `.md` is committed |
 | `node_modules/`, `build/`, `oh_modules/`, `dist/` | always gitignored |
 | `__pycache__/`, `*.pyc` | Python bytecode |
 | `__snapshots__/`, `__mocks__/` | test framework internals (gitignored) |
