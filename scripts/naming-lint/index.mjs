@@ -187,17 +187,40 @@ function checkEntry({ relPath, name, isDir }, violations) {
 
 function main() {
   const args = process.argv.slice(2);
-  const roots = args.length > 0 ? args : DEFAULT_ROOTS;
+  const jsonMode = args.includes('--json');
+  const roots = args.filter((a) => !a.startsWith('--') && a.length > 0);
+  const scanRoots = roots.length > 0 ? roots : DEFAULT_ROOTS;
   const violations = [];
 
-  for (const root of roots) {
+  for (const root of scanRoots) {
     const abs = join(REPO_ROOT, root);
     if (!existsSync(abs)) continue; // skip non-existent roots gracefully
     walk(abs, (entry) => checkEntry(entry, violations));
   }
 
+  // JSON output mode for CI integration
+  if (jsonMode) {
+    const report = {
+      tool: 'naming-lint',
+      version: '0.1.0',
+      timestamp: new Date().toISOString(),
+      roots: scanRoots,
+      passed: violations.length === 0,
+      violationCount: violations.length,
+      violations: violations.map((v) => ({
+        path: v.relPath,
+        name: v.name,
+        rule: v.rule,
+        message: v.msg,
+      })),
+    };
+    console.log(JSON.stringify(report, null, 2));
+    process.exit(violations.length === 0 ? 0 : 1);
+  }
+
+  // Human-readable output mode
   if (violations.length === 0) {
-    console.log(`OK: naming-lint passed (0 violations across ${roots.join(', ')})`);
+    console.log(`OK: naming-lint passed (0 violations across ${scanRoots.join(', ')})`);
     process.exit(0);
   }
 
