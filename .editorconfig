@@ -1,0 +1,34 @@
+# EditorConfig: https://editorconfig.org
+# Auto-applied by IDEs (VS Code, JetBrains, vim, etc.)
+# Enforces file format consistency across the team
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false  # Trailing 2+ spaces = Markdown line break
+
+[*.{ts,tsx,js,mjs,cjs}]
+indent_size = 2
+quote_type = single
+
+[*.py]
+indent_size = 4
+quote_type = double
+
+[*.{yml,yaml,json,json5}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab
+
+[*.md]
+# 80 char soft wrap for prose (h2/h3 headers may exceed)
+max_line_length = off

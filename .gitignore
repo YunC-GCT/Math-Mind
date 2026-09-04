@@ -59,6 +59,12 @@ package-lock.json
 
 # ===== Agent metadata =====
 .reasonix/
+.zcode/
 
 # ===== Research scratch (Phase 1 audit, cleanup after) =====
 docs/research/_fetched/
+
+# ===== HTML reports (rendered, not committed) =====
+# Reports rendered from .md for human review. Source stays in .md.
+docs/research/*.html
+docs/architecture/*.html

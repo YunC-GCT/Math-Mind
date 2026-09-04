@@ -9,7 +9,7 @@ import { unitToNoteItem } from "../utils/NoteItemMapper"
 const UNCLASSIFIED_SUBJECT: string = "未分类"
 const UNCLASSIFIED_CHAPTER: string = "未分章节"
 const WRONG_NOTE_TYPE: string = "错题"
-const ENABLE_GALAXY_PREVIEW_UNITS: boolean = true
+const ENABLE_GALAXY_PREVIEW_UNITS: boolean = false
 const PREVIEW_UNIT_PREFIX: string = "galaxy_preview_"
 
 function previewUnit(

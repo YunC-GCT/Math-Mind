@@ -1,0 +1,70 @@
+# Ticket specs index
+
+This directory holds **implementation specs** for the P0/P1 tickets identified in the
+2026-09-01 audit ([`docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](../legacy/mindtrace/architecture/audit-full-2026-09-01.md)). Each spec is derived from
+an ADR (`docs/adr/`) and follows the same template.
+
+## Coverage map
+
+| Ticket | Spec | ADR | Status |
+|--------|------|-----|--------|
+| **#3** | [`003-knowledge-model-decomposition.md`](./003-knowledge-model-decomposition.md) | [`0006`](../adr/0006-knowledge-model-decomposition-plan.md) | spec ready, not implemented |
+| **#4** | [`004-dispatcher-single-entry.md`](./004-dispatcher-single-entry.md) | [`0003`](../adr/0003-dispatcher-single-entry-design.md) | spec ready, not implemented |
+| **#5** | [`005-llm-client-consolidation.md`](./005-llm-client-consolidation.md) | [`0004`](../adr/0004-llm-call-layer-consolidation.md) | spec ready, not implemented |
+| **#7** | [`007-agent-chat-service-decomposition.md`](./007-agent-chat-service-decomposition.md) | (implicit) | spec ready, not implemented |
+| **#9** | [`009-llm-config-throw-on-silent-override.md`](./009-llm-config-throw-on-silent-override.md) | (implicit, defensive coding principle) | spec for review (Phase 3) |
+| **#10** | [`010-mcp-to-tools-rename.md`](./010-mcp-to-tools-rename.md) | [`0005`](../adr/0005-mcp-to-tools-rename.md) | spec ready, not implemented |
+
+## P0 tickets without spec
+
+| Ticket | Status |
+|--------|--------|
+| **#1** (doc expiry) | meta — not a refactor, just self-referential cleanup |
+
+## Implementation order (recommended)
+
+1. **#4** (Dispatcher single-entry) — smallest blast radius, unblocks other changes
+2. **#5** (LLMClient consolidation) — independent, ~5-line refactor
+3. **#3** (KnowledgeModel decomposition) — 3 atomic PRs, 870-LOC class
+4. **#7** (AgentChatService decomposition) — 3 atomic PRs, 802-LOC class
+5. **#10** (mcp → tools rename) — git mv, ~3 import lines
+6. **#9** (LlmConfig throw) — ~10 line change in LlmConfig
+
+After all 6, the architecture should match ADR intent:
+- Dispatcher has 1 public method
+- LLMClient has 1 public method (call + adapters)
+- KnowledgeModel doesn't exist; replaced by 3 services
+- AgentChatService is a thin facade
+- mcp/ directory doesn't exist
+
+## How to read a spec
+
+Each spec has these sections:
+
+1. **Why this ticket** — context, the problem, the gap
+2. **What we will build** — the new shape (types, classes, signatures)
+3. **Public surface change** — what's breaking, what isn't
+4. **Migration** — atomic PR sequence, file moves
+5. **Test plan (TDD)** — what tests to write
+6. **Reversibility** — how hard to undo
+7. **Acceptance criteria** — explicit checklist
+8. **Sequence** — concrete commit list
+9. **Out of scope** — explicit non-goals
+
+## Conventions in these specs
+
+- **Atomic PRs only** — each commit is revertable
+- **TDD red→green→refactor** — test first, then implementation
+- **TDD at the AST level** — when feasible, write Node tests that parse the .ets file's AST and assert structure (sees tests run in the arkts-lint framework, not in DevEco)
+- **No new ADRs** — every spec is derived from an existing ADR (or marked "implicit" when the ADR is the same philosophy applied to a sibling class)
+- **No global renames** — each spec stays local to its ticket scope
+
+## Cross-references
+
+- [`docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](../legacy/mindtrace/architecture/audit-full-2026-09-01.md) — original audit (archived)
+- [`docs/legacy/mindtrace/architecture/deep-dive-2026-09-01.md`](../legacy/mindtrace/architecture/deep-dive-2026-09-01.md) — 7 largest files analyzed (archived)
+- [`docs/adr/`](../adr/) — Architecture Decision Records (the "why")
+- [`docs/specs/`](./) — this directory (the "what" + "how")
+- [`CONTEXT.md`](../../CONTEXT.md) — project glossary
+- [`AGENTS.md`](../../AGENTS.md) — agent entry point
+- [`.github/workflows/arkts-lint.yml`](../../.github/workflows/arkts-lint.yml) — CI guardrail

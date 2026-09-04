@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "roots": ["docs", "scripts"],
+  "skip": {
+    "dirs": [
+      "__snapshots__",
+      "fixtures",
+      "legacy"
+    ],
+    "files": [
+      ".prettierrc",
+      ".eslintrc",
+      "agent-framework-comparison-2026-09-02.html",
+      "langgraph-migration-2026-09-02.html"
+    ],
+    "patterns": [
+      "^mock-",
+      "fixture$"
+    ]
+  }
+}

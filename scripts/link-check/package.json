@@ -1,0 +1,14 @@
+{
+  "name": "link-check",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Verify all markdown links in docs/ point to existing files",
+  "scripts": {
+    "lint": "node index.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
