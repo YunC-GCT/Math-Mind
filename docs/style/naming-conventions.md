@@ -4,7 +4,9 @@
 >
 > **Scope:** All files — docs (`.md`), code (`.ts`/`.tsx`/`.py`/`.mjs`/`.json`/`.json5`/`.yml`), configs, and directories.
 >
-> **Last updated:** 2026-09-02
+> **Version:** 1.1 (last updated 2026-09-02)
+
+---
 
 ## 1. Universal Rules
 
@@ -22,10 +24,34 @@ These apply to **every** file and directory in this repo.
 
 ## 2. Top-level Files
 
-| Path | Naming | Examples |
-|---|---|---|
-| `AGENTS.md`, `CONTEXT.md`, `README.md` | UPPERCASE single-word | — |
-| Other top-level | `kebab-case` | `package.json`, `tsconfig.json` |
+### 2.1 Whitelist (top-level repo files)
+
+The following are the only files allowed at the repo root. Anything else must be in `docs/`, `scripts/`, or a subdirectory.
+
+| Path | Naming | Required? | Notes |
+|---|---|---|---|
+| `AGENTS.md` | exact | **Required** | Agent entry point, navigation, hard rules |
+| `CONTEXT.md` | exact | **Required** | Project glossary (project-specific terms) |
+| `README.md` | exact | **Required** | Human-facing project overview |
+| `LICENSE` | exact | required for distribution | SPDX format, no extension |
+| `NOTICE` | exact | optional | Third-party attributions |
+| `SECURITY.md` | exact | optional | Security policy / how to report |
+| `CHANGELOG.md` | exact | optional | Release history (use semver) |
+| `CONTRIBUTING.md` | exact | optional | For external contributors |
+| `CODE_OF_CONDUCT.md` | exact | optional | Community standards |
+| `package.json` | exact | per-language | Node tooling |
+| `tsconfig.json` | exact | per-language | TypeScript root config |
+| `pyproject.toml` | exact | per-language | Python tooling |
+| `build-profile.json5` | exact | per-platform | DevEco / HarmonyOS |
+| `oh-package.json5` | exact | per-platform | DevEco / HarmonyOS |
+| `start_*.bat`, `start_*.sh` | `kebab-case` (lowercase) | optional | Convenience scripts |
+| `.gitignore` | exact | **Required** | See `docs/agents/git-conventions.md` for the actual rules |
+| `.editorconfig` | exact | recommended | Auto-applied by IDEs |
+| `.gitattributes` | exact | recommended | LF line endings, linguist flags |
+
+### 2.2 Naming rule
+
+If a file is not in the whitelist, it must be in a subdirectory (`docs/`, `scripts/`, etc.). Common-level files use UPPERCASE single-word (e.g. `AGENTS.md`); project-level use `kebab-case` (e.g. `package.json`).
 
 ## 3. Documentation Files (`docs/`)
 
@@ -42,10 +68,9 @@ These apply to **every** file and directory in this repo.
 | Architecture / audit | `docs/architecture/` | `{scope}-{YYYY-MM-DD}.md` |
 | API contract | `docs/api/` | `contract.md` or `contract-{module}.md` |
 | Competition / submission | `docs/competition/` | `{topic}-{YYYY-MM-DD}.md` |
-| **Legacy / old project** | `docs/legacy/{project}/` | (preserves old naming — frozen) |
 | Agent workflow pointer docs | `docs/agents/` | `{topic-slug}.md` |
 | Template (canonical) | `docs/template/` | `{doc-type}-template.md` |
-| Legacy content (old project) | `docs/legacy/{project}/` | (preserves old naming) |
+| **Legacy / old project** | `docs/legacy/{project}/` | (preserves old naming — frozen) |
 
 ### 3.2 ADR — `NNNN-{topic-slug}.md`
 
@@ -193,33 +218,226 @@ A file's directory determines its layer. **Don't put a `Page.tsx` in `atoms/`** 
 
 ## 5. Branches
 
-- **Main branch**: `main`
-- **Work branches**: `{prefix}/{short-description}` or `user/{user}/{topic}`
-  - `feat/{topic}` — new feature
-  - `fix/{topic}` — bug fix
-  - `chore/{topic}` — tooling / docs
-- **No direct commits to `main`** for non-trivial work.
-- Branch names: `kebab-case`, no spaces, no uppercase.
+### 5.1 Main branch
+
+- `main` — protected, no direct commits (only via PRs from work branches).
+- Local work happens on `YunCeH` (per `docs/agents/git-conventions.md`).
+
+### 5.2 Work branch names
+
+Format: `<prefix>/<short-description>`
+
+| Prefix | When to use | Examples |
+|---|---|---|
+| `feat/` | new feature or capability | `feat/langgraph-state-graph`, `feat/atomic-modal` |
+| `fix/` | bug fix | `fix/preview-units-leak`, `fix/llm-config-overwrite` |
+| `refactor/` | code change without behavior change | `refactor/dispatcher-single-entry` |
+| `docs/` | docs only | `docs/naming-conventions`, `docs/adopt-langgraph` |
+| `test/` | test addition/correction | `test/12-test-baseline` |
+| `chore/` | tooling, deps, no production change | `chore/bump-node-20`, `chore/lockfile-update` |
+| `release/` | release prep (version bump) | `release/v1.0.0` |
+| `user/<name>/` | personal WIP (rare) | `user/alice/proto-state-graph` |
+
+### 5.3 Constraints
+
+- `kebab-case` only — no spaces, no underscores, no uppercase
+- ≤ 50 characters total (descriptive but not novel-length)
+- No issue numbers (use commit message body, not branch name)
+- One branch per ticket; delete after merge
 
 ## 6. Commit Messages
 
-Conventional Commits (already covered in `docs/agents/git-conventions.md`):
+### 6.1 Format (Conventional Commits)
+
+```
+<type>(<scope>): <subject>
+<BLANK LINE>
+<body>
+<BLANK LINE>
+<footer>
+```
+
+- **type**: see table below
+- **scope**: affected module (lowercase, optional but recommended)
+- **subject**: 50 chars max, imperative mood, no period, no uppercase
+- **body**: 72 chars per line, explain what & why (not how)
+- **footer**: references (e.g. `Refs: #N`, `Closes: #N`)
+
+### 6.2 Types
 
 | Type | When |
 |---|---|
-| `feat` | new feature |
+| `feat` | new feature or capability |
 | `fix` | bug fix |
 | `refactor` | code change without behavior change |
 | `docs` | documentation only |
 | `test` | test addition/correction |
 | `chore` | tooling, deps, no production change |
 | `style` | formatting only |
+| `perf` | performance improvement |
+| `ci` | CI / build changes |
 
-Scope: `(scope)` is the affected module, e.g., `(frontend)`, `(backend)`, `(agents)`, `(docs)`, `(lint)`. Optional but recommended.
+### 6.3 Scopes (recommended)
 
-Example: `fix(backend): throw LlmError on reserved keyword override`
+- `frontend`, `backend`, `agents`, `common`, `entry` — modules
+- `lint`, `docs`, `agents` — meta concerns
+- `tests` — test infrastructure
+- `(no scope)` — repo-wide refactor
 
-## 7. Forbidden Patterns
+### 6.4 Examples
+
+- `fix(backend): throw LlmError on reserved keyword override`
+- `docs(agents): add naming-conventions spec`
+- `chore(lint): exclude HTML reports from git`
+- `feat(frontend): add Button atom to atomic design`
+
+## 7. Test Files
+
+### 7.1 Test file naming
+
+| Stack | Sibling | Test dir | Notes |
+|---|---|---|---|
+| TypeScript / Node | `{name}.test.ts` | `__tests__/{name}.test.ts` | sibling preferred |
+| React | `{Name}.test.tsx` | `__tests__/{Name}.test.tsx` | component test in same dir |
+| Python | `{name}.test.py` | `tests/test_{name}.py` | pytest convention |
+| LangGraph | `{name}.test.py` | `tests/{name}/` | graph-level test |
+
+### 7.2 Test name (inside the test)
+
+- `describe` / `it` for JS, `def test_*` for Python
+- Format: `test_<action>_<expected>` or `it('should <expected>')`
+- Example: `test_reserved_keyword_throws`, `it('should normalize empty input')`
+
+### 7.3 What NOT to put in test filenames
+
+- Date suffixes (not research, tests are tied to code)
+- Long descriptions (move description to test name inside the file)
+- Version numbers
+
+## 8. File Headers (per language)
+
+Each language has its own header convention. Apply consistently in every new file.
+
+### 8.1 Markdown (`.md`)
+
+```markdown
+# Title
+
+> One-line summary of what this file is and why it exists.
+
+## Section 1
+
+...
+```
+
+### 8.2 TypeScript (`.ts`)
+
+```typescript
+/**
+ * {FileName}.ts — {one-line role}
+ *
+ * 路径: {path from src/}
+ * 职责: {specific responsibility}
+ * 依赖: {imports}
+ *
+ * 数据流:
+ *   {upstream} → {this file's key function} → {downstream}
+ */
+```
+
+### 8.3 Python (`.py`)
+
+```python
+"""
+{FileName}.py — {one-line role}
+
+Responsibility: {specific responsibility}
+Dependencies: {imports}
+
+Data flow:
+    {upstream} → {key function} → {downstream}
+"""
+```
+
+### 8.4 React (`.tsx`)
+
+```typescript
+/**
+ * {ComponentName}.tsx — {one-line role}
+ *
+ * Layer: Atom | Molecule | Organism | Template | Page
+ * Props: {PropName} — {description}
+ *
+ * Used by: {parent components}
+ */
+```
+
+### 8.5 YAML (`.yml`)
+
+```yaml
+# Purpose: {what this config does}
+# Owner: {team or person}
+# Last updated: YYYY-MM-DD
+
+key: value
+```
+
+## 9. Generated and Vendored Files
+
+These files are typically **not** hand-written and should be excluded from naming lint:
+
+| Pattern | Source | Naming |
+|---|---|---|
+| `*.gen.ts` / `*.gen.tsx` | codegen output | kebab-case gen-name (e.g. `api-types.gen.ts`) |
+| `__generated__/` | schema codegen, GraphQL | match source schema |
+| `*.pb.go` / `*.pb.cc` | protobuf | match source proto |
+| `vendor/` (Go) | third-party copy | preserve upstream naming |
+| `third_party/` (C++) | third-party | preserve upstream naming |
+
+**Rule**: Generated files should be marked with `# AUTO-GENERATED — DO NOT EDIT` at the top, AND `.gitattributes` should mark them `linguist-generated` so diff stats don't count them.
+
+**Linter behavior**: `scripts/naming-lint/index.mjs` should skip these paths (currently it skips `node_modules/`, `build/`, etc.; add generated paths as needed).
+
+## 10. Environment Configuration Files
+
+Env files configure runtime, never check into git with secrets.
+
+| File | Committed? | Notes |
+|---|---|---|
+| `.env` | **NO** | Real secrets, machine-specific |
+| `.env.local` | **NO** | Local-only overrides |
+| `.env.production` | **NO** | Production-only, has real secrets |
+| `.env.development` | **NO** | Dev-only, has real keys |
+| `.env.test` | **NO** | CI secrets |
+| `.env.example` | **YES** | Template with empty / placeholder values |
+| `.env.sample` | **YES** | Same as .env.example |
+| `local.properties` | **NO** (usually gitignored) | HarmonyOS DevEco machine-specific |
+
+**Rule**: If you must commit an env file, name it `.env.example` or `.env.sample` and **strip all real values**. Only `EXAMPLE_API_KEY=` (empty) is allowed.
+
+## 11. Logs and Temp Files
+
+These files are runtime outputs / editor scratch / system state. They should **never** be committed.
+
+| Pattern | Source | Gitignore? |
+|---|---|---|
+| `*.log` | application logs | yes |
+| `*.pid` | process IDs | yes |
+| `*.seed` | random seeds | yes |
+| `*.pid.lock` | lockfiles | yes |
+| `nohup.out` | Unix nohup | yes |
+| `core.*` (core dump) | crash dumps | yes |
+| `*.bak`, `*.tmp` | backup / temp | yes |
+| `*.swp`, `*.swo` | vim swap | yes |
+| `*.rej`, `*.orig` | merge conflicts | yes |
+| `.DS_Store` | macOS metadata | yes |
+| `Thumbs.db` | Windows metadata | yes |
+| `desktop.ini` | Windows folder metadata | yes |
+| `*.tsbuildinfo` | TypeScript build cache | yes |
+
+**Rule**: If you see any of these in `git status`, **do not** `git add` them. Add a `.gitignore` line if needed.
+
+## 12. Forbidden Patterns
 
 | Anti-pattern | Why |
 |---|---|
@@ -233,13 +451,20 @@ Example: `fix(backend): throw LlmError on reserved keyword override`
 | `package-lock.json` (committed) | except where intended (`scripts/*/package-lock.json` is intentionally committed for CI reproducibility) |
 | `.html` in `docs/research/` or `docs/architecture/` or `docs/legacy/` | HTML is a generated render, not the source — only `.md` is committed |
 | `node_modules/`, `build/`, `oh_modules/`, `dist/` | always gitignored |
+| `__pycache__/`, `*.pyc` | Python bytecode |
+| `__snapshots__/`, `__mocks__/` | test framework internals (gitignored) |
+| Hand-edited `*.gen.ts` | generated, modify the source instead |
+| `package.json` rename to `package.jsonc` | not a real format, breaks tooling |
 
-## 8. Validation
+## 13. Validation
 
 The `scripts/naming-lint/` tool enforces these rules in CI. Run locally:
 
 ```bash
-node scripts/naming-lint/index.mjs        # exit 0 = pass, exit 1 = violations
+node scripts/naming-lint/index.mjs                     # human-readable
+node scripts/naming-lint/index.mjs --json docs scripts  # CI / pre-commit
+node scripts/naming-lint/install-hook.mjs install      # install pre-commit hook
+node scripts/naming-lint/install-hook.mjs uninstall    # remove pre-commit hook
 ```
 
 Run before any commit:
@@ -248,11 +473,12 @@ Run before any commit:
 node scripts/naming-lint/index.mjs && node --test scripts/naming-lint/tests/*.test.mjs
 ```
 
-## 9. When to Update This File
+## 14. When to Update This File
 
 - New framework or tool adopted (e.g., adding Go): add a code-file section
 - New doc type (e.g., RFCs): add to section 3
-- New forbidden pattern discovered: add to section 7
+- New forbidden pattern discovered: add to section 12
 - Layer rule change (e.g., new component layer): update section 4.3 or 4.5
+- New section gap: add it
 
-Update via a `docs(naming):` commit, with the diff in the body explaining why.
+Update via a `docs(naming):` commit, with the diff in the body explaining why. Bump the version (top of file) on breaking changes.
