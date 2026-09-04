@@ -1,0 +1,48 @@
+# CODEOWNERS — MindTrace
+# 自 2026-09-04 起,3 人协作 Git Flow 轻量版
+# 格式: <pattern>    <owner1> <owner2> ...
+# 行尾注释可写 # group: xxx / role: xxx
+# GitHub 自动指派 reviewer;未列文件默认由 @YunC-GCT review
+
+# ───── 默认 owner ─────
+# 任何未列文件 / 全仓默认 owner
+*                                       @YunC-GCT
+
+# ───── 治理与文档(只有 owner 一人够) ─────
+# 不希望其他 reviewer 看到 PR 噪声(docs formatting / gitignore)
+# 但仍保留自动指派给 owner
+/.gitignore                             @YunC-GCT
+/AGENTS.md                              @YunC-GCT
+/README.md                              @YunC-GCT
+/CONTEXT.md                             @YunC-GCT
+/docs/agents/                           @YunC-GCT
+/docs/adr/                              @YunC-GCT
+/docs/specs/                            @YunC-GCT
+/docs/style/                            @YunC-GCT
+/docs/template/                         @YunC-GCT
+/.github/                               @YunC-GCT
+
+# ───── AI / LLM 业务核心(高危,必须 owner review) ─────
+/agents/                                @YunC-GCT
+/common/src/main/ets/llm/               @YunC-GCT
+/common/src/main/ets/render/            @YunC-GCT
+
+# ───── 工具链 / 工程治理 ─────
+/scripts/arkts-lint/                    @YunC-GCT
+/scripts/naming-lint/                   @YunC-GCT
+/scripts/link-check/                    @YunC-GCT
+
+# ───── 入口 + UI 大文件 ─────
+/entry/                                 @YunC-GCT
+
+# ───── 队友 reviewer 占位 ─────
+# 当团队扩展到 3+ 人时,在这里加 @<github-handle>
+# 例如:
+# /agents/                                @YunC-GCT @teammate-a
+# /entry/src/main/ets/pages/Review/      @YunC-GCT @teammate-b
+
+# ───── 维护 ─────
+# 修改后请同步:
+# 1. docs/agents/git-conventions.md §"PR 流程" 中的 reviewer 描述
+# 2. docs/agents/branch-protection.md §"CODEOWNERS 集成"
+# 3. 通知新加入 reviewer 的 GitHub 协作者
