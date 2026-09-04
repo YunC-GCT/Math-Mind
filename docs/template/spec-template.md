@@ -1,7 +1,7 @@
 # Ticket NNN — {Short title}
 
 > **Status**: spec for review (Phase 3)
-> **Source ADR**: [`../adr/NNNN-{slug}.md`](../adr/NNNN-{slug}.md)
+> **Source ADR**: [`../adr/0006-knowledge-model-decomposition-plan.md`](../adr/0006-knowledge-model-decomposition-plan.md) — *replace with your actual ADR when copying*
 > **Files affected**: {list of files}
 > **Test files**: {list of test files}
 

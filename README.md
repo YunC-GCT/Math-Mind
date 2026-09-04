@@ -24,7 +24,7 @@ W4 完成 **多 WebView 分块渲染方案**,解决 ArkUI WebView 1800vp 高度�
 **乱码修复:**
 - `NotesPage.ets` / `SubjectDetailPage.ets` / `NoteItemMapper.ets` 共 4 处 UTF-8→Latin-1 编码乱码修正 ("笔记加载失败"、"学科"、"笔记")
 
-完整方案、调研资料、风险矩阵见 [`docs/2026-07-24/formula-split-render-plan-20260724.md`](./docs/2026-07-24/formula-split-render-plan-20260724.md)。
+完整方案、调研资料、风险矩阵见 [`docs/legacy/mindtrace/plans/w4/formula-split-render-plan-2026-07-24.md`](./docs/legacy/mindtrace/plans/w4/formula-split-render-plan-2026-07-24.md)。
 
 **渲染协议层 (common):**
 - `LlmGuard` + `LlmOutputRules`:LLM 输出多通道守卫(类型/字段/风险/HTML 转义),失败时 `validate()` 返回结构化 `LlmGuardReport`
@@ -53,7 +53,7 @@ W4 完成 **多 WebView 分块渲染方案**,解决 ArkUI WebView 1800vp 高度�
 - 删除 9 个 `*MVP.ets` + 旧 `AiTestPage`(`KnowledgeModelMVP` / `DispatcherMVP` / `DatabaseHelperMVP` / `NoteDaoMVP` / `AgentFloatWindowMVP` / `AiServiceMVP` / `IndexMVP` / `AiTestPage` / `AiTestPageMVP`),合并内容已合入正式版
 - `AgentFloatWindow` 状态气泡重做,失败/解析/兜底三态显式区分
 
-完整方案、缓存参数、KaTeX 资料、风险模式清单见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/2026-07-22/render-protocol-optimization-route-20260722.md)。
+完整方案、缓存参数、KaTeX 资料、风险模式清单见 [`docs/render-protocol-optimization-route-2026-07-22.md`](./docs/legacy/mindtrace/plans/w3/render-protocol-optimization-route-2026-07-22.md)。
 
 ### 当前 W3.5 已验证
 
@@ -100,9 +100,9 @@ ArkUI Web 组件在此设备上有 **1800vp 高度上限**,超过后 WebView 完
 - 公式块 `renderFormula` bridge 无上限且快 ~30-50%
 
 **调研支撑:**
-- [`docs/2026-07-24/research-multi-webview-performance-20260724.md`](./docs/2026-07-24/research-multi-webview-performance-20260724.md) — 多 WebView 架构(MDN/Flutter/RN/HarmonyOS)
-- [`docs/2026-07-24/research-formula-render-strategies-20260724.md`](./docs/2026-07-24/research-formula-render-strategies-20260724.md) — 公式渲染策略(KaTeX/MathJax/ChatGPT/Claude/DeepSeek/SSR)
-- 完整方案见 [`docs/2026-07-24/formula-split-render-plan-20260724.md`](./docs/2026-07-24/formula-split-render-plan-20260724.md)
+- [`docs/legacy/mindtrace/research/multi-webview-performance-2026-07-24.md`](./docs/legacy/mindtrace/research/multi-webview-performance-2026-07-24.md) — 多 WebView 架构(MDN/Flutter/RN/HarmonyOS)
+- [`docs/legacy/mindtrace/research/formula-render-strategies-2026-07-24.md`](./docs/legacy/mindtrace/research/formula-render-strategies-2026-07-24.md) — 公式渲染策略(KaTeX/MathJax/ChatGPT/Claude/DeepSeek/SSR)
+- 完整方案见 [`docs/legacy/mindtrace/plans/w4/formula-split-render-plan-2026-07-24.md`](./docs/legacy/mindtrace/plans/w4/formula-split-render-plan-2026-07-24.md)
 
 ### 验证
 
@@ -119,7 +119,7 @@ ArkUI Web 组件在此设备上有 **1800vp 高度上限**,超过后 WebView 完
 - 结构化正文不再重复挂载 `原文/OCR 原文`；原始材料默认折叠，用户展开后才创建 Markdown/KaTeX 渲染树。
 - Markdown 与长步骤首次只挂载 3 个节点，不再通过定时器自动扩展到全文；“继续阅读”每次追加 3 个节点。
 - 超长段落在公式边界之外安全切块，避免单个长段落生成巨型 ArkWeb，同时保证 `$...$`、`$$...$$`、`\(...\)` 和 `\[...\]` 不被截断。
-- 完整设计、主流长文本处理模式、缓存参数、二阶段 `List + LazyForEach` 虚拟化路线和 DevEco 验收步骤见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/2026-07-22/render-protocol-optimization-route-20260722.md#21-长正文缓存预加载与渐进渲染优化)。
+- 完整设计、主流长文本处理模式、缓存参数、二阶段 `List + LazyForEach` 虚拟化路线和 DevEco 验收步骤见 [`docs/render-protocol-optimization-route-2026-07-22.md`](./docs/legacy/mindtrace/plans/w3/render-protocol-optimization-route-2026-07-22.md#21-长正文缓存预加载与渐进渲染优化)。
 
 ### 验证
 
@@ -162,7 +162,7 @@ AI / OCR / 历史数据
 - 现有 3 条笔记预览全部通过协议检查，保留的 3 个短公式均通过本地 KaTeX 0.16.9 编译。
 - 已增加 `ContentProtocol`、`LatexRiskNormalizer`、`ContentExcerptBuilder` 和 Markdown-only 回归测试。
 - `git diff --check`、TypeScript strict 诊断和 `render.html` JavaScript 语法检查通过。
-- 完整方案、各模型输出约束和 KaTeX 资料见 [`docs/render-protocol-optimization-route-20260722.md`](./docs/2026-07-22/render-protocol-optimization-route-20260722.md)。
+- 完整方案、各模型输出约束和 KaTeX 资料见 [`docs/render-protocol-optimization-route-2026-07-22.md`](./docs/legacy/mindtrace/plans/w3/render-protocol-optimization-route-2026-07-22.md)。
 - DevEco Studio GUI 编译与真机视觉 smoke test 仍需手动执行。
 
 ---
@@ -246,7 +246,7 @@ AI / OCR / 历史数据
 - 新增 `common/src/main/ets/data/NoteTaxonomy.ets`，集中管理笔记五类、旧类型别名、类型字符、类型取色和学科顺序取色；Notes 页面不再在组件里散落本地 `TYPE_KEYS` / `typeKey()` / 类型别名判断。
 - Notes 一级页改为“概览统计 + 学科入口”结构，去掉最近笔记重复展示；新增 `NotesSummaryPanel.ets` 和 `SubjectViewToggle.ets`，支持学科入口列/块切换。
 - 学科块图标按学科动态取首字，笔记图标按真实笔记类型/特征取首字；颜色以薄荷主色为基准，低曝光混色，避免按学科名硬编码。
-- 新增 Notes 页结构视觉稿 [`docs/notes-page-structure-proposal-20260719.html`](./docs/2026-07-19/notes-page-structure-proposal-20260719.html)，记录一级页、二级页、验收标准和实施路线。
+- 新增 Notes 页结构视觉稿 [`docs/notes-page-structure-proposal-2026-07-19.html`](./docs/legacy/mindtrace/plans/w3/notes-page-structure-proposal-2026-07-19.html)，记录一级页、二级页、验收标准和实施路线。
 - `KnowledgeModel` 提示词中的 5 类返回值已切到中文类别：`概念` / `定理` / `公式` / `证明题` / `计算题`。
 
 ### 验证
@@ -320,7 +320,7 @@ AI / OCR / 历史数据
 
 ## 2026-07-19 本地同步与首页布局修正
 
-> 主 Agent 显式生成笔记 + Memory 专项改动详见 [`docs/agent-memory-flow-20260719.md`](./docs/2026-07-19/agent-memory-flow-20260719.md)。回复风格验收测试集详见 [`docs/agent-reply-style-testset-20260719.md`](./docs/2026-07-19/agent-reply-style-testset-20260719.md)。
+> 主 Agent 显式生成笔记 + Memory 专项改动详见 [`docs/agent-memory-flow-2026-07-19.md`](./docs/legacy/mindtrace/plans/w3/agent-memory-flow-2026-07-19.md)。回复风格验收测试集详见 [`docs/agent-reply-style-testset-2026-07-19.md`](./docs/legacy/mindtrace/plans/w3/agent-reply-style-testset-2026-07-19.md)。
 
 ### 做了什么
 

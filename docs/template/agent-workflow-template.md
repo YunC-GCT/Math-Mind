@@ -44,8 +44,8 @@ The minimum information needed in 80% of cases:
 
 ## Related
 
-- [Related doc 1](../path/to/doc-1.md)
-- [Related doc 2](../path/to/doc-2.md)
+- [Related doc 1 (example: AGENTS.md)](../../AGENTS.md) — *replace with your actual doc when copying*
+- [Related doc 2 (example: naming-conventions.md)](../style/naming-conventions.md) — *replace with your actual doc when copying*
 - [External reference]
 
 ## Last updated

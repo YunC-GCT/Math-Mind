@@ -28,6 +28,6 @@
 
 ## Related
 
-- [Related ADR](../adr/NNNN-slug.md)
+- [Related ADR (example: 0001-layer-boundaries)](../adr/0001-layer-boundaries-in-5-module-arkts-app.md) — *replace with your actual ADR when copying*
 - [Source code or spec this addresses]
 - [External reference]

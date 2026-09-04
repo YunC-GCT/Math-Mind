@@ -61,8 +61,8 @@ Each spec has these sections:
 
 ## Cross-references
 
-- [`docs/architecture-audit-full-20260901.md`](../architecture-audit-full-20260901.md) — original audit
-- [`docs/audit-deepdive-20260901.md`](../audit-deepdive-20260901.md) — 7 largest files analyzed
+- [`docs/legacy/mindtrace/architecture/audit-full-2026-09-01.md`](../legacy/mindtrace/architecture/audit-full-2026-09-01.md) — original audit (archived)
+- [`docs/legacy/mindtrace/architecture/deep-dive-2026-09-01.md`](../legacy/mindtrace/architecture/deep-dive-2026-09-01.md) — 7 largest files analyzed (archived)
 - [`docs/adr/`](../adr/) — Architecture Decision Records (the "why")
 - [`docs/specs/`](./) — this directory (the "what" + "how")
 - [`CONTEXT.md`](../../CONTEXT.md) — project glossary
