@@ -32,7 +32,7 @@ test('CaptureGraph exposes nodes, edges, conditional routing, and run', () => {
 
 test('CaptureGraph tests cover persist false, default persist, and error short circuit', () => {
   assert.match(testFile, /persist_false_skips_persist_node/);
-  assert.match(testFile, /default_path_reaches_persist/);
+  assert.match(testFile, /default_path_runs_persist_node/);
   assert.match(testFile, /node_error_short_circuits_to_end/);
   assert.match(testFile, /input\.persist \? 'persist' : 'END'/);
 });

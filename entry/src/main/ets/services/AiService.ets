@@ -85,11 +85,17 @@ export class AiService {
     };
 
     const dispatcher: Dispatcher = new Dispatcher();
-    const result: DispatchAnalysisResult = await dispatcher.analyze(req, this.context);
-    if (!result.success || result.classification === undefined) {
-      throw new Error(result.errorMessage ?? '识别失败');
+    const graph: CaptureGraph = dispatcher.buildGraph(req, { persist: false });
+    const initial: AgentState = {
+      captureText: '',
+      currentStep: 'START',
+      persist: false,
+    };
+    const finalState: AgentState = await graph.run(initial, { persist: false });
+    if (finalState.error !== undefined || finalState.classification === undefined) {
+      throw new Error(finalState.error?.message ?? '识别失败');
     }
-    return result.classification;
+    return finalState.classification;
   }
 
   // 内部: 把 entry 端 NoteDao 适配成 agents 端 NoteDaoInterface

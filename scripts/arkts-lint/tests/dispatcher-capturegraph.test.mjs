@@ -6,9 +6,9 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '../../..');
 const dispatcher = readFileSync(resolve(root, 'agents/src/main/ets/core/Dispatcher.ets'), 'utf8');
 
-test('Dispatcher exposes single dispatch entry plus read-only analyze wrapper', () => {
+test('Dispatcher exposes single dispatch entry only', () => {
   assert.equal((dispatcher.match(/async dispatch\(/g) || []).length, 1);
-  assert.equal((dispatcher.match(/async analyze\(/g) || []).length, 1);
+  assert.equal((dispatcher.match(/async analyze\(/g) || []).length, 0);
   assert.equal((dispatcher.match(/async routeDispatch\(/g) || []).length, 0);
 });
 
