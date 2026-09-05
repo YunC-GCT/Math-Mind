@@ -8,7 +8,7 @@
 > ⚠️ **Public 仓库注意事项**:
 > - API key / secret 一律走 env / vault,**不入 git**(per `docs/agents/security.md`)
 > - 历史 commit 也会被搜索到,所以**已 commit 的 secret 不能只删当前文件**,需 `git filter-repo` 或 BFG 清理历史(若发生泄露,立即 rotate key)
-> - 当前 `.github/CODEOWNERS` 默认 owner `@YunC-GCT`,已 public,评审自动指派
+> - 当前 `.github/CODEOWNERS` 三 owner 路由:`@YunC-GCT` / `@rc-shi` / `@cmnon159`(任一 approve 即可)
 
 ---
 
@@ -61,7 +61,7 @@
 > |字段 | 状态 |
 > |---|---|
 > | Require a pull request before merging | ✅ |
-> | Required approvals (number = 1) | ✅ |
+> | Required approvals (number = 1) | ☐ **(故意不勾)** — 用 CODEOWNERS 路由替代 |
 > | Require review from Code Owners | ☑ ✅ **(已勾,** CODEOWNERS 路由生效)|
 > | Require approval of the most recent reviewable push | ☐ (允许 self-approve 兜底)|
 > | Require status checks to pass | ✅ |
