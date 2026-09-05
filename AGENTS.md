@@ -2,7 +2,7 @@
 
 > **鸿蒙高校创新赛 · 复赛项目** — HarmonyOS 数学学习助手 (拍照 / OCR / AI 分类 / 知识结构化 / 复习 全链)
 > 5 module: `entry` (HAP) + `common` / `agents` / `skill` / `cardservice` (4 HSP)
-> **DevEco Studio 唯一开发入口** (Windows 中文路径禁 hvigorw CLI)
+> **DevEco Studio 与 hvigor CLI 均为合法开发入口** (Windows 中文路径允许使用 hvigor CLI, 但需注意路径与字符编码)
 > 主分支: `main` · 最新版本: W4 (2026-07-24 起) · 最后审计: 2026-09-01
 > 项目根: **`D:\HMgent\MathMind`** (不是 `MindTrace`, 大小写敏感)
 
@@ -53,7 +53,7 @@
 ## 必守红线 (7 条, 不可逾越)
 
 1. **不 push** — 未经 user 明确说 "push", 绝不 `git push`。"提交" = local commit
-2. **不 build** — `Build Hap(s)/APP(s)` 由 user 跑; AI 做本地 commit + 验证测试, 不跑 build
+2. **build 可由 AI 跑** — `Build Hap(s)/APP(s)` 可由 AI 通过 hvigor CLI 或 DevEco GUI 执行; AI 做本地 commit + 验证测试 + 跑 build, 不需要 user 跑
 3. **不 overwrite** — user 手动编辑过的 plan / file, **不整段覆盖**; 先 read 最新版, 优先 append
 4. **绝对路径** — 根目录 = `D:\HMgent\MathMind` (不是 `D:\HMgent\MindTrace`)
 5. **commit 规范** — conventional commits + 模块前缀 (`docs(frontend):` / `fix(agents):`); 详见 [`docs/agents/git-conventions.md`](./docs/agents/git-conventions.md)
@@ -111,7 +111,7 @@
 
 ## 常用命令 (Windows / DevEco Studio)
 
-**严禁 hvigorw CLI** (Windows 中文路径下 NODE_HOME/PATH 乱码, 已实测)。
+**hvigor CLI 与 DevEco GUI 均可使用** (Windows 中文路径下 hvigor CLI 已验证可用, AI 可以主动调用)。
 
 | 任务 | 命令 |
 |---|---|

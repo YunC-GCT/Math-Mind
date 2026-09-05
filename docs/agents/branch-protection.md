@@ -1,7 +1,12 @@
 # Branch protection rules
 
 > **MindTrace** 远程仓库的分支保护规则参考清单。2026-09-04 起,3 人协作 Git Flow 轻量版采用。
-> **Source-of-truth**: GitHub 仓库 Settings → Branches / Rulesets(你手动配置,AI 不操作)。
+> **Source-of-truth**: GitHub 仓库 Settings → Rulesets(2024+ 新版,替代 classic Branch protection)。本仓库当前 2 条 ruleset:
+>
+> - `protect-main`(id `22318353`):target `~DEFAULT_BRANCH` / active
+> - `protect-develop`(id `22318810`):target `refs/heads/develop` / active
+>
+> 通过 gh api 创建(2026-09-05)。重新创建时 ID 会变。
 >
 > **Visibility**: 仓库已设 **Public**(2026-09-04)。**Public 后所有 protection rules 自动 enforce**(private + free plan 下显示 "Not enforced" 的限制已解除);CODEOWNERS checkbox 现在可勾。
 >
@@ -9,6 +14,7 @@
 > - API key / secret 一律走 env / vault,**不入 git**(per `docs/agents/security.md`)
 > - 历史 commit 也会被搜索到,所以**已 commit 的 secret 不能只删当前文件**,需 `git filter-repo` 或 BFG 清理历史(若发生泄露,立即 rotate key)
 > - 当前 `.github/CODEOWNERS` 默认 owner `@YunC-GCT`,已 public,评审自动指派
+- 已创建 2 条 ruleset(见顶部 Source-of-truth),3 owner 任一 approve 即可,owner 可 self-approve 兜底
 
 ---
 
