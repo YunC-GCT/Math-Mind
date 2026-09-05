@@ -35,6 +35,7 @@ export class CaptureGraph {
   async run(initialState: AgentState, options: CaptureGraphOptions = {}): Promise<AgentState> {
     let state: AgentState = this.copyState(initialState, initialState.persist, 'START');
     let current: CaptureStep = 'START';
+    let lastStep: CaptureStep = 'START';
 
     while (current !== 'END') {
       const node: CaptureNode | undefined = this.nodes.get(current);
@@ -42,6 +43,7 @@ export class CaptureGraph {
         return this.withError(state, 'INVALID_GRAPH', 'Missing graph node: ' + current, current, false);
       }
 
+      lastStep = current;
       state = this.copyState(state, state.persist, current);
       const result: CaptureNodeResult = await node(state);
       state = result.state;
@@ -63,7 +65,8 @@ export class CaptureGraph {
       }
     }
 
-    return this.copyState(state, options.persist ?? state.persist, 'END');
+    const finalStep: CaptureStep = lastStep === 'persist' ? 'persist' : 'END';
+    return this.copyState(state, options.persist ?? state.persist, finalStep);
   }
 
   private copyState(state: AgentState, persist: boolean, currentStep: CaptureStep): AgentState {
