@@ -4,7 +4,7 @@
 > 5 module: `entry` (HAP) + `common` / `agents` / `skill` / `cardservice` (4 HSP)
 > **DevEco Studio 与 hvigor CLI 均为合法开发入口** (Windows 中文路径允许使用 hvigor CLI, 但需注意路径与字符编码)
 > 主分支: `main` · 最新版本: W4 (2026-07-24 起) · 最后审计: 2026-09-01
-> 项目根: **`D:\HMgent\MathMind`** (不是 `MindTrace`, 大小写敏感)
+> 项目: **MindTrace** (GitHub 仓库 `YunC-GCT/MindTrace`; MindTrace 是项目昵称; 本地目录名因机器而异, 文档一律用相对路径)
 
 ---
 
@@ -56,7 +56,7 @@
 1. **不 push** — 未经 user 明确说 "push", 绝不 `git push`。"提交" = local commit
 2. **build 可由 AI 跑** — `Build Hap(s)/APP(s)` 可由 AI 通过 hvigor CLI 或 DevEco GUI 执行; AI 做本地 commit + 验证测试 + 跑 build, 不需要 user 跑
 3. **不 overwrite** — user 手动编辑过的 plan / file, **不整段覆盖**; 先 read 最新版, 优先 append
-4. **绝对路径** — 根目录 = `D:\HMgent\MathMind` (不是 `D:\HMgent\MindTrace`)
+4. **相对路径** — 文档禁止盘符绝对路径: 仓库内引用一律相对路径, 工具位置用环境变量表达; 本地目录名因人而异, 以实际工作目录为准
 5. **commit 规范** — conventional commits + 模块前缀 (`docs(frontend):` / `fix(agents):`); 详见 [`docs/agents/git-conventions.md`](./docs/agents/git-conventions.md)
 6. **不进 `main`** — 所有改动 commit 到 `feature/*` / `bugfix/*` 分支, 通过 PR 合入 `develop`,user 手动 review + merge。详见 [`docs/agents/git-conventions.md`](./docs/agents/git-conventions.md) §"分支工作流"
 7. **worktree 互斥** — 多 session 共享同一 worktree 时, 一个 session 改时另一个别动; 多 worktree 用 `develop` 分支同步
@@ -116,7 +116,7 @@
 
 | 任务 | 命令 |
 |---|---|
-| Open 项目 | DevEco `File → Open → D:\HMgent\MathMind` (**不是** MindTrace) |
+| Open 项目 | DevEco `File → Open → <本地仓库根>` (目录名以各人克隆为准) |
 | Build / Run / Sync | DevEco GUI (`Build → Build Hap(s)/APP(s)`, `Run → Run 'entry'`) |
 | 启动 OCR 服务 | `python -m uvicorn ocr.app:app --port 8000` |
 | 跑 arkts-lint 测试 | `npm --prefix scripts/arkts-lint test` (70 测试) |
@@ -133,6 +133,6 @@
 | **CONTEXT.md** | 项目专属词汇 (19 个术语, 4 种 "agent" 消歧) | [`CONTEXT.md`](./CONTEXT.md) |
 | **ADR** | 架构决策记录 (7 个) | [`docs/adr/`](./docs/adr/) |
 | **Ticket specs** | 依 ADR 写的实施 spec (6 个) | [`docs/specs/`](./docs/specs/) |
-| **Issue tracker** | GitHub Issues on `YunC-GCT/Math-Mind`, via `gh` CLI | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md) |
+| **Issue tracker** | GitHub Issues on `YunC-GCT/MindTrace`, via `gh` CLI | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md) |
 | **Triage labels** | 5 标签: `needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix` | [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
 | **TDD / domain-modeling** | 按需调 skill, 不强制 | (内置 skill) |

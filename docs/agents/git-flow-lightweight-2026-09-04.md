@@ -103,7 +103,7 @@ git push -u origin release/<stage>
 ### 3.2 PR release → main
 
 ```
-https://github.com/YunC-GCT/Math-Mind/compare/main...release/<stage>?expand=1
+https://github.com/YunC-GCT/MindTrace/compare/main...release/<stage>?expand=1
 ```
 
 - Title: `chore(release): vX.Y — <简短描述>`
@@ -124,7 +124,7 @@ git push origin v<X.Y>
 
 ### 3.4 GitHub 发布 release 页面
 
-https://github.com/YunC-GCT/Math-Mind/releases → **Draft a new release**:
+https://github.com/YunC-GCT/MindTrace/releases → **Draft a new release**:
 
 - Tag: `v1.1`
 - Target: `main`
@@ -135,7 +135,7 @@ https://github.com/YunC-GCT/Math-Mind/releases → **Draft a new release**:
 ### 3.5 同步回 develop
 
 ```
-https://github.com/YunC-GCT/Math-Mind/compare/develop...main?expand=1
+https://github.com/YunC-GCT/MindTrace/compare/develop...main?expand=1
 ```
 
 - Title: `chore: sync main → develop after vX.Y`

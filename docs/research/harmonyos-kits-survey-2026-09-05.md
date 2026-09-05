@@ -1,7 +1,7 @@
 # HarmonyOS / OpenHarmony 官方 Kit 调研 — MindTrace 视角
 
 > **Date:** 2026-09-05
-> **Project:** MindTrace (`D:\HMgent\MathMind`,大小写敏感)
+> **Project:** MindTrace (`<本地仓库根>`
 > **Audience:** 团队对齐 + 评委 pitch 素材(读 §1)+ 实施选型(读 §2-§13)
 > **Scope:** 12 个 kit 家族的官方能力 + MindTrace 适配点 + 成本档位 + 不推荐理由
 > **基线:** `targetSdkVersion=6.1.1(24)` · `compatibleSdkVersion=6.1.1(24)` · `runtimeOS=HarmonyOS`
@@ -348,6 +348,6 @@ MindTrace **当前仅用了 7 个 kit/模块**(`@kit.ArkData` / `@kit.ArkTS` / `
 > **复现命令**:
 > ```bash
 > # 已用 kit
-> grep -rhE "from '@[a-z]+\.[a-z]+(\.[a-z]+)?'" --include="*.ets" D:/HMgent/MathMind | grep -oE "@[a-z]+\.[a-z]+(\.[a-z]+)?" | sort -u
+> grep -rhE "from '@[a-z]+\.[a-z]+(\.[a-z]+)?'" --include="*.ets" <本地仓库根> | grep -oE "@[a-z]+\.[a-z]+(\.[a-z]+)?" | sort -u
 > # DevEco 内查未用 kit 的 API 详情:打开任意 .ets → Ctrl+Click `import` → 跳转 API Reference
 > ```

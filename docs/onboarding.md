@@ -33,7 +33,7 @@ MindTrace is a **HarmonyOS math learning assistant** for the **鸿蒙高校创�
 
 ```bash
 # Are you in the right repo?
-pwd                                      # should be D:\HMgent\MathMind
+pwd                                      # should be <本地仓库根>
 git status                               # should be clean
 node scripts/naming-lint/index.mjs       # should print "OK: 0 violations"
 node scripts/link-check/index.mjs         # should print "OK: 0 broken links"
@@ -154,7 +154,7 @@ For ADR / spec / research format, see the corresponding template in [`docs/templ
 
 ## Where to ask questions
 
-- **Bug or feature request**: open a GitHub issue on `YunC-GCT/Math-Mind`
+- **Bug or feature request**: open a GitHub issue on `YunC-GCT/MindTrace`
 - **Naming / lint question**: see `docs/agents/naming-exceptions.md`
 - **CI failure**: see `docs/agents/ci-failure-workflow.md`
 - **TDD / domain-modeling / writing-for-agents**: invoke those skills
