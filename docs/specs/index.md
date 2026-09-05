@@ -15,6 +15,8 @@ an ADR (`docs/adr/`) and follows the same template.
 | **#9** | [`009-llm-config-throw-on-silent-override.md`](./009-llm-config-throw-on-silent-override.md) | (implicit, defensive coding principle) | spec for review (Phase 3) |
 | **#10** | [`010-mcp-to-tools-rename.md`](./010-mcp-to-tools-rename.md) | [`0005`](../adr/0005-mcp-to-tools-rename.md) | spec ready, not implemented |
 | **#11 / D2** | [`011-capturegraph-arkts-refactor.md`](./011-capturegraph-arkts-refactor.md) | D2 issue #9 / confirmed CaptureGraph decision | spec ready, not implemented |
+| **#12 / D3** | [`012-frontend-component-model.md`](./012-frontend-component-model.md) | D3 issue #10 | spec draft, awaiting review |
+| **#13 / D4** | [`013-kit-adoption-boundary.md`](./013-kit-adoption-boundary.md) | D4 issue #11 | spec draft, awaiting review |
 
 ## P0 tickets without spec
 
