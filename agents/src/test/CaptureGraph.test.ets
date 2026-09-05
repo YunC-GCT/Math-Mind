@@ -73,6 +73,36 @@ async function structureErrorStub(input: AgentState): Promise<CaptureNodeResult>
   return result;
 }
 
+async function startNodeStub(input: AgentState): Promise<CaptureNodeResult> {
+  const next: AgentState = {
+    captureText: input.captureText,
+    currentStep: input.currentStep,
+    persist: input.persist,
+  };
+  const result: CaptureNodeResult = { state: next };
+  return result;
+}
+
+async function passthroughNodeStub(input: AgentState): Promise<CaptureNodeResult> {
+  const result: CaptureNodeResult = { state: input };
+  return result;
+}
+
+async function persistTrackingNodeStub(input: AgentState, tracker: PersistTracker): Promise<CaptureNodeResult> {
+  tracker.ran = true;
+  const next: AgentState = {
+    captureText: input.captureText,
+    currentStep: 'persist',
+    persist: input.persist,
+  };
+  const result: CaptureNodeResult = { state: next };
+  return result;
+}
+
+class PersistTracker {
+  public ran: boolean = false;
+}
+
 export default function captureGraphTest(): void {
   describe('CaptureGraph.minimum_loop', () => {
     it('persist_false_skips_persist_node', 0, async () => {
@@ -94,27 +124,16 @@ export default function captureGraphTest(): void {
       expect(result.currentStep).assertEqual('END');
     });
 
-    it('default_path_reaches_persist', 0, async () => {
+    it('default_path_runs_persist_node', 0, async () => {
       const graph: CaptureGraph = new CaptureGraph();
-      graph.addNode('START', async (input: AgentState) => {
-        const result: AgentState = {
-          captureText: input.captureText,
-          currentStep: input.currentStep,
-          persist: input.persist,
-        };
-        return { state: result };
-      });
-      graph.addNode('capture', async (input: AgentState) => ({ state: input }));
-      graph.addNode('classify', async (input: AgentState) => ({ state: input }));
-      graph.addNode('structure', async (input: AgentState) => ({ state: input }));
-      graph.addNode('truth_check', async (input: AgentState) => ({ state: input }));
-      graph.addNode('persist', async (input: AgentState) => {
-        const result: AgentState = {
-          captureText: input.captureText,
-          currentStep: 'persist',
-          persist: input.persist,
-        };
-        return { state: result };
+      const tracker: PersistTracker = new PersistTracker();
+      graph.addNode('START', startNodeStub);
+      graph.addNode('capture', passthroughNodeStub);
+      graph.addNode('classify', passthroughNodeStub);
+      graph.addNode('structure', passthroughNodeStub);
+      graph.addNode('truth_check', passthroughNodeStub);
+      graph.addNode('persist', async (input: AgentState): Promise<CaptureNodeResult> => {
+        return await persistTrackingNodeStub(input, tracker);
       });
       graph.addEdge('START', 'capture');
       graph.addEdge('capture', 'classify');
@@ -122,7 +141,7 @@ export default function captureGraphTest(): void {
       graph.addEdge('structure', 'truth_check');
       graph.addConditionalEdge('truth_check', (input: AgentState) => input.persist ? 'persist' : 'END');
       const result: AgentState = await graph.run(state());
-      expect(result.currentStep).assertEqual('persist');
+      expect(tracker.ran).assertTrue();
       expect(result.error).assertUndefined();
     });
 
