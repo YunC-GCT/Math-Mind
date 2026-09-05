@@ -142,7 +142,7 @@ export default function captureGraphTest(): void {
       graph.addConditionalEdge('truth_check', (input: AgentState) => input.persist ? 'persist' : 'END');
       const result: AgentState = await graph.run(state());
       expect(tracker.ran).assertTrue();
-      expect(result.error === undefined).assertTrue();
+      expect(result.currentStep).assertEqual('persist');
     });
 
     it('node_error_short_circuits_to_end', 0, async () => {
