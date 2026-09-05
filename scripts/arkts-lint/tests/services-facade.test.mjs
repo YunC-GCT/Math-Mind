@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const root = resolve(import.meta.dirname, '../../..');
+const structure = readFileSync(resolve(root, 'agents/src/main/ets/agents/StructureService.ets'), 'utf8');
+const truthCheck = readFileSync(resolve(root, 'agents/src/main/ets/agents/TruthCheckService.ets'), 'utf8');
+const prompt = readFileSync(resolve(root, 'agents/src/main/ets/agents/PromptBuilder.ets'), 'utf8');
+
+test('StructureService facade delegates to KnowledgeModel structure and structureWithClassification', () => {
+  assert.match(structure, /class StructureService/);
+  assert.match(structure, /this\.model\.structure\(/);
+  assert.match(structure, /this\.model\.structureWithClassification\(/);
+});
+
+test('TruthCheckService facade exposes check(input)', () => {
+  assert.match(truthCheck, /class TruthCheckService/);
+  assert.match(truthCheck, /check\(input: string\): MvpTruthCheckResult/);
+});
+
+test('PromptBuilder facade exposes build(input)', () => {
+  assert.match(prompt, /class PromptBuilder/);
+  assert.match(prompt, /build\(input: string\): string/);
+});
+
+test('Façade files do not re-implement KnowledgeModel logic inline', () => {
+  assert.equal((structure.match(/this\.model\.structure\(/g) || []).length, 1);
+  assert.equal((structure.match(/this\.model\.structureWithClassification\(/g) || []).length, 1);
+  assert.equal((truthCheck.match(/legacy\.truthCheck\(/g) || []).length, 1);
+  assert.equal((prompt.match(/this\.model\.buildPrompt\(/g) || []).length, 1);
+});

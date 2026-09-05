@@ -68,7 +68,8 @@ export type LlmErrorKind =
   | 'EMPTY_RESPONSE'    // 响应内容为空
   | 'TIMEOUT'           // 超时
   | 'STREAM_FAILED'     // 流式传输中断
-  | 'PERSIST_ERROR';    // preferences 读写失败
+  | 'PERSIST_ERROR'     // preferences 读写失败
+  | 'NORMALIZE_KEYWORD_REJECTED'; // LlmConfig 拒绝保留关键词
 
 export class LlmError extends Error {
   public kind: LlmErrorKind;

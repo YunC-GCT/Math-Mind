@@ -10,8 +10,9 @@
 |---|---|---|---|
 | [`agent-framework-comparison-2026-09-02.md`](./agent-framework-comparison-2026-09-02.md) (.html) | 2026-09-02 | MindTrace 是否使用 LangGraph 等价框架?结论:不用,自建 Dispatcher + sub-agent 同步链 | active |
 | [`langgraph-migration-2026-09-02.md`](./langgraph-migration-2026-09-02.md) (.html) | 2026-09-02 | MindTrace → LangGraph 迁移可行性调研 | active |
-| [`2026-09-04-project-positioning.md`](./2026-09-04-project-positioning.md) | 2026-09-04 | 项目定位(摘要 + 详细双节),团队对齐与评委 pitch 用 | active |
+| [`project-positioning-2026-09-04.md`](./project-positioning-2026-09-04.md) | 2026-09-04 | 项目定位(摘要 + 详细双节),团队对齐与评委 pitch 用 | active |
 | [`_positioning-facts-2026-09-04.md`](./_positioning-facts-2026-09-04.md) | 2026-09-04 | 定位报告的一手事实底料(692 行,引用 80+ 源文件),下划线前缀 = 临时原料,不入正式索引 | raw / internal |
+| [`harmonyos-kits-survey-2026-09-05.md`](./harmonyos-kits-survey-2026-09-05.md) | 2026-09-05 | 12 个官方 kit 家族能力 + MindTrace 适配点 + 成本档位;P0 = FormKit/Reminder/BackgroundTasks,P1 = AIEngine/NLP | active |
 
 ## Cross-reference
 

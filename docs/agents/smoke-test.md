@@ -20,11 +20,11 @@
 | OCR 服务 (本地) | `python -m uvicorn ocr.app:app --port 8000` |
 | 单元测试 (Node) | `npm --prefix scripts/arkts-lint test` (70 tests) |
 | Lint 扫描 (v0.3 AST) | `node scripts/arkts-lint/index.mjs --quiet` |
-| Build / Run | **DevEco GUI** (不用 hvigorw CLI) |
+| Build / Run | **DevEco GUI 或 hvigor CLI** |
 
 ## 静态编译
 
-DevEco Studio → `Build` → `Build Hap(s)/APP(s)`
+DevEco Studio → `Build` → `Build Hap(s)/APP(s)` 或 hvigor CLI：`hvigor assembleHap` / `hvigor packageHap`
 
 ## 真机调试
 

@@ -127,3 +127,18 @@ export type {
   ContentProtocolRisk,
   ContentValidationResult,
 } from './render/ContentProtocol';
+
+// ========== D4 Kit facade 接缝契约 (spec 013) ==========
+//   只声明契约, 不 import @kit.*; 实现由 entry 层注入
+export type {
+  ReviewReminderRequest,
+  ReminderFacade,
+} from './kit/ReminderFacade';
+export type {
+  BackgroundTaskTag,
+  BackgroundTaskFacade,
+} from './kit/BackgroundTaskFacade';
+export type {
+  CardSnapshot,
+  FormCardFacade,
+} from './kit/FormCardFacade';

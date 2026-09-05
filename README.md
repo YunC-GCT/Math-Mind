@@ -60,7 +60,7 @@ W4 完成 **多 WebView 分块渲染方案**,解决 ArkUI WebView 1800vp 高度�
 - `ContentProtocol` / `LatexRiskNormalizer` / `ContentExcerptBuilder` / `LlmGuard` / `MarkdownRendererProtocol` 共 5 套单测全部通过
 - 真实数据库 AI 回放结果为 `renderMode=katex`,3 条历史笔记预览全部通过协议检查
 - `git diff --check` 无 whitespace error,ArkTS 1.1 禁用写法扫描无命中
-- 按项目约束不跑 `hvigorw`,DevEco Studio GUI Build / 真机滚动 / Profiler 内存峰值需手动确认
+- `hvigor CLI` 与 DevEco Studio GUI 均可用于 Build；真机滚动 / Profiler 内存峰值仍需手动确认
 
 ---
 
@@ -125,7 +125,7 @@ ArkUI Web 组件在此设备上有 **1800vp 高度上限**,超过后 WebView 完
 
 - 已新增“超长段落包含长行内公式”的 parser 回归测试，逐块检查公式定界符成对。
 - 已执行 `git diff --check` 和 ArkTS 1.1 禁用写法扫描。
-- 按项目约束不运行 `hvigorw`；DevEco Studio GUI Build、真机滚动流畅度和 Profiler 内存峰值需要手动确认。
+- `hvigor CLI` 与 DevEco Studio GUI 均可用于 Build；真机滚动流畅度和 Profiler 内存峰值需要手动确认。
 
 ---
 
@@ -458,7 +458,7 @@ MindTrace/
 └── cardservice/  # HAP · type:feature    元服务卡片
 ```
 
-编译状态: 5/5 module BUILD SUCCESSFUL(走 DevEco Studio GUI,不走命令行 hvigorw)。
+编译状态: 5/5 module BUILD SUCCESSFUL(走 DevEco Studio GUI 或 hvigor CLI 均可)。
 
 ---
 
@@ -775,9 +775,9 @@ Index.ets  ─→  AiService  ─→  Dispatcher  ─→  TypeClassifier  ─→
 
 ### 7.1 构建
 
-- **必须走 DevEco Studio GUI**(Build → Build Hap(s)/APP(s))
-- **不走命令行 `hvigorw`**: 中文路径乱码 + git 工作树状态干扰
-- AI 改完代码只做本地 commit + git status,build 结果等用户报回
+- **DevEco Studio GUI 与 hvigor CLI 均为合法入口**（Build → Build Hap(s)/APP(s))
+- `hvigor CLI` 可由 AI 主动调用，注意 Windows 中文路径下 `NODE_HOME`/`PATH` 的字符编码与工作树状态
+- AI 改完代码可本地 commit + git status，build 结果可由 AI 跑出后回报用户
 
 ### 7.2 整链真机验证流程
 
