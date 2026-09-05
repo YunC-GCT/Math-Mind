@@ -19,7 +19,7 @@
 | 规则 | 值 | 理由 |
 |---|---|---|
 | **Require a pull request before merging** | ✅ | 禁止直接 push |
-| **Required approvals** | `1`(owner 之外 1 人) | 团队 3 人,owner 收最后一道 |
+| **Required approvals** | `1`(可 owner self-approve,见下) | 团队 3 人小团队,允许 owner 自我 approve 提高效率 |
 | **Dismiss stale pull request approvals** | ✅ | 重新 push 后要求重 review |
 | **Require review from Code Owners** | ✅ | CODEOWNERS 自动指派 |
 | **Require status checks to pass** | ✅ | arkts-lint + naming-lint + link-check |
@@ -36,14 +36,45 @@
 | 规则 | 值 | 理由 |
 |---|---|---|
 | **Require a pull request before merging** | ✅ | feature/bugfix PR 合入 |
-| **Required approvals** | `1` | CODEOWNERS 自动指派 |
-| **Require review from Code Owners** | ✅ | 同样 |
+| **Required approvals** | `1`(owner self-approve 暂未 enforce,见 §3) | 当前 team 阶段允许 owner self-approve,见 §3 |
+| **Require review from Code Owners** | ☐ | **不勾**(避免因只有 1 个 owner 而 block PR),通过 §3 self-approve 策略补强 |
 | **Require status checks to pass** | ✅ | 同上 3 个 |
 | **Required status checks** | `arkts-lint` / `naming-lint` / `link-check` | |
 | **Require linear history** | ❌ | release/hotfix 允许 merge commit 保留历史;feature 用 squash merge 但不强制 linear |
 | **Include administrators** | ✅ | owner 自己也受规则约束 |
 | **Allow force pushes** | ❌ | |
 | **Allow deletions** | ❌ | develop 是长期分支,不可删 |
+
+### 3. 3-Owner 路由策略(2026-09-04 团队共识)
+
+> **背景**: 比赛项目 + 3 人小团队。`YunC-GCT` / `rc-shi` / `cmnon159` 都已加入 collaborator(Write权限)。
+>
+> **决定**: 采用 **3 owner 路由**:
+>
+> 1. **任何 CODEOWNERS 中列出的 owner**(默认 `@YunC-GCT` / `@rc-shi` / `@cmnon159` 中任一)approve 即可
+> 2. **不**勾选 `Require approval of the most recent reviewable push`(允许 owner 自我 approve,作为兜底——主流程仍是队友互审)
+> 3. **必须**所有 CI status checks 全绿(3 个 lint check)
+> 4. **必须** PR base 正确(feature/* → develop;hotfix/* / release/* → main)
+>
+> ### 3.1 当前实际勾选状态(终态)
+>
+> |字段 | 状态 |
+> |---|---|
+> | Require a pull request before merging | ✅ |
+> | Required approvals (number = 1) | ✅ |
+> | Require review from Code Owners | ☑ ✅ **(已勾,** CODEOWNERS 路由生效)|
+> | Require approval of the most recent reviewable push | ☐ (允许 self-approve 兜底)|
+> | Require status checks to pass | ✅ |
+> | Require conversation resolution | ✅ |
+> | Include administrators | ✅ |
+> | Allow force pushes | ☐ |
+> | Allow deletions | ☐ |
+>
+> ### 3.2 升级触发条件
+>
+> - 团队扩展到 5+ 人:加勾 `Require approval of the most recent reviewable push`,强制非作者 review
+> - 出现 release 节奏 + 严格 gate:加勾 `Required linear history`
+> - 有人故意放水:加勾 `Required signed commits` + CODEOWNERS 严化
 
 ### 3. 不受保护
 
