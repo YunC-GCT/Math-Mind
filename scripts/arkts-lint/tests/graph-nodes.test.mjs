@@ -19,12 +19,12 @@ test('CaptureGraph nodes are exposed via factory pattern', () => {
 });
 
 test('PersistNode honors persist flag and uses NoteDaoInterface', () => {
-  assert.match(persist, /if \(!state\.persist\)/);
+  assert.match(persist, /if \(!input\.persist\)/);
   assert.match(persist, /NoteDaoInterface/);
   assert.match(persist, /dao\.insert\(/);
 });
 
 test('StructureNode returns structured error on failure', () => {
   assert.match(structure, /STRUCTURE_ERROR/);
-  assert.match(structure, /next\.error = error/);
+  assert.match(structure, /error: error/);
 });

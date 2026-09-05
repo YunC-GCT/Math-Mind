@@ -6,17 +6,18 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '../../..');
 const dispatcher = readFileSync(resolve(root, 'agents/src/main/ets/core/Dispatcher.ets'), 'utf8');
 
-test('Dispatcher keeps compatibility wrappers but one request path', () => {
-  assert.match(dispatcher, /async dispatch\(/);
-  assert.match(dispatcher, /async analyze\(/);
-  assert.match(dispatcher, /async routeDispatch\(/);
-  assert.match(dispatcher, /private async analyzeRequest\(/);
-  assert.match(dispatcher, /private async dispatchRequest\(/);
+test('Dispatcher exposes single dispatch entry plus read-only analyze wrapper', () => {
   assert.equal((dispatcher.match(/async dispatch\(/g) || []).length, 1);
-  assert.equal((dispatcher.match(/private async dispatchRequest\(/g) || []).length, 1);
+  assert.equal((dispatcher.match(/async analyze\(/g) || []).length, 1);
+  assert.equal((dispatcher.match(/async routeDispatch\(/g) || []).length, 0);
 });
 
-test('Dispatcher has one dependency instance per request path', () => {
-  assert.equal((dispatcher.match(/new TypeClassifier\(/g) || []).length, 2);
-  assert.equal((dispatcher.match(/new KnowledgeModel\(/g) || []).length, 1);
+test('Dispatcher injects NoteDaoInterface into CaptureGraph via buildGraph', () => {
+  assert.match(dispatcher, /buildGraph\(req: DispatchRequest, options: DispatchOptions = \{\}\): CaptureGraph/);
+  assert.match(dispatcher, /PersistNodeFactory\.create\(options\.dao\)/);
+  assert.match(dispatcher, /addConditionalEdge\('truth_check', .*persist \? 'persist' : 'END'\)/);
+});
+
+test('Dispatcher instantiates one shared TypeClassifier inside buildGraph', () => {
+  assert.equal((dispatcher.match(/new TypeClassifier\(/g) || []).length, 1);
 });

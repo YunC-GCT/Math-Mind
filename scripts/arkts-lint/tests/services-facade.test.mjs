@@ -27,6 +27,6 @@ test('PromptBuilder facade exposes build(input)', () => {
 test('Façade files do not re-implement KnowledgeModel logic inline', () => {
   assert.equal((structure.match(/this\.model\.structure\(/g) || []).length, 1);
   assert.equal((structure.match(/this\.model\.structureWithClassification\(/g) || []).length, 1);
-  assert.equal((truthCheck.match(/this\.legacy\.truthCheck\(/g) || []).length, 1);
+  assert.equal((truthCheck.match(/legacy\.truthCheck\(/g) || []).length, 1);
   assert.equal((prompt.match(/this\.model\.buildPrompt\(/g) || []).length, 1);
 });
