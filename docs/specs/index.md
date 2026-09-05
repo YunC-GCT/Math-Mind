@@ -14,6 +14,7 @@ an ADR (`docs/adr/`) and follows the same template.
 | **#7** | [`007-agent-chat-service-decomposition.md`](./007-agent-chat-service-decomposition.md) | (implicit) | spec ready, not implemented |
 | **#9** | [`009-llm-config-throw-on-silent-override.md`](./009-llm-config-throw-on-silent-override.md) | (implicit, defensive coding principle) | spec for review (Phase 3) |
 | **#10** | [`010-mcp-to-tools-rename.md`](./010-mcp-to-tools-rename.md) | [`0005`](../adr/0005-mcp-to-tools-rename.md) | spec ready, not implemented |
+| **#11 / D2** | [`011-capturegraph-arkts-refactor.md`](./011-capturegraph-arkts-refactor.md) | D2 issue #9 / confirmed CaptureGraph decision | spec ready, not implemented |
 
 ## P0 tickets without spec
 
