@@ -119,7 +119,7 @@ export default function captureGraphTest(): void {
       graph.addEdge('structure', 'truth_check');
       graph.addConditionalEdge('truth_check', (input: AgentState) => input.persist ? 'persist' : 'END');
       const result: AgentState = await graph.run(state(false));
-      expect(result.error).assertUndefined();
+      expect(result.error === undefined).assertTrue();
       expect(result.persist).assertFalse();
       expect(result.currentStep).assertEqual('END');
     });
@@ -142,7 +142,7 @@ export default function captureGraphTest(): void {
       graph.addConditionalEdge('truth_check', (input: AgentState) => input.persist ? 'persist' : 'END');
       const result: AgentState = await graph.run(state());
       expect(tracker.ran).assertTrue();
-      expect(result.error).assertUndefined();
+      expect(result.error === undefined).assertTrue();
     });
 
     it('node_error_short_circuits_to_end', 0, async () => {
