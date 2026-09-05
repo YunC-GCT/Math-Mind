@@ -121,8 +121,8 @@ export class KnowledgeModel {
       : undefined;
     const chapterHint: string = classificationHint.chapter ?? chapter;
 
-    // 尝试 AI 结构化；失败时暂时沿用 fallback 笔记，不丢数据。
-    // TODO: 后续改为结构化失败直接返回错误，由上层阻止入库，避免生成低质量占位笔记。
+    // D2 spec 011 §9: AI 失败时显式报错, 不再生成 fallback 占位笔记污染 RDB 与复习调度。
+    // 上层 StructureNode 会把该异常转为图错误 (STRUCTURE_ERROR), 阻止持久化。
     let aiRaw: AiRawResponse;
     try {
       aiRaw = await this.callAi(
@@ -133,14 +133,9 @@ export class KnowledgeModel {
         classificationHint.confidence,
       );
     } catch (aiErr) {
-      console.warn('[KnowledgeModel] AI call failed, using fallback: ' + (aiErr as Error).message);
-      return this.buildFallbackFromClassify(
-        ocrText,
-        classificationHint.type,
-        classificationHint.subject,
-        chapterHint,
-        source,
-      );
+      const errMsg: string = (aiErr as Error).message ?? String(aiErr);
+      console.warn('[KnowledgeModel] AI structure failed: ' + errMsg);
+      throw new Error('AI 结构化失败: ' + errMsg);
     }
     const ext: KnowledgeUnitExt = createUnitExt(aiRaw.category, aiRaw.subject, aiRaw.title, ocrText);
     ext.fields = aiRaw.fields;
@@ -213,52 +208,6 @@ export class KnowledgeModel {
       related: [],
       embedding: [],
       userId: ext.userId,
-      version: 1,
-    };
-  }
-
-  // AI 调用失败 fallback: 用 TypeClassifier 已有分类结果构造基础笔记
-  // TODO: 后续删除该 fallback，改成显式失败，不再自动创建笔记。
-  // 不调 AI，直接返回 KnowledgeUnit（标题来自 OCR 首行，标签来自分类结果）
-  private buildFallbackFromClassify(
-    ocrText: string, type?: string, subject?: string, chapter: string = '', source: string = 'camera_capture',
-  ): KnowledgeUnit {
-    const now: number = Date.now();
-    const fallbackCategory: KnowledgeCategory = this.normalizeCategory(type ?? '', undefined);
-    const fallbackSubject: string = this.normalizeSubject(subject ?? '', undefined);
-    const firstLine: string = ocrText.split('\n')[0].trim();
-    const title: string = (firstLine.length > 3 && firstLine.length < 60)
-      ? firstLine
-      : fallbackCategory + ' · ' + fallbackSubject;
-    const tags: string[] = [];
-    tags.push(fallbackCategory);
-    if (chapter.length > 0) { tags.push(chapter); }
-    const summaryExcerpt: string = this.contentExcerptBuilder.buildPlainSummary(ocrText, 220);
-    const summary: string = summaryExcerpt.length > 0 ? summaryExcerpt : title;
-
-    console.info('[KnowledgeModel] fallback note created, title=' + title);
-    return {
-      id: this.uuid(),
-      title: title,
-      content: '## 内容\n' + ocrText,
-      summary: summary,
-      tags: tags,
-      subject: fallbackSubject,
-      category: fallbackCategory,
-      chapter: chapter,
-      difficulty: DifficultyLevel.MEDIUM,
-      source: source,
-      createdAt: now,
-      updatedAt: now,
-      reviewStatus: ReviewStatus.NEW,
-      nextReviewAt: now + 24 * 60 * 60 * 1000,
-      intervalDays: 1,
-      easeFactor: 2.5,
-      repetitions: 0,
-      prerequisites: [],
-      related: [],
-      embedding: [],
-      userId: '',
       version: 1,
     };
   }
