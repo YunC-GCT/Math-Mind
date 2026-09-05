@@ -11,12 +11,15 @@ import { OcrNodeFactory } from '../graph/nodes/OcrNode';
 import { ClassifyNodeFactory } from '../graph/nodes/ClassifyNode';
 import { StructureNodeFactory } from '../graph/nodes/StructureNode';
 import { TruthCheckNodeFactory } from '../graph/nodes/TruthCheckNode';
+import { PersistNodeFactory } from '../graph/nodes/PersistNode';
+import { NoteDaoInterface } from '../models/NoteDaoInterface';
 
 const log = new Logger('Dispatcher');
 
 export interface DispatchOptions {
   persist?: boolean;
   includeRawText?: boolean;
+  dao?: NoteDaoInterface;
 }
 
 export class Dispatcher {
@@ -26,57 +29,64 @@ export class Dispatcher {
     return 'file_import';
   }
 
+  // D2 唯一公共入口: 跑 CaptureGraph, 失败返回结构化错误。
+  async dispatch(req: DispatchRequest, context?: Context, options: DispatchOptions = {}): Promise<DispatchResult> {
+    return await this.dispatchRequest(req, options);
+  }
+
+  // analyze 改为 dispatch 的只读 wrapper: 跳过 PersistNode
   async analyze(req: DispatchRequest, context?: Context): Promise<DispatchAnalysisResult> {
-    return await this.analyzeRequest(req, context);
+    return await this.analyzeRequest(req);
   }
 
-  async dispatch(req: DispatchRequest, context?: Context): Promise<DispatchResult> {
-    return await this.dispatchRequest(req, context);
-  }
-
-  async routeDispatch(req: DispatchRequest, context?: Context): Promise<DispatchResult> {
-    return await this.dispatch(req, context);
-  }
-
-  private async analyzeRequest(req: DispatchRequest, context?: Context): Promise<DispatchAnalysisResult> {
+  private async analyzeRequest(req: DispatchRequest): Promise<DispatchAnalysisResult> {
     const t0: number = Date.now();
     log.info('analyze enter, source=' + req.source + ', payload.kind=' + req.payload.kind);
-    try {
-      const classifier: TypeClassifier = new TypeClassifier();
-      const classification: ClassificationResult = await classifier.classify(req.payload, context);
-      let recognizedText: string = classification.ocrText ?? '';
-      if (recognizedText.length === 0 && req.payload.kind === 'text') {
-        recognizedText = req.payload.text;
-      }
-      return {
-        success: true,
-        route: 'D1',
-        classification: classification,
-        recognizedText: recognizedText,
-        durationMs: Date.now() - t0,
-      };
-    } catch (e) {
-      const errMsg: string = (e as Error).message ?? String(e);
-      log.error('analyze failed: ' + errMsg);
+    const initial: AgentState = {
+      captureText: '',
+      currentStep: 'START',
+      persist: false,
+    };
+    const graph: CaptureGraph = this.buildGraph(req);
+    const finalState: AgentState = await graph.run(initial, { persist: false });
+    const error: CaptureGraphError | undefined = finalState.error;
+    if (error !== undefined) {
+      log.error('analyze failed: ' + error.message);
       return {
         success: false,
         route: 'D1',
-        errorMessage: '识别失败: ' + errMsg,
+        errorMessage: '识别失败: ' + error.message,
         durationMs: Date.now() - t0,
       };
     }
+    const classification = finalState.classification;
+    if (classification === undefined) {
+      return {
+        success: false,
+        route: 'D1',
+        errorMessage: '识别失败: 未返回分类结果',
+        durationMs: Date.now() - t0,
+      };
+    }
+    return {
+      success: true,
+      route: 'D1',
+      classification: classification,
+      recognizedText: finalState.captureText,
+      durationMs: Date.now() - t0,
+    };
   }
 
-  private async dispatchRequest(req: DispatchRequest, context?: Context): Promise<DispatchResult> {
+  private async dispatchRequest(req: DispatchRequest, options: DispatchOptions): Promise<DispatchResult> {
     const t0: number = Date.now();
     log.info('dispatch enter, source=' + req.source + ', payload.kind=' + req.payload.kind);
     const initial: AgentState = {
       captureText: '',
       currentStep: 'START',
-      persist: true,
+      persist: options.persist !== false,
     };
-    const graph: CaptureGraph = this.buildGraph(req);
-    const finalState: AgentState = await graph.run(initial, { persist: true });
+    const graph: CaptureGraph = this.buildGraph(req, options);
+    const finalState: AgentState = await graph.run(initial, { persist: options.persist !== false });
     const error: CaptureGraphError | undefined = finalState.error;
     if (error !== undefined) {
       log.error('capture graph failed: ' + error.kind + ' step=' + error.step + ' msg=' + error.message);
@@ -104,7 +114,7 @@ export class Dispatcher {
     };
   }
 
-  private buildGraph(req: DispatchRequest): CaptureGraph {
+  buildGraph(req: DispatchRequest, options: DispatchOptions = {}): CaptureGraph {
     const graph: CaptureGraph = new CaptureGraph();
     const classifier: TypeClassifier = new TypeClassifier();
     const structure: StructureService = new StructureService();
@@ -121,7 +131,11 @@ export class Dispatcher {
     graph.addNode('classify', ClassifyNodeFactory.create(classifier));
     graph.addNode('structure', StructureNodeFactory.create(structure));
     graph.addNode('truth_check', TruthCheckNodeFactory.create(truth));
-    graph.addNode('persist', async (input: AgentState) => ({ state: input }));
+    if (options.dao !== undefined) {
+      graph.addNode('persist', PersistNodeFactory.create(options.dao));
+    } else {
+      graph.addNode('persist', async (input: AgentState) => ({ state: input }));
+    }
     graph.addEdge('START', 'capture');
     graph.addEdge('capture', 'classify');
     graph.addEdge('classify', 'structure');

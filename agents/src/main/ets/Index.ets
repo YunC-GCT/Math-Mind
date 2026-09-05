@@ -29,6 +29,12 @@ export { KnowledgeModel } from './agents/KnowledgeModel';
 export { OcrTool } from './mcp/tools/OcrTool';
 export type { OcrRecognitionResult } from './mcp/tools/OcrTool';
 
+// 模型与扩展类型
+export type { KnowledgeUnitExt, StructuredField, AiRawResponse } from './models/KnowledgeUnitExt';
+
+// 持久化接口 (D2 Ticket #5: entry 通过该接口注入 NoteDao 实现)
+export type { NoteDaoInterface } from './models/NoteDaoInterface';
+
 // 重新导出 DispatchPayload 类型(定义在 common/models/CaptureChain.ets)
 //   UI 端 (entry/) 可以 `import type { DispatchPayload } from 'agents'`
 //   也可以从 'common' 拿,两种都行
