@@ -176,9 +176,10 @@ entry/src/main/ets/
 **修复**（每次新终端会话执行，或写入 shell profile）：
 
 ```bash
-export DEVECO_SDK_HOME="D:\\HarmoNova\\DevEco Studio\\sdk"
-export JAVA_HOME="D:\\HarmoNova\\DevEco Studio\\jbr"
-export PATH="/d/HarmoNova/DevEco Studio/jbr/bin:$PATH"
+# <DEVECO> = 本机 DevEco Studio 安装目录（各机器不同，无盘符默认值）
+export DEVECO_SDK_HOME="<DEVECO>/sdk"
+export JAVA_HOME="<DEVECO>/jbr"
+export PATH="<DEVECO>/jbr/bin:$PATH"
 # 环境变更后必须重启 daemon，否则旧环境继续生效：
 hvigorw --stop-daemon
 ```
@@ -190,7 +191,7 @@ hvigorw --stop-daemon
 
 ## 7. Hypium 调试操作清单
 
-- 在 DevEco Studio 中打开 `D:\HMgent\MathMind`
+- 在 DevEco Studio 中打开 `<本地仓库根>`
 - 等待 hvigor Sync 完成
 - 左键 `agents/src/test/List.test.ets` 或 `CaptureGraph.test.ets`
 - 右键 → `Run 'List.test'` 或 `Run 'CaptureGraph.test'`

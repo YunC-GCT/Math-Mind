@@ -16,7 +16,6 @@
 
 ## Cross-reference
 
-- 架构体检报告(HTML,不在 git 仓): `C:\Users\YunCeH\AppData\Local\Temp\architecture-review-20260904-131757Z.html` — `improve-codebase-architecture` skill 产物,落 OS temp 而非仓内(per skill 约定)
 - 关联审计: [`../legacy/mindtrace/architecture/audit-full-2026-09-01.md`](../legacy/mindtrace/architecture/audit-full-2026-09-01.md)
 - ADR / Spec: [`../adr/`](../adr/) / [`../specs/`](../specs/)
 

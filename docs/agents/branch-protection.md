@@ -97,9 +97,9 @@
 > **api 更新命令**(gh CLI,需 admin scope `repo`):
 >
 > ```bash
-> gh api --method PUT /repos/YunC-GCT/Math-Mind/rulesets/22318353 \
+> gh api --method PUT /repos/YunC-GCT/MindTrace/rulesets/22318353 \
 >   --input .scratch/protect-main.json
-> gh api --method PUT /repos/YunC-GCT/Math-Mind/rulesets/22318810 \
+> gh api --method PUT /repos/YunC-GCT/MindTrace/rulesets/22318810 \
 >   --input .scratch/protect-develop.json
 > ```
 >
@@ -130,9 +130,9 @@
 | 2026-09-04 | Private → **Public** | 比赛项目需要公开 commit history / PR 供评委查看;同时解开 private + free plan 下 "Not enforced" 的限制 |
 
 切换步骤(owner 操作,AI 不做):
-1. https://github.com/YunC-GCT/Math-Mind/settings/general → 滚到 Danger Zone
+1. https://github.com/YunC-GCT/MindTrace/settings/general → 滚到 Danger Zone
 3. **Change repository visibility** → 选 Public
-4. 二次确认输仓库全名 `YunC-GCT/Math-Mind`
+4. 二次确认输仓库全名 `YunC-GCT/MindTrace`
 
 切换后:
 - `main` / `develop` ruleset 自动从 "Not enforced" → enforce

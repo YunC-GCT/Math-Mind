@@ -1,6 +1,6 @@
 # MindTrace · 数学学习助手
 
-> 工程: [YunC-GCT/Math-Mind](https://github.com/YunC-GCT/Math-Mind) · HarmonyOS 数学学习助手
+> 工程: [YunC-GCT/MindTrace](https://github.com/YunC-GCT/MindTrace) · HarmonyOS 数学学习助手
 > 作者: YunC-GCT <2549237929@qq.com> · 当前主笔: Z
 > 最近更新: 2026-09-01 · 当前版本: **v1.0**(2026-09-04 release)
 > 全代码库架构审计 + arkts-lint v0.3 (AST) + GitHub Actions CI 已落地
