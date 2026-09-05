@@ -9,6 +9,15 @@ export const AGENTS_VERSION = 'v0.0.3';
 
 // 主 Agent 调度中枢(Z)
 export { Dispatcher } from './core/Dispatcher';
+export { CaptureGraph } from './graph/CaptureGraph';
+export type {
+  AgentState,
+  CaptureGraphError,
+  CaptureNode,
+  CaptureNodeResult,
+  CaptureStep,
+} from './graph/AgentState';
+export type { CaptureGraphOptions } from './graph/CaptureGraph';
 
 // 子 Agent(D 责任 - 写真实现,L 责任 - 写真实现)
 //   当前为 stub,接 DispatchPayload discriminated union
