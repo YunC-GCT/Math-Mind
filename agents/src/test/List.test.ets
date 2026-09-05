@@ -6,7 +6,9 @@
  */
 
 import knowledgeModelTest from './KnowledgeModel.test';
+import captureGraphTest from './CaptureGraph.test';
 
 export default function testsuite() {
   knowledgeModelTest();
+  captureGraphTest();
 }
