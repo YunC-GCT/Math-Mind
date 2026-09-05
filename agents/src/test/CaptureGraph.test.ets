@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from '@ohos/hypium';
 import { CaptureGraph } from '../main/ets/graph/CaptureGraph';
-import { AgentState, CaptureNode, CaptureGraphError } from '../main/ets/graph/AgentState';
+import { AgentState, CaptureGraphError, CaptureNode, CaptureNodeResult, CaptureStep } from '../main/ets/graph/AgentState';
 
 function state(persist: boolean = true): AgentState {
   const initial: AgentState = {
@@ -14,8 +14,8 @@ function state(persist: boolean = true): AgentState {
   return initial;
 }
 
-function addNode(graph: CaptureGraph, step: AgentState['currentStep'], value: string): void {
-  const node: CaptureNode = async (input: AgentState) => {
+function addNode(graph: CaptureGraph, step: CaptureStep, value: string): void {
+  const node: CaptureNode = async (input: AgentState): Promise<CaptureNodeResult> => {
     const updated: AgentState = {
       captureText: input.captureText + value,
       currentStep: input.currentStep,
@@ -33,41 +33,44 @@ function addNode(graph: CaptureGraph, step: AgentState['currentStep'], value: st
     if (input.error !== undefined) {
       updated.error = input.error;
     }
-    return { state: updated };
+    const result: CaptureNodeResult = { state: updated };
+    return result;
   };
   graph.addNode(step, node);
 }
 
-async function persistErrorStub(input: AgentState): Promise<{ state: AgentState }> {
+async function persistErrorStub(input: AgentState): Promise<CaptureNodeResult> {
   const error: CaptureGraphError = {
     kind: 'PERSIST_ERROR',
     message: 'must not run',
     step: 'persist',
     retriable: false,
   };
-  const result: AgentState = {
+  const next: AgentState = {
     captureText: input.captureText,
     currentStep: input.currentStep,
     persist: input.persist,
     error: error,
   };
-  return { state: result };
+  const result: CaptureNodeResult = { state: next };
+  return result;
 }
 
-async function structureErrorStub(input: AgentState): Promise<{ state: AgentState }> {
+async function structureErrorStub(input: AgentState): Promise<CaptureNodeResult> {
   const error: CaptureGraphError = {
     kind: 'STRUCTURE_ERROR',
     message: 'invalid json',
     step: 'structure',
     retriable: false,
   };
-  const result: AgentState = {
+  const next: AgentState = {
     captureText: input.captureText,
     currentStep: input.currentStep,
     persist: input.persist,
     error: error,
   };
-  return { state: result };
+  const result: CaptureNodeResult = { state: next };
+  return result;
 }
 
 export default function captureGraphTest(): void {
