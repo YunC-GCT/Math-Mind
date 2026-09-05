@@ -4,7 +4,7 @@ import { StudyPlanViewModel } from "../../viewmodels/StudyPlanViewModel"
 import { ReviewGraphView } from "./ReviewGraphView"
 import { ReviewPlanView } from "./ReviewPlanView"
 import { ReviewTabSwitch } from "./ReviewTabSwitch"
-import { AppIcon } from "../../shared/components/AppIcon"
+import { AppIcon } from "../../shared/atoms/AppIcon"
 import { UiDataCacheService } from "../../services/UiDataCacheService"
 
 const REVIEW_TAB_PLAN: number = 0
