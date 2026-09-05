@@ -167,6 +167,27 @@ entry/src/main/ets/
 - `assembleApp`：构建整个 APP，**不能**叠加 `-p module=...`
 - Hypium 测试走 `:agents:default@UnitTestArkTS`，只能由 DevEco GUI 触发
 
+### 6.11 hvigor CLI 环境要求（Windows 终端直跑必读）
+
+**症状**：`Invalid value of 'DEVECO_SDK_HOME'` 或 `spawn java ENOENT`，构建直接失败——即使同一项目在 DevEco Studio GUI 里能正常构建。
+
+**根因**：hvigor **daemon 继承首次启动时的环境变量**。在 IDE 外的终端（Git Bash / PowerShell）首次调用 hvigorw 时，daemon 以终端的空环境启动，缺少 SDK 与 Java 路径；且 daemon 一旦存在，后续改环境变量也不会生效。
+
+**修复**（每次新终端会话执行，或写入 shell profile）：
+
+```bash
+export DEVECO_SDK_HOME="D:\\HarmoNova\\DevEco Studio\\sdk"
+export JAVA_HOME="D:\\HarmoNova\\DevEco Studio\\jbr"
+export PATH="/d/HarmoNova/DevEco Studio/jbr/bin:$PATH"
+# 环境变更后必须重启 daemon，否则旧环境继续生效：
+hvigorw --stop-daemon
+```
+
+**要点**：
+- `jbr` 是 DevEco 自带 JRE（本机为 JBR-21），不必装系统 Java
+- `--stop-daemon` 后的**下一次** hvigorw 调用会以新环境重新拉起 daemon
+- GUI 内构建不受影响（IDE 注入自己的环境）；此坑只影响终端直跑
+
 ## 7. Hypium 调试操作清单
 
 - 在 DevEco Studio 中打开 `D:\HMgent\MathMind`

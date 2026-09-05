@@ -440,7 +440,7 @@ README.md      # 状态条 + 维护手册
 - `docs/template/` + `docs/index.md` + `docs/onboarding.md`
 - `docs/research/agent-framework-comparison-2026-09-02.md`
 - `docs/research/langgraph-migration-2026-09-02.md`
-- `docs/research/2026-09-04-project-positioning.md`(本报告)
+- `docs/research/project-positioning-2026-09-04.md`(本报告)
 
 **git 引用**:
 - HEAD: `5963493 fix(ci): add 'permissions: contents: read' to both workflows`
