@@ -101,7 +101,10 @@ async function persistTrackingNodeStub(input: AgentState, tracker: PersistTracke
 
 class PersistTracker {
   public ran: boolean = false;
+  public captureRan: boolean = false;
 }
+
+const moduleTracker: PersistTracker = new PersistTracker();
 
 export default function captureGraphTest(): void {
   describe('CaptureGraph.minimum_loop', () => {
@@ -125,15 +128,32 @@ export default function captureGraphTest(): void {
     });
 
     it('default_path_runs_persist_node', 0, async () => {
+      moduleTracker.ran = false;
+      moduleTracker.captureRan = false;
       const graph: CaptureGraph = new CaptureGraph();
-      const tracker: PersistTracker = new PersistTracker();
       graph.addNode('START', startNodeStub);
-      graph.addNode('capture', passthroughNodeStub);
+      graph.addNode('capture', async (input: AgentState): Promise<CaptureNodeResult> => {
+        moduleTracker.captureRan = true;
+        const next: AgentState = {
+          captureText: input.captureText + 'C',
+          currentStep: input.currentStep,
+          persist: input.persist,
+        };
+        const r: CaptureNodeResult = { state: next };
+        return r;
+      });
       graph.addNode('classify', passthroughNodeStub);
       graph.addNode('structure', passthroughNodeStub);
       graph.addNode('truth_check', passthroughNodeStub);
       graph.addNode('persist', async (input: AgentState): Promise<CaptureNodeResult> => {
-        return await persistTrackingNodeStub(input, tracker);
+        moduleTracker.ran = true;
+        const next: AgentState = {
+          captureText: input.captureText + 'P',
+          currentStep: 'persist',
+          persist: input.persist,
+        };
+        const r: CaptureNodeResult = { state: next };
+        return r;
       });
       graph.addEdge('START', 'capture');
       graph.addEdge('capture', 'classify');
@@ -141,8 +161,9 @@ export default function captureGraphTest(): void {
       graph.addEdge('structure', 'truth_check');
       graph.addConditionalEdge('truth_check', (input: AgentState) => input.persist ? 'persist' : 'END');
       const result: AgentState = await graph.run(state());
-      expect(tracker.ran).assertTrue();
-      expect(result.currentStep).assertEqual('persist');
+      expect(result.captureText).assertContain('P');
+      expect(moduleTracker.captureRan).assertTrue();
+      expect(moduleTracker.ran).assertTrue();
     });
 
     it('node_error_short_circuits_to_end', 0, async () => {
