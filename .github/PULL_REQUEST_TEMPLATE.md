@@ -12,6 +12,12 @@
 
 **Type**: <!-- one of: feat / fix / refactor / docs / test / chore / style -->
 
+**Branch type**: <!-- one of: feature / release / hotfix / bugfix; per `docs/agents/git-conventions.md` §"分支工作流" -->
+
+**Target branch**: <!-- usually `develop` for feature/bugfix, `main` for release/hotfix -->
+
+**Merge strategy**: <!-- squash for feature/bugfix; merge commit for release/hotfix -->
+
 ---
 
 ## Changes
@@ -75,7 +81,7 @@
 <!-- For the reviewer — copy to comments when reviewing -->
 
 - [ ] Commit messages follow conventional commits + module prefix (per [`docs/agents/git-conventions.md`](../docs/agents/git-conventions.md))
-- [ ] Commits land on `YunCeH` (not `main`)
+- [ ] Commits land on `feature/*` / `bugfix/*` / `hotfix/*` / `release/*` (per `docs/agents/git-conventions.md` §"分支工作流");NOT on `main` or `develop`
 - [ ] No secrets / API keys committed (per [`docs/agents/security.md`](../docs/agents/security.md))
 - [ ] Diff size is proportional to ticket scope (no drive-by refactors)
 - [ ] Public API changes called out in Summary

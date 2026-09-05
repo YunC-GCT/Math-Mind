@@ -57,8 +57,8 @@
 3. **不 overwrite** — user 手动编辑过的 plan / file, **不整段覆盖**; 先 read 最新版, 优先 append
 4. **绝对路径** — 根目录 = `D:\HMgent\MathMind` (不是 `D:\HMgent\MindTrace`)
 5. **commit 规范** — conventional commits + 模块前缀 (`docs(frontend):` / `fix(agents):`); 详见 [`docs/agents/git-conventions.md`](./docs/agents/git-conventions.md)
-6. **不进 `main`** — 所有改动 commit 到 `YunCeH`, user 手动 review + merge
-7. **worktree 互斥** — 多 session 共享同一 worktree 时, 一个 session 改时另一个别动; 多 worktree 用 `YunCeH` 分支同步
+6. **不进 `main`** — 所有改动 commit 到 `feature/*` / `bugfix/*` 分支, 通过 PR 合入 `develop`,user 手动 review + merge。详见 [`docs/agents/git-conventions.md`](./docs/agents/git-conventions.md) §"分支工作流"
+7. **worktree 互斥** — 多 session 共享同一 worktree 时, 一个 session 改时另一个别动; 多 worktree 用 `develop` 分支同步
 
 ---
 
